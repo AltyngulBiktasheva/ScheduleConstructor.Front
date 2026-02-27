@@ -1,0 +1,274 @@
+.panel {
+  width: 280px;
+  background-color: #f8f9fa;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  height: fit-content;
+  max-height: calc(7 * 100px + 140px);
+  top: 20px;
+  position: relative;
+  transition: all 0.3s;
+
+  &.dragOver {
+    background-color: rgba(74, 144, 226, 0.05);
+    box-shadow: 0 4px 16px rgba(74, 144, 226, 0.2);
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border: 2px dashed #4a90e2;
+      border-radius: 12px;
+      pointer-events: none;
+    }
+  }
+}
+
+.header {
+  margin-bottom: 20px;
+
+  h3 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    color: #666;
+  }
+}
+
+.disciplinesList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  padding-right: 8px;
+  min-height: 200px;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 10px;
+
+    &:hover {
+      background: #999;
+    }
+  }
+}
+
+.count {
+  background: #4a90e2;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.dropHint {
+  margin-top: 8px;
+  padding: 8px;
+  background: rgba(74, 144, 226, 0.1);
+  border-radius: 6px;
+  font-size: 12px;
+  color: #4a90e2;
+  text-align: center;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+.disciplineCard {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  cursor: grab;
+  transition: all 0.2s;
+  border-left: 4px solid var(--discipline-color);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '⋮⋮';
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #ccc;
+    font-size: 20px;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+    &::before {
+      opacity: 1;
+    }
+  }
+
+  &:active {
+    cursor: grabbing;
+    opacity: 0.9;
+    transform: scale(0.98);
+  }
+
+  &.success {
+    background-color: rgba(76, 175, 80, 0.05);
+    border-left-color: #4caf50;
+  }
+
+  &.warning {
+    background-color: rgba(255, 152, 0, 0.05);
+    border-left-color: #ff9800;
+  }
+
+  &.error {
+    background-color: rgba(244, 67, 54, 0.05);
+    border-left-color: #f44336;
+  }
+
+  &.placed {
+    opacity: 0.5;
+    cursor: default;
+    filter: grayscale(0.5);
+
+    &:hover {
+      transform: none;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    &::before {
+      display: none;
+    }
+  }
+}
+
+.placedBadge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: #4caf50;
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 32px 16px;
+  color: #999;
+
+  p {
+    margin: 0 0 8px 0;
+  }
+
+  .hint {
+    font-size: 12px;
+    color: #ccc;
+  }
+}
+
+.stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #666;
+
+  span {
+    background: #f0f0f0;
+    padding: 4px 8px;
+    border-radius: 4px;
+  }
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.code {
+  font-size: 12px;
+  color: #999;
+  font-weight: 500;
+  background: #f0f0f0;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.hours {
+  font-size: 12px;
+  background-color: #e9ecef;
+  padding: 2px 8px;
+  border-radius: 12px;
+  color: #495057;
+  font-weight: 500;
+}
+
+.cardBody {
+  margin-bottom: 8px;
+}
+
+.name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.description {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.4;
+}
+
+.footer {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e9ecef;
+}
+
+.total {
+  font-size: 13px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Стиль для превью при перетаскивании */
+.dragPreview {
+  position: fixed;
+  top: -1000px;
+  left: -1000px;
+  pointer-events: none;
+  z-index: 9999;
+}

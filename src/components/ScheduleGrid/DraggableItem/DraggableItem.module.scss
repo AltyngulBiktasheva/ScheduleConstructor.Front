@@ -1,0 +1,85 @@
+.item {
+  position: relative;
+  width: 100%;
+  background-color: #4a90e2;
+  color: white;
+  border-radius: 4px;
+  cursor: grab;
+  z-index: 1000;
+  box-sizing: border-box;
+  border: 2px solid #2171c7;
+  pointer-events: auto;
+  transition: opacity 0.1s;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  opacity: 0.9;
+
+  &:hover {
+    opacity: 1;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  &:active {
+    cursor: grabbing;
+    opacity: 0.8;
+  }
+
+  &.dragging {
+    opacity: 0.8;
+    transform: scale(1.02);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  }
+}
+
+.deleteButton {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+  }
+}
+
+.dragPreview {
+  position: fixed;
+  top: -1000px;
+  left: -1000px;
+  padding: 8px;
+  border-radius: 4px;
+  color: white;
+  font-size: 12px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  pointer-events: none;
+}
+
+.content {
+  text-align: center;
+  font-size: 12px;
+  width: 100%;
+}
+
+.title {
+  font-weight: bold;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.time {
+  font-size: 10px;
+  opacity: 0.9;
+}
