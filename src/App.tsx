@@ -1,5 +1,12 @@
-import {MainContainer} from "./MainContainer/MainContainer.tsx";
+import { MainContainer } from './components/MainContainer/MainContainer';
+import './App.css';
 
-export const App = () => {
-  return <MainContainer/>;
-};
+function App() {
+  return (
+      <div className="app">
+        <MainContainer />
+      </div>
+  );
+}
+
+export default App;

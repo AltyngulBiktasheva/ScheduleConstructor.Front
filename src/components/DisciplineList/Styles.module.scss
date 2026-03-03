@@ -1,0 +1,17 @@
+.container {
+  width: 200px;
+  min-width: 200px;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #333;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}

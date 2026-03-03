@@ -1,0 +1,74 @@
+.grid {
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.header {
+  display: flex;
+  background: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.timeColumn {
+  width: 120px;
+  min-width: 120px;
+  padding: 12px;
+  font-weight: 600;
+  border-right: 1px solid #dee2e6;
+}
+
+.dayHeader {
+  width: 200px;
+  min-width: 200px;
+  padding: 12px;
+  font-weight: 600;
+  text-align: center;
+  border-right: 1px solid #dee2e6;
+
+  &:last-child {
+    border-right: none;
+  }
+}
+
+.body {
+  display: flex;
+}
+
+.timeColumn {
+  width: 120px;
+  min-width: 120px;
+  background: #f8f9fa;
+
+  .timeSlot {
+    height: 100px;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #dee2e6;
+    border-right: 1px solid #dee2e6;
+    font-size: 14px;
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+}
+
+.dayColumn {
+  width: 200px;
+  min-width: 200px;
+}
+
+.slotContainer {
+  height: 100px;
+  border-bottom: 1px solid #dee2e6;
+  border-right: 1px solid #dee2e6;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
