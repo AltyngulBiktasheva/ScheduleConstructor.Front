@@ -7,6 +7,7 @@ import 'tippy.js/dist/tippy.css';
 interface Props {
     discipline: Discipline;
     isInGrid?: boolean;
+    isInYellowSlot?: boolean;
     onDragStart?: (e: React.DragEvent) => void;
     onClick?: () => void;
 }
@@ -14,6 +15,7 @@ interface Props {
 export const DisciplineCard: React.FC<Props> = ({
                                                     discipline,
                                                     isInGrid = false,
+                                                    isInYellowSlot = false,
                                                     onDragStart,
                                                     onClick
                                                 }) => {
@@ -26,7 +28,7 @@ export const DisciplineCard: React.FC<Props> = ({
 
     const cardContent = (
         <div
-            className={`${styles.card} ${isInGrid ? styles.inGrid : ''}`}
+            className={`${styles.card} ${isInGrid ? styles.inGrid : ''} ${isInYellowSlot ? styles.yellowSlot : ''}`}
             draggable
             onDragStart={onDragStart}
             onClick={onClick}

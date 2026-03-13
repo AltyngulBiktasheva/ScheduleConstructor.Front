@@ -23,6 +23,15 @@
     border-color: #40c057;
     background: #f8f9fa;
   }
+
+  &.yellowSlot {
+    border-color: #ffd43b;
+    background: #fff9db;
+
+    &:hover {
+      box-shadow: 0 4px 8px rgba(255, 212, 59, 0.2);
+    }
+  }
 }
 
 .title {

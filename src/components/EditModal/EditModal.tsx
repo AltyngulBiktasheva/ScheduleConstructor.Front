@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { Discipline, GridSlot } from '../../types';
 import { DAYS } from '../../constants/days';
+import { TIME_SLOTS } from '../../constants/timeSlots';
 import { BUILDING_OPTIONS, type BuildingType } from '../../constants/buildings';
 import styles from './Styles.module.scss';
 
@@ -24,7 +25,82 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose, slots 
         });
     };
 
+    const findFreeSlotByTime = (timeStart: string, timeEnd: string): { slotId: string, dayId: string } | null => {
+        // Ищем временной слот, соответствующий указанному времени
+        const targetTimeSlot = TIME_SLOTS.find(slot =>
+            slot.start === timeStart && slot.end === timeEnd
+        );
+
+        if (!targetTimeSlot) return null;
+
+        // Проверяем каждый день недели по порядку
+        for (const day of DAYS) {
+            const slot = slots.find(s =>
+                s.timeSlotId === targetTimeSlot.id &&
+                s.dayId === day.id
+            );
+
+            // Если слот существует, не занят и не красный
+            if (slot && !slot.disciplineId && slot.color !== 'red') {
+                return { slotId: slot.id, dayId: slot.dayId };
+            }
+        }
+
+        return null;
+    };
+
+    const findFreeSlotByDay = (dayId: string): { slotId: string, timeStart: string, timeEnd: string } | null => {
+        // Проверяем каждый временной слот по порядку
+        for (const timeSlot of TIME_SLOTS) {
+            const slot = slots.find(s =>
+                s.timeSlotId === timeSlot.id &&
+                s.dayId === dayId
+            );
+
+            // Если слот существует, не занят и не красный
+            if (slot && !slot.disciplineId && slot.color !== 'red') {
+                return {
+                    slotId: slot.id,
+                    timeStart: timeSlot.start,
+                    timeEnd: timeSlot.end
+                };
+            }
+        }
+
+        return null;
+    };
+
+    const checkSlotAvailability = (dayId: string, timeStart: string, timeEnd: string): { available: boolean, reason?: string } => {
+        const targetTimeSlot = TIME_SLOTS.find(slot =>
+            slot.start === timeStart && slot.end === timeEnd
+        );
+
+        if (!targetTimeSlot) {
+            return { available: false, reason: 'Указано некорректное время' };
+        }
+
+        const targetSlot = slots.find(s =>
+            s.timeSlotId === targetTimeSlot.id &&
+            s.dayId === dayId
+        );
+
+        if (!targetSlot) {
+            return { available: false, reason: 'Слот не найден' };
+        }
+
+        if (targetSlot.color === 'red') {
+            return { available: false, reason: 'Нельзя разместить дисциплину в красном слоте' };
+        }
+
+        if (targetSlot.disciplineId && targetSlot.disciplineId !== formData.id) {
+            return { available: false, reason: 'Данное время уже занято другой дисциплиной' };
+        }
+
+        return { available: true };
+    };
+
     const handleSave = () => {
+        // Валидация обязательных полей
         if (!formData.name) {
             setError('Название дисциплины обязательно');
             return;
@@ -45,32 +121,70 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose, slots 
             return;
         }
 
-        if (formData.isInGrid) {
-            if (!formData.timeStart || !formData.timeEnd) {
-                setError('Для дисциплины в сетке время проведения обязательно');
+        // Создаем копию данных для обновления
+        let updatedData = { ...formData };
+
+        // Логика для дисциплин в сетке
+        if (updatedData.isInGrid) {
+            // Проверяем, указаны ли день и время
+            const hasDayAndTime = updatedData.dayId && updatedData.timeStart && updatedData.timeEnd;
+            const hasOnlyTime = updatedData.timeStart && updatedData.timeEnd && !updatedData.dayId;
+            const hasOnlyDay = updatedData.dayId && (!updatedData.timeStart || !updatedData.timeEnd);
+
+            // Если поля не заполнены - оставляем дисциплину без изменений
+            if (!hasDayAndTime && !hasOnlyTime && !hasOnlyDay) {
+                // Возвращаем оригинальную дисциплину без изменений
+                onSave(discipline);
                 return;
             }
 
-            if (!formData.dayId) {
-                setError('День недели обязателен');
-                return;
+            // Случай 1: Указаны и день, и время
+            if (hasDayAndTime) {
+                const availability = checkSlotAvailability(updatedData.dayId!, updatedData.timeStart!, updatedData.timeEnd!);
+
+                if (!availability.available) {
+                    setError(availability.reason || 'Невозможно разместить дисциплину');
+                    return;
+                }
+
+                // Находим ID слота
+                const targetTimeSlot = TIME_SLOTS.find(slot =>
+                    slot.start === updatedData.timeStart && slot.end === updatedData.timeEnd
+                );
+                const targetSlot = slots.find(s =>
+                    s.timeSlotId === targetTimeSlot?.id &&
+                    s.dayId === updatedData.dayId
+                );
+                updatedData.slotId = targetSlot?.id;
             }
+            // Случай 2: Указано только время
+            else if (hasOnlyTime) {
+                const freeSlot = findFreeSlotByTime(updatedData.timeStart!, updatedData.timeEnd!);
 
-            // Проверка на занятость слота
-            const isSlotOccupied = slots.some(slot =>
-                slot.dayId === formData.dayId &&
-                slot.timeSlotId === formData.slotId &&
-                slot.disciplineId &&
-                slot.disciplineId !== formData.id
-            );
+                if (freeSlot) {
+                    updatedData.dayId = freeSlot.dayId;
+                    updatedData.slotId = freeSlot.slotId;
+                } else {
+                    setError('Нет свободных дней на указанное время');
+                    return;
+                }
+            }
+            // Случай 3: Указан только день
+            else if (hasOnlyDay) {
+                const freeSlot = findFreeSlotByDay(updatedData.dayId!);
 
-            if (isSlotOccupied) {
-                setError('Данное время уже занято другой дисциплиной');
-                return;
+                if (freeSlot) {
+                    updatedData.timeStart = freeSlot.timeStart;
+                    updatedData.timeEnd = freeSlot.timeEnd;
+                    updatedData.slotId = freeSlot.slotId;
+                } else {
+                    setError('В выбранный день нет свободных слотов');
+                    return;
+                }
             }
         }
 
-        onSave(formData);
+        onSave(updatedData);
     };
 
     return (
@@ -133,15 +247,15 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose, slots 
                         </div>
                     )}
 
-                    {formData.isInGrid && (
+                    {discipline.isInGrid && (
                         <>
                             <div className={styles.field}>
-                                <label>День недели *</label>
+                                <label>День недели</label>
                                 <select
                                     value={formData.dayId || ''}
-                                    onChange={(e) => setFormData({ ...formData, dayId: e.target.value })}
+                                    onChange={(e) => setFormData({ ...formData, dayId: e.target.value || undefined })}
                                 >
-                                    <option value="">Выберите день</option>
+                                    <option value="">Не указан</option>
                                     {DAYS.map(day => (
                                         <option key={day.id} value={day.id}>{day.name}</option>
                                     ))}
@@ -149,21 +263,35 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose, slots 
                             </div>
 
                             <div className={styles.field}>
-                                <label>Время проведения *</label>
+                                <label>Время проведения</label>
                                 <div className={styles.timeRange}>
-                                    <input
-                                        type="text"
-                                        placeholder="__:__"
+                                    <select
                                         value={formData.timeStart || ''}
-                                        onChange={(e) => setFormData({ ...formData, timeStart: e.target.value })}
-                                    />
+                                        onChange={(e) => {
+                                            const timeStart = e.target.value;
+                                            const timeSlot = TIME_SLOTS.find(slot => slot.start === timeStart);
+                                            setFormData({
+                                                ...formData,
+                                                timeStart: timeStart || undefined,
+                                                timeEnd: timeSlot?.end || undefined
+                                            });
+                                        }}
+                                    >
+                                        <option value="">Начало</option>
+                                        {TIME_SLOTS.map(slot => (
+                                            <option key={slot.id} value={slot.start}>{slot.displayStart}</option>
+                                        ))}
+                                    </select>
                                     <span>-</span>
-                                    <input
-                                        type="text"
-                                        placeholder="__:__"
+                                    <select
                                         value={formData.timeEnd || ''}
-                                        onChange={(e) => setFormData({ ...formData, timeEnd: e.target.value })}
-                                    />
+                                        onChange={(e) => setFormData({ ...formData, timeEnd: e.target.value || undefined })}
+                                    >
+                                        <option value="">Конец</option>
+                                        {TIME_SLOTS.map(slot => (
+                                            <option key={slot.id} value={slot.end}>{slot.displayEnd}</option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
 

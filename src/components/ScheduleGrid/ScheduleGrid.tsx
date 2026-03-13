@@ -9,7 +9,6 @@ import styles from './Styles.module.scss';
 interface Props {
     slots: GridSlot[];
     disciplines: Discipline[];
-    onDrop?: (disciplineId: string, slotId: string) => void;
     onMove?: (disciplineId: string, targetSlotId: string) => void;
     onDisciplineClick: (discipline: Discipline) => void;
 }
@@ -17,7 +16,6 @@ interface Props {
 export const ScheduleGrid: React.FC<Props> = ({
                                                   slots,
                                                   disciplines,
-                                                  onDrop,
                                                   onMove,
                                                   onDisciplineClick
                                               }) => {
@@ -28,8 +26,15 @@ export const ScheduleGrid: React.FC<Props> = ({
     const handleDrop = (e: React.DragEvent, slotId: string) => {
         e.preventDefault();
         const disciplineId = e.dataTransfer.getData('disciplineId');
+
+        // Проверяем цвет слота перед перемещением
+        const targetSlot = slots.find(s => s.id === slotId);
+        if (targetSlot?.color === 'red') {
+            alert('Нельзя разместить дисциплину в красном слоте');
+            return;
+        }
+
         onMove && onMove(disciplineId, slotId);
-        onDrop && onDrop(disciplineId, slotId);
     };
 
     return (
@@ -60,6 +65,9 @@ export const ScheduleGrid: React.FC<Props> = ({
                                 ? disciplines.find(d => d.id === slot.disciplineId)
                                 : undefined;
 
+                            // Проверяем, находится ли дисциплина в желтом слоте
+                            const isInYellowSlot = slot?.color === 'yellow' && Boolean(discipline);
+
                             return (
                                 <div
                                     key={`${day.id}-${timeSlot.id}`}
@@ -76,6 +84,7 @@ export const ScheduleGrid: React.FC<Props> = ({
                                                 <DisciplineCard
                                                     discipline={discipline}
                                                     isInGrid={true}
+                                                    isInYellowSlot={isInYellowSlot}
                                                     onDragStart={(e) => {
                                                         e.dataTransfer.setData('disciplineId', discipline.id);
                                                     }}

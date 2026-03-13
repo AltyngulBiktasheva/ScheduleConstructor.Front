@@ -3,6 +3,7 @@ import { ScheduleGrid } from '../ScheduleGrid/ScheduleGrid';
 import { DisciplineList } from '../DisciplineList/DisciplineList';
 import { EditModal } from '../EditModal/EditModal';
 import type { Discipline, GridSlot } from '../../types';
+import { TIME_SLOTS } from '../../constants/timeSlots';
 import { MOCK_DISCIPLINES, MOCK_SLOTS } from '../../mockData';
 import styles from './Styles.module.scss';
 
@@ -10,15 +11,6 @@ export const MainContainer: React.FC = () => {
     const [disciplines, setDisciplines] = useState<Discipline[]>(MOCK_DISCIPLINES);
     const [slots, setSlots] = useState<GridSlot[]>(MOCK_SLOTS);
     const [editingDiscipline, setEditingDiscipline] = useState<Discipline | null>(null);
-
-    // const handleDisciplineDrop = (disciplineId: string, slotId: string) => {
-    //     setDisciplines(prev => prev.map(d =>
-    //         d.id === disciplineId ? { ...d, isInGrid: true, slotId } : d
-    //     ));
-    //     setSlots(prev => prev.map(s =>
-    //         s.id === slotId ? { ...s, disciplineId } : s
-    //     ));
-    // };
 
     const handleDisciplineReturn = (disciplineId: string) => {
         setDisciplines(prev => {
@@ -36,15 +28,29 @@ export const MainContainer: React.FC = () => {
 
     const handleDisciplineMove = (disciplineId: string, targetSlotId: string) => {
         const targetSlot = slots.find((s) => s.id === targetSlotId);
-        console.log('PREV: ', disciplines);
 
-        if (!targetSlot || targetSlot.disciplineId) {
+        // Проверяем, можно ли переместить дисциплину
+        if (!targetSlot) {
             return;
         }
 
+        // Нельзя перемещать в красный слот
+        if (targetSlot.color === 'red') {
+            alert('Нельзя разместить дисциплину в красном слоте');
+            return;
+        }
+
+        // Если слот занят другой дисциплиной
+        if (targetSlot.disciplineId && targetSlot.disciplineId !== disciplineId) {
+            alert('Этот слот уже занят другой дисциплиной');
+            return;
+        }
+
+        // Находим информацию о временном слоте
+        const timeSlotInfo = TIME_SLOTS.find(ts => ts.id === targetSlot.timeSlotId);
+
         setSlots(prev => {
             const oldSlot = prev.find(s => s.disciplineId === disciplineId);
-            console.log('OLD: ', oldSlot);
 
             return prev.map(s => {
                 if (s.id === oldSlot?.id) {
@@ -57,17 +63,36 @@ export const MainContainer: React.FC = () => {
             });
         });
 
-        setDisciplines(prev => prev.map(d => {
-            return d.id === disciplineId ? { ...d, slotId: targetSlotId } : d
-        }));
+        setDisciplines(prev => prev.map(d =>
+            d.id === disciplineId ? {
+                ...d,
+                slotId: targetSlotId,
+                dayId: targetSlot.dayId,
+                timeStart: timeSlotInfo?.start,
+                timeEnd: timeSlotInfo?.end,
+                isInGrid: true
+            } : d
+        ));
     };
 
     const handleDisciplineClick = (discipline: Discipline) => {
-        console.log('CLICKED DISCIPLINE: ', discipline);
         setEditingDiscipline(discipline);
     };
 
     const handleSaveDiscipline = (updatedDiscipline: Discipline) => {
+        // Если дисциплина была в сетке и у неё изменился slotId
+        if (updatedDiscipline.isInGrid && updatedDiscipline.slotId) {
+            // Очищаем старый слот
+            setSlots(prev => prev.map(s =>
+                s.disciplineId === updatedDiscipline.id ? { ...s, disciplineId: undefined } : s
+            ));
+
+            // Заполняем новый слот
+            setSlots(prev => prev.map(s =>
+                s.id === updatedDiscipline.slotId ? { ...s, disciplineId: updatedDiscipline.id } : s
+            ));
+        }
+
         setDisciplines(prev => prev.map(d =>
             d.id === updatedDiscipline.id ? updatedDiscipline : d
         ));
