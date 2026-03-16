@@ -1,0 +1,234 @@
+@use '../../../styles/variables' as *;
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: $space-5;
+  background: $color-white;
+  border-radius: $border-radius-lg;
+  box-shadow: $shadow;
+  padding: $space-6;
+  max-width: 720px;
+}
+
+.row2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $space-4;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// ─── Radio / Checkbox ────────────────────────────────────────────────────────
+
+.radioGroup {
+  display: flex;
+  gap: $space-5;
+  flex-wrap: wrap;
+  padding: $space-2 0;
+}
+
+.radioLabel {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  cursor: pointer;
+  font-size: $font-size-base;
+  color: $color-gray-700;
+
+  input[type='radio'] {
+    accent-color: $color-primary;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+  }
+}
+
+.checkList {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+  padding: $space-2;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  max-height: 200px;
+  overflow-y: auto;
+  background: $color-gray-50;
+}
+
+.checkLabel {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  cursor: pointer;
+  font-size: $font-size-base;
+  color: $color-gray-700;
+  padding: $space-1 $space-2;
+  border-radius: $border-radius-sm;
+  transition: background $transition-fast;
+
+  &:hover { background: $color-gray-100; }
+
+  input[type='checkbox'] {
+    accent-color: $color-primary;
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+}
+
+// ─── Occurrences ─────────────────────────────────────────────────────────────
+
+.occurrences {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.occurrenceRow {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  flex-wrap: wrap;
+}
+
+.daySelect {
+  flex: 1;
+  min-width: 120px;
+  padding: $space-2 $space-2;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  font-size: $font-size-base;
+  color: $color-gray-800;
+  background: $color-white;
+  font-family: $font-family;
+  cursor: pointer;
+
+  &:focus { outline: none; border-color: $color-primary; }
+}
+
+.timeInput {
+  width: 72px;
+  padding: $space-2 $space-2;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  font-size: $font-size-base;
+  text-align: center;
+  font-family: monospace;
+  color: $color-gray-800;
+  background: $color-white;
+
+  &:focus {
+    outline: none;
+    border-color: $color-primary;
+    box-shadow: 0 0 0 3px rgba($color-primary, 0.1);
+  }
+}
+
+.timeSep {
+  color: $color-gray-400;
+}
+
+// ─── Audiences ───────────────────────────────────────────────────────────────
+
+.audienceList {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.audienceRow {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  flex-wrap: wrap;
+}
+
+.buildingSelect {
+  min-width: 140px;
+  padding: $space-2 $space-2;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  font-size: $font-size-base;
+  color: $color-gray-800;
+  background: $color-white;
+  font-family: $font-family;
+  cursor: pointer;
+
+  &:focus { outline: none; border-color: $color-primary; }
+}
+
+.audienceInput {
+  width: 120px;
+  padding: $space-2 $space-2;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  font-size: $font-size-base;
+  color: $color-gray-800;
+  background: $color-white;
+  font-family: $font-family;
+
+  &:focus {
+    outline: none;
+    border-color: $color-primary;
+    box-shadow: 0 0 0 3px rgba($color-primary, 0.1);
+  }
+}
+
+// ─── Shared small controls ────────────────────────────────────────────────────
+
+.removeBtn {
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  color: $color-gray-400;
+  cursor: pointer;
+  border-radius: $border-radius-sm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  transition: all $transition-fast;
+  flex-shrink: 0;
+
+  &:hover { background: $slot-red; color: $color-danger; }
+}
+
+.addBtn {
+  align-self: flex-start;
+  padding: $space-1 $space-3;
+  border: 1px dashed $border-color;
+  border-radius: $border-radius;
+  background: transparent;
+  color: $color-primary;
+  font-size: $font-size-sm;
+  cursor: pointer;
+  font-family: $font-family;
+  transition: all $transition-fast;
+
+  &:hover { border-color: $color-primary; background: $color-primary-light; }
+}
+
+// ─── Actions ─────────────────────────────────────────────────────────────────
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: $space-3;
+  padding-top: $space-2;
+  border-top: 1px solid $border-color;
+}
+
+.resetConfirm {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  margin-left: auto;
+  font-size: $font-size-sm;
+  color: $color-gray-600;
+}

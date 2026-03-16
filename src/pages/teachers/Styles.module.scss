@@ -1,0 +1,13 @@
+@use '../../styles/variables' as *;
+
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: $color-bg;
+}
+
+.content {
+  flex: 1;
+  padding: $space-6;
+}

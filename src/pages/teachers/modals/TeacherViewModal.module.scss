@@ -1,0 +1,107 @@
+@use '../../../styles/variables' as *;
+
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: $space-5;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+}
+
+.sectionTitle {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-gray-500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding-bottom: $space-2;
+  border-bottom: 1px solid $border-color;
+}
+
+.noWishes {
+  font-size: $font-size-base;
+  color: $color-gray-400;
+  text-align: center;
+  padding: $space-5 0;
+}
+
+.wishGroups {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+}
+
+.wishGroup {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.wishGroupLabel {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  padding: 2px $space-2;
+  border-radius: $border-radius-sm;
+  align-self: flex-start;
+
+  &.preferred {
+    background: $slot-green;
+    color: #15803d;
+    border: 1px solid $slot-green-border;
+  }
+
+  &.undesirable {
+    background: $slot-yellow;
+    color: #a16207;
+    border: 1px solid $slot-yellow-border;
+  }
+
+  &.forbidden {
+    background: $slot-red;
+    color: $color-danger;
+    border: 1px solid $slot-red-border;
+  }
+}
+
+.wishList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+  padding-left: $space-3;
+
+  li {
+    font-size: $font-size-base;
+    color: $color-gray-700;
+    position: relative;
+
+    &::before {
+      content: '·';
+      position: absolute;
+      left: -$space-3;
+      color: $color-gray-400;
+    }
+  }
+}
+
+.comment {
+  font-size: $font-size-base;
+  color: $color-gray-600;
+  line-height: 1.6;
+  background: $color-gray-50;
+  border-radius: $border-radius;
+  padding: $space-3;
+  border-left: 3px solid $border-color;
+}
+
+.confirmText {
+  font-size: $font-size-base;
+  color: $color-gray-700;
+  line-height: 1.7;
+
+  strong { color: $color-gray-900; }
+}

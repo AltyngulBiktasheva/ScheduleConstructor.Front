@@ -1,0 +1,19 @@
+@use '../../styles/variables' as *;
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px $space-2;
+  border-radius: 999px;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  white-space: nowrap;
+  line-height: 1.6;
+}
+
+.blue   { background: $color-primary-light;   color: $color-primary;  border: 1px solid rgba($color-primary, 0.2); }
+.green  { background: $slot-green;             color: #15803d;         border: 1px solid $slot-green-border; }
+.yellow { background: $slot-yellow;            color: #a16207;         border: 1px solid $slot-yellow-border; }
+.red    { background: $slot-red;               color: $color-danger;   border: 1px solid $slot-red-border; }
+.gray   { background: $color-gray-100;         color: $color-gray-600; border: 1px solid $color-gray-200; }
+.purple { background: #f5f3ff;                 color: #7c3aed;         border: 1px solid #ddd6fe; }

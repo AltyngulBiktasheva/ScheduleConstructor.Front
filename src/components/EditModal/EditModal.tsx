@@ -1,331 +1,270 @@
 import React, { useState } from 'react';
-import type { Discipline, GridSlot } from '../../types';
+import type { Discipline, WeeklyOccurrence } from '../../types';
 import { DAYS } from '../../constants/days';
-import { TIME_SLOTS } from '../../constants/timeSlots';
 import { BUILDING_OPTIONS, type BuildingType } from '../../constants/buildings';
 import styles from './Styles.module.scss';
 
 interface Props {
-    discipline: Discipline;
-    onSave: (discipline: Discipline) => void;
-    onClose: () => void;
-    slots: GridSlot[];
+  discipline: Discipline;
+  onSave: (discipline: Discipline) => void;
+  onClose: () => void;
 }
 
-export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose, slots }) => {
-    const [formData, setFormData] = useState<Discipline>({ ...discipline });
-    const [error, setError] = useState<string>('');
+export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
+  const [formData, setFormData] = useState<Discipline>({ ...discipline });
+  const [error, setError] = useState('');
 
-    const handleBuildingChange = (building: BuildingType) => {
-        setFormData({
-            ...formData,
-            building,
-            buildingName: building === 'other' ? '' : undefined,
-            audience: building === 'online' ? undefined : formData.audience
-        });
-    };
+  const handleBuildingChange = (building: BuildingType) => {
+    setFormData({
+      ...formData,
+      building,
+      buildingName: building === 'other' ? '' : undefined,
+      audience: building === 'online' ? undefined : formData.audience,
+    });
+  };
 
-    const findFreeSlotByTime = (timeStart: string, timeEnd: string): { slotId: string, dayId: string } | null => {
-        // Ищем временной слот, соответствующий указанному времени
-        const targetTimeSlot = TIME_SLOTS.find(slot =>
-            slot.start === timeStart && slot.end === timeEnd
-        );
+  const handleOccurrenceChange = (index: number, field: keyof WeeklyOccurrence, value: string) => {
+    const occs = [...(formData.occurrences || [])];
+    occs[index] = { ...occs[index], [field]: value };
+    setFormData({ ...formData, occurrences: occs });
+  };
 
-        if (!targetTimeSlot) return null;
+  const addOccurrence = () => {
+    setFormData({
+      ...formData,
+      occurrences: [
+        ...(formData.occurrences || []),
+        { dayId: 'mon', timeStart: '09:00', timeEnd: '10:30' },
+      ],
+    });
+  };
 
-        // Проверяем каждый день недели по порядку
-        for (const day of DAYS) {
-            const slot = slots.find(s =>
-                s.timeSlotId === targetTimeSlot.id &&
-                s.dayId === day.id
-            );
+  const removeOccurrence = (index: number) => {
+    const occs = (formData.occurrences || []).filter((_, i) => i !== index);
+    setFormData({ ...formData, occurrences: occs });
+  };
 
-            // Если слот существует, не занят и не красный
-            if (slot && !slot.disciplineId && slot.color !== 'red') {
-                return { slotId: slot.id, dayId: slot.dayId };
-            }
-        }
+  const handleSave = () => {
+    if (!formData.name.trim()) {
+      setError('Название дисциплины обязательно');
+      return;
+    }
+    if (!formData.building) {
+      setError('Корпус обязателен');
+      return;
+    }
+    if (formData.building === 'other' && !formData.buildingName) {
+      setError('Название корпуса обязательно');
+      return;
+    }
+    onSave(formData);
+  };
 
-        return null;
-    };
+  const showAudience =
+    formData.building === 'turgeneva' ||
+    formData.building === 'kuybysheva' ||
+    formData.building === 'other';
 
-    const findFreeSlotByDay = (dayId: string): { slotId: string, timeStart: string, timeEnd: string } | null => {
-        // Проверяем каждый временной слот по порядку
-        for (const timeSlot of TIME_SLOTS) {
-            const slot = slots.find(s =>
-                s.timeSlotId === timeSlot.id &&
-                s.dayId === dayId
-            );
-
-            // Если слот существует, не занят и не красный
-            if (slot && !slot.disciplineId && slot.color !== 'red') {
-                return {
-                    slotId: slot.id,
-                    timeStart: timeSlot.start,
-                    timeEnd: timeSlot.end
-                };
-            }
-        }
-
-        return null;
-    };
-
-    const checkSlotAvailability = (dayId: string, timeStart: string, timeEnd: string): { available: boolean, reason?: string } => {
-        const targetTimeSlot = TIME_SLOTS.find(slot =>
-            slot.start === timeStart && slot.end === timeEnd
-        );
-
-        if (!targetTimeSlot) {
-            return { available: false, reason: 'Указано некорректное время' };
-        }
-
-        const targetSlot = slots.find(s =>
-            s.timeSlotId === targetTimeSlot.id &&
-            s.dayId === dayId
-        );
-
-        if (!targetSlot) {
-            return { available: false, reason: 'Слот не найден' };
-        }
-
-        if (targetSlot.color === 'red') {
-            return { available: false, reason: 'Нельзя разместить дисциплину в красном слоте' };
-        }
-
-        if (targetSlot.disciplineId && targetSlot.disciplineId !== formData.id) {
-            return { available: false, reason: 'Данное время уже занято другой дисциплиной' };
-        }
-
-        return { available: true };
-    };
-
-    const handleSave = () => {
-        // Валидация обязательных полей
-        if (!formData.name) {
-            setError('Название дисциплины обязательно');
-            return;
-        }
-
-        if (!formData.teacher) {
-            setError('Преподаватель обязателен');
-            return;
-        }
-
-        if (!formData.building) {
-            setError('Корпус обязателен');
-            return;
-        }
-
-        if (formData.building === 'other' && !formData.buildingName) {
-            setError('Название корпуса обязательно');
-            return;
-        }
-
-        // Создаем копию данных для обновления
-        let updatedData = { ...formData };
-
-        // Логика для дисциплин в сетке
-        if (updatedData.isInGrid) {
-            // Проверяем, указаны ли день и время
-            const hasDayAndTime = updatedData.dayId && updatedData.timeStart && updatedData.timeEnd;
-            const hasOnlyTime = updatedData.timeStart && updatedData.timeEnd && !updatedData.dayId;
-            const hasOnlyDay = updatedData.dayId && (!updatedData.timeStart || !updatedData.timeEnd);
-
-            // Если поля не заполнены - оставляем дисциплину без изменений
-            if (!hasDayAndTime && !hasOnlyTime && !hasOnlyDay) {
-                // Возвращаем оригинальную дисциплину без изменений
-                onSave(discipline);
-                return;
-            }
-
-            // Случай 1: Указаны и день, и время
-            if (hasDayAndTime) {
-                const availability = checkSlotAvailability(updatedData.dayId!, updatedData.timeStart!, updatedData.timeEnd!);
-
-                if (!availability.available) {
-                    setError(availability.reason || 'Невозможно разместить дисциплину');
-                    return;
-                }
-
-                // Находим ID слота
-                const targetTimeSlot = TIME_SLOTS.find(slot =>
-                    slot.start === updatedData.timeStart && slot.end === updatedData.timeEnd
-                );
-                const targetSlot = slots.find(s =>
-                    s.timeSlotId === targetTimeSlot?.id &&
-                    s.dayId === updatedData.dayId
-                );
-                updatedData.slotId = targetSlot?.id;
-            }
-            // Случай 2: Указано только время
-            else if (hasOnlyTime) {
-                const freeSlot = findFreeSlotByTime(updatedData.timeStart!, updatedData.timeEnd!);
-
-                if (freeSlot) {
-                    updatedData.dayId = freeSlot.dayId;
-                    updatedData.slotId = freeSlot.slotId;
-                } else {
-                    setError('Нет свободных дней на указанное время');
-                    return;
-                }
-            }
-            // Случай 3: Указан только день
-            else if (hasOnlyDay) {
-                const freeSlot = findFreeSlotByDay(updatedData.dayId!);
-
-                if (freeSlot) {
-                    updatedData.timeStart = freeSlot.timeStart;
-                    updatedData.timeEnd = freeSlot.timeEnd;
-                    updatedData.slotId = freeSlot.slotId;
-                } else {
-                    setError('В выбранный день нет свободных слотов');
-                    return;
-                }
-            }
-        }
-
-        onSave(updatedData);
-    };
-
-    return (
-        <div className={styles.overlay}>
-            <div className={styles.modal}>
-                <h3 className={styles.title}>Редактирование дисциплины</h3>
-
-                <div className={styles.form}>
-                    <div className={styles.field}>
-                        <label>Название дисциплины *</label>
-                        <input
-                            type="text"
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        />
-                    </div>
-
-                    <div className={styles.field}>
-                        <label>Преподаватель *</label>
-                        <input
-                            type="text"
-                            value={formData.teacher || ''}
-                            onChange={(e) => setFormData({ ...formData, teacher: e.target.value })}
-                        />
-                    </div>
-
-                    <div className={styles.field}>
-                        <label>Корпус *</label>
-                        <select
-                            value={formData.building}
-                            onChange={(e) => handleBuildingChange(e.target.value as BuildingType)}
-                        >
-                            {BUILDING_OPTIONS.map(option => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {formData.building === 'other' && (
-                        <div className={styles.field}>
-                            <label>Название корпуса *</label>
-                            <input
-                                type="text"
-                                value={formData.buildingName || ''}
-                                onChange={(e) => setFormData({ ...formData, buildingName: e.target.value })}
-                            />
-                        </div>
-                    )}
-
-                    {(formData.building === 'turgeneva' || formData.building === 'kuybysheva' || formData.building === 'other') && (
-                        <div className={styles.field}>
-                            <label>Аудитория *</label>
-                            <input
-                                type="text"
-                                value={formData.audience || ''}
-                                onChange={(e) => setFormData({ ...formData, audience: e.target.value })}
-                            />
-                        </div>
-                    )}
-
-                    {discipline.isInGrid && (
-                        <>
-                            <div className={styles.field}>
-                                <label>День недели</label>
-                                <select
-                                    value={formData.dayId || ''}
-                                    onChange={(e) => setFormData({ ...formData, dayId: e.target.value || undefined })}
-                                >
-                                    <option value="">Не указан</option>
-                                    {DAYS.map(day => (
-                                        <option key={day.id} value={day.id}>{day.name}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div className={styles.field}>
-                                <label>Время проведения</label>
-                                <div className={styles.timeRange}>
-                                    <select
-                                        value={formData.timeStart || ''}
-                                        onChange={(e) => {
-                                            const timeStart = e.target.value;
-                                            const timeSlot = TIME_SLOTS.find(slot => slot.start === timeStart);
-                                            setFormData({
-                                                ...formData,
-                                                timeStart: timeStart || undefined,
-                                                timeEnd: timeSlot?.end || undefined
-                                            });
-                                        }}
-                                    >
-                                        <option value="">Начало</option>
-                                        {TIME_SLOTS.map(slot => (
-                                            <option key={slot.id} value={slot.start}>{slot.displayStart}</option>
-                                        ))}
-                                    </select>
-                                    <span>-</span>
-                                    <select
-                                        value={formData.timeEnd || ''}
-                                        onChange={(e) => setFormData({ ...formData, timeEnd: e.target.value || undefined })}
-                                    >
-                                        <option value="">Конец</option>
-                                        {TIME_SLOTS.map(slot => (
-                                            <option key={slot.id} value={slot.end}>{slot.displayEnd}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className={styles.field}>
-                                <label>Повторение</label>
-                                <select
-                                    value={formData.repeat}
-                                    onChange={(e) => setFormData({ ...formData, repeat: e.target.value as any })}
-                                >
-                                    <option value="every-week">Каждую неделю</option>
-                                    <option value="once">Единожды</option>
-                                    <option value="every-two-weeks">Каждые две недели</option>
-                                </select>
-                            </div>
-                        </>
-                    )}
-
-                    <div className={styles.field}>
-                        <label>Комментарий</label>
-                        <textarea
-                            value={formData.comment || ''}
-                            onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
-                            rows={3}
-                        />
-                    </div>
-
-                    {error && <div className={styles.error}>{error}</div>}
-
-                    <div className={styles.actions}>
-                        <button onClick={onClose} className={styles.cancel}>Отмена</button>
-                        <button onClick={handleSave} className={styles.save}>Сохранить</button>
-                    </div>
-                </div>
-            </div>
+  return (
+    <div className={styles.overlay} onClick={onClose}>
+      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.header}>
+          <h3 className={styles.title}>Редактирование дисциплины</h3>
+          <button className={styles.closeBtn} onClick={onClose}>✕</button>
         </div>
-    );
+
+        <div className={styles.form}>
+          <Field label="Название *">
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className={styles.input}
+              autoFocus
+            />
+          </Field>
+
+          <Field label="Преподаватель">
+            <input
+              type="text"
+              value={formData.teacher || ''}
+              onChange={(e) => setFormData({ ...formData, teacher: e.target.value })}
+              className={styles.input}
+            />
+          </Field>
+
+          <Field label="Корпус *">
+            <select
+              value={formData.building}
+              onChange={(e) => handleBuildingChange(e.target.value as BuildingType)}
+              className={styles.select}
+            >
+              {BUILDING_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </Field>
+
+          {formData.building === 'other' && (
+            <Field label="Название корпуса *">
+              <input
+                type="text"
+                value={formData.buildingName || ''}
+                onChange={(e) => setFormData({ ...formData, buildingName: e.target.value })}
+                className={styles.input}
+              />
+            </Field>
+          )}
+
+          {showAudience && (
+            <Field label="Аудитория">
+              <input
+                type="text"
+                value={formData.audience || ''}
+                onChange={(e) => setFormData({ ...formData, audience: e.target.value })}
+                className={styles.input}
+                placeholder="например, 301"
+              />
+            </Field>
+          )}
+
+          {formData.isInGrid && (
+            <>
+              <div className={styles.sectionLabel}>Время проведения</div>
+
+              {(formData.occurrences && formData.occurrences.length > 0) ? (
+                <div className={styles.occurrences}>
+                  {formData.occurrences.map((occ, i) => (
+                    <div key={i} className={styles.occurrence}>
+                      <select
+                        value={occ.dayId}
+                        onChange={(e) => handleOccurrenceChange(i, 'dayId', e.target.value)}
+                        className={styles.selectSm}
+                      >
+                        {DAYS.map((d) => (
+                          <option key={d.id} value={d.id}>{d.shortName}</option>
+                        ))}
+                      </select>
+                      <TimeInput
+                        value={occ.timeStart}
+                        onChange={(v) => handleOccurrenceChange(i, 'timeStart', v)}
+                      />
+                      <span className={styles.timeSep}>—</span>
+                      <TimeInput
+                        value={occ.timeEnd}
+                        onChange={(v) => handleOccurrenceChange(i, 'timeEnd', v)}
+                      />
+                      <button className={styles.removeBtn} onClick={() => removeOccurrence(i)}>✕</button>
+                    </div>
+                  ))}
+                  <button className={styles.addBtn} onClick={addOccurrence}>+ Добавить время</button>
+                </div>
+              ) : (
+                <div className={styles.occurrences}>
+                  <div className={styles.occurrence}>
+                    <select
+                      value={formData.dayId || ''}
+                      onChange={(e) => setFormData({ ...formData, dayId: e.target.value || undefined })}
+                      className={styles.selectSm}
+                    >
+                      <option value="">—</option>
+                      {DAYS.map((d) => (
+                        <option key={d.id} value={d.id}>{d.shortName}</option>
+                      ))}
+                    </select>
+                    <TimeInput
+                      value={formData.timeStart || ''}
+                      onChange={(v) => setFormData({ ...formData, timeStart: v })}
+                    />
+                    <span className={styles.timeSep}>—</span>
+                    <TimeInput
+                      value={formData.timeEnd || ''}
+                      onChange={(v) => setFormData({ ...formData, timeEnd: v })}
+                    />
+                  </div>
+                  <button className={styles.addBtn} onClick={addOccurrence}>+ Добавить ещё время</button>
+                </div>
+              )}
+
+              <Field label="Повторение">
+                <select
+                  value={formData.repeat}
+                  onChange={(e) => setFormData({ ...formData, repeat: e.target.value as any })}
+                  className={styles.select}
+                >
+                  <option value="every-week">Каждую неделю</option>
+                  <option value="once">Единожды</option>
+                  <option value="every-two-weeks">Каждые две недели</option>
+                  <option value="custom">Кастомное</option>
+                </select>
+              </Field>
+            </>
+          )}
+
+          <Field label="Комментарий">
+            <textarea
+              value={formData.comment || ''}
+              onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
+              className={styles.textarea}
+              rows={2}
+            />
+          </Field>
+
+          {error && <div className={styles.error}>{error}</div>}
+
+          <div className={styles.actions}>
+            <button className={styles.cancelBtn} onClick={onClose}>Отмена</button>
+            <button className={styles.saveBtn} onClick={handleSave}>Сохранить</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
+  <div className={styles.field}>
+    <label className={styles.label}>{label}</label>
+    {children}
+  </div>
+);
+
+interface TimeInputProps {
+  value: string;
+  onChange: (value: string) => void;
+}
+
+const TimeInput: React.FC<TimeInputProps> = ({ value, onChange }) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let raw = e.target.value.replace(/[^\d]/g, '');
+    if (raw.length > 4) raw = raw.slice(0, 4);
+
+    let masked = raw;
+    if (raw.length > 2) {
+      masked = raw.slice(0, 2) + ':' + raw.slice(2);
+    }
+    onChange(masked);
+  };
+
+  const handleBlur = () => {
+    if (!value) return;
+    const parts = value.split(':');
+    const h = Math.min(23, parseInt(parts[0] || '0', 10));
+    const m = Math.min(59, parseInt(parts[1] || '0', 10));
+    onChange(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+  };
+
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      className={styles.timeInput}
+      placeholder="ЧЧ:ММ"
+      maxLength={5}
+    />
+  );
 };

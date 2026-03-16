@@ -1,0 +1,212 @@
+@use '../../styles/variables' as *;
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: $space-5;
+  max-width: 900px;
+}
+
+.editorHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.editorTitle {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-semibold;
+  color: $color-gray-800;
+}
+
+.card {
+  background: $color-white;
+  border-radius: $border-radius-lg;
+  box-shadow: $shadow;
+  padding: $space-6;
+  display: flex;
+  flex-direction: column;
+  gap: $space-5;
+}
+
+.cardTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-gray-800;
+}
+
+.cardHint {
+  font-size: $font-size-sm;
+  color: $color-gray-400;
+  margin-top: -$space-3;
+}
+
+.wishSections {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: $space-5;
+  align-items: start;
+}
+
+.wishSection {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.sectionLabel {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  padding: 2px $space-2;
+  border-radius: $border-radius-sm;
+  align-self: flex-start;
+  margin-bottom: $space-1;
+
+  &.preferred {
+    background: $slot-green;
+    color: #15803d;
+    border: 1px solid $slot-green-border;
+  }
+  &.undesirable {
+    background: $slot-yellow;
+    color: #a16207;
+    border: 1px solid $slot-yellow-border;
+  }
+  &.forbidden {
+    background: $slot-red;
+    color: $color-danger;
+    border: 1px solid $slot-red-border;
+  }
+}
+
+// ─── Time row ─────────────────────────────────────────────────────────────────
+
+.timeRow {
+  display: flex;
+  align-items: center;
+  gap: $space-1;
+  flex-wrap: wrap;
+}
+
+.daySelect {
+  flex: 1;
+  min-width: 100px;
+  padding: $space-2 $space-1;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  font-size: $font-size-sm;
+  font-family: $font-family;
+  color: $color-gray-800;
+  background: $color-white;
+  cursor: pointer;
+
+  &:focus { outline: none; border-color: $color-primary; }
+}
+
+.timeInput {
+  width: 64px;
+  padding: $space-2 $space-1;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  font-size: $font-size-sm;
+  text-align: center;
+  font-family: monospace;
+  color: $color-gray-800;
+  background: $color-white;
+
+  &:focus {
+    outline: none;
+    border-color: $color-primary;
+    box-shadow: 0 0 0 3px rgba($color-primary, 0.1);
+  }
+}
+
+.sep {
+  color: $color-gray-400;
+  font-size: $font-size-sm;
+}
+
+// ─── Audience row ─────────────────────────────────────────────────────────────
+
+.audienceRow {
+  display: flex;
+  align-items: center;
+  gap: $space-1;
+  flex-wrap: wrap;
+}
+
+.buildingSelect {
+  min-width: 120px;
+  padding: $space-2 $space-1;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  font-size: $font-size-sm;
+  font-family: $font-family;
+  color: $color-gray-800;
+  background: $color-white;
+  cursor: pointer;
+
+  &:focus { outline: none; border-color: $color-primary; }
+}
+
+.audienceInput {
+  min-width: 80px;
+  flex: 1;
+  padding: $space-2 $space-1;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  font-size: $font-size-sm;
+  font-family: $font-family;
+  color: $color-gray-800;
+  background: $color-white;
+
+  &:focus {
+    outline: none;
+    border-color: $color-primary;
+    box-shadow: 0 0 0 3px rgba($color-primary, 0.1);
+  }
+}
+
+// ─── Shared ───────────────────────────────────────────────────────────────────
+
+.removeBtn {
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  color: $color-gray-400;
+  cursor: pointer;
+  border-radius: $border-radius-sm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  flex-shrink: 0;
+  transition: all $transition-fast;
+
+  &:hover { background: $slot-red; color: $color-danger; }
+}
+
+.addBtn {
+  align-self: flex-start;
+  padding: $space-1 $space-2;
+  border: 1px dashed $border-color;
+  border-radius: $border-radius;
+  background: transparent;
+  color: $color-primary;
+  font-size: $font-size-xs;
+  cursor: pointer;
+  font-family: $font-family;
+  transition: all $transition-fast;
+
+  &:hover { border-color: $color-primary; background: $color-primary-light; }
+}
+
+// ─── Actions ─────────────────────────────────────────────────────────────────
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: $space-3;
+  padding-top: $space-2;
+}

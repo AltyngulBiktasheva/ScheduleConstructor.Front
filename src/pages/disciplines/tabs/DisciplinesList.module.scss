@@ -1,0 +1,82 @@
+@use '../../../styles/variables' as *;
+
+.tableWrapper {
+  background: $color-white;
+  border-radius: $border-radius-lg;
+  box-shadow: $shadow;
+  overflow: hidden;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: $font-size-base;
+
+  thead tr {
+    background: $color-gray-50;
+    border-bottom: 2px solid $border-color;
+  }
+
+  th {
+    padding: $space-3 $space-4;
+    text-align: left;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    color: $color-gray-500;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: $space-3 $space-4;
+    border-bottom: 1px solid $border-color;
+    vertical-align: middle;
+  }
+}
+
+.row {
+  cursor: pointer;
+  transition: background $transition-fast;
+
+  &:last-child td { border-bottom: none; }
+
+  &:hover { background: $color-gray-50; }
+
+  &.highlighted {
+    animation: highlight 3s ease forwards;
+  }
+}
+
+@keyframes highlight {
+  0%   { background: rgba($color-primary, 0.12); }
+  70%  { background: rgba($color-primary, 0.08); }
+  100% { background: transparent; }
+}
+
+.nameCell {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+}
+
+.name {
+  font-weight: $font-weight-medium;
+  color: $color-gray-800;
+}
+
+.badges {
+  display: flex;
+  gap: $space-1;
+  flex-wrap: wrap;
+}
+
+.secondary {
+  color: $color-gray-600;
+  font-size: $font-size-sm;
+}
+
+.empty {
+  padding: $space-10;
+  text-align: center;
+  color: $color-gray-400;
+  font-size: $font-size-base;
+}

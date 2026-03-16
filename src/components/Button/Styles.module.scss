@@ -1,0 +1,52 @@
+@use '../../styles/variables' as *;
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+  border: none;
+  border-radius: $border-radius;
+  font-family: $font-family;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  transition: all $transition-fast;
+  white-space: nowrap;
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+}
+
+// Sizes
+.sm  { padding: $space-1 $space-3;  font-size: $font-size-sm;   }
+.md  { padding: $space-2 $space-5;  font-size: $font-size-base; }
+.lg  { padding: $space-3 $space-6;  font-size: $font-size-md;   }
+
+// Variants
+.primary {
+  background: $color-primary;
+  color: $color-white;
+  &:hover:not(:disabled) { background: $color-primary-hover; }
+}
+
+.secondary {
+  background: $color-white;
+  color: $color-gray-700;
+  border: 1px solid $border-color;
+  &:hover:not(:disabled) { background: $color-gray-50; border-color: $border-color-strong; }
+}
+
+.danger {
+  background: $color-danger;
+  color: $color-white;
+  &:hover:not(:disabled) { background: darken(#ef4444, 8%); }
+}
+
+.ghost {
+  background: transparent;
+  color: $color-primary;
+  &:hover:not(:disabled) { background: $color-primary-light; }
+}

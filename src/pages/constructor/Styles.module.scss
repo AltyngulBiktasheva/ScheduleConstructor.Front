@@ -1,0 +1,55 @@
+@use '../../styles/variables' as *;
+
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: $color-bg;
+}
+
+.sliceContainer {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $space-10 $space-6;
+}
+
+.gridView {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.gridHeader {
+  padding: $space-3 $space-6;
+  background: $color-white;
+  border-bottom: 1px solid $border-color;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: $space-4;
+}
+
+.backBtn {
+  border: none;
+  background: transparent;
+  color: $color-primary;
+  font-size: $font-size-base;
+  cursor: pointer;
+  padding: $space-1 0;
+  font-family: $font-family;
+  transition: opacity $transition-fast;
+
+  &:hover {
+    opacity: 0.7;
+  }
+}
+
+.selectionLabel {
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  color: $color-gray-700;
+}

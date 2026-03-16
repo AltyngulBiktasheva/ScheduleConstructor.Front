@@ -1,0 +1,47 @@
+@use '../../styles/variables' as *;
+
+.page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: $color-bg;
+  padding: $space-8;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $space-4;
+  text-align: center;
+  max-width: 400px;
+}
+
+.icon {
+  font-size: 48px;
+  line-height: 1;
+}
+
+.title {
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  color: $color-gray-800;
+  letter-spacing: -0.3px;
+}
+
+.description {
+  font-size: $font-size-base;
+  color: $color-gray-500;
+  line-height: 1.6;
+}
+
+.badge {
+  padding: $space-1 $space-4;
+  background: $color-warning-light;
+  color: $color-warning;
+  border-radius: 999px;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  border: 1px solid rgba($color-warning, 0.3);
+}

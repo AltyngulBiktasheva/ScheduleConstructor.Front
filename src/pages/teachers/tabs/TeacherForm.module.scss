@@ -1,0 +1,20 @@
+@use '../../../styles/variables' as *;
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: $space-5;
+  background: $color-white;
+  border-radius: $border-radius-lg;
+  box-shadow: $shadow;
+  padding: $space-6;
+  max-width: 480px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: $space-3;
+  padding-top: $space-2;
+  border-top: 1px solid $border-color;
+}

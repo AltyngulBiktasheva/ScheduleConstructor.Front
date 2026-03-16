@@ -1,0 +1,61 @@
+@use '../../styles/variables' as *;
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+}
+
+.label {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-gray-700;
+  display: flex;
+  gap: 3px;
+}
+
+.required {
+  color: $color-danger;
+}
+
+.hint {
+  font-size: $font-size-xs;
+  color: $color-gray-400;
+  line-height: 1.4;
+}
+
+.error {
+  font-size: $font-size-xs;
+  color: $color-danger;
+}
+
+// Global input styles — used across all form elements
+:global {
+  .field-input {
+    width: 100%;
+    padding: $space-2 $space-3;
+    border: 1px solid $border-color;
+    border-radius: $border-radius;
+    font-size: $font-size-base;
+    color: $color-gray-800;
+    background: $color-white;
+    font-family: $font-family;
+    transition: border-color $transition-fast, box-shadow $transition-fast;
+
+    &:focus {
+      outline: none;
+      border-color: $color-primary;
+      box-shadow: 0 0 0 3px rgba($color-primary, 0.1);
+    }
+
+    &::placeholder {
+      color: $color-gray-400;
+    }
+
+    &:disabled {
+      background: $color-gray-50;
+      color: $color-gray-400;
+      cursor: not-allowed;
+    }
+  }
+}

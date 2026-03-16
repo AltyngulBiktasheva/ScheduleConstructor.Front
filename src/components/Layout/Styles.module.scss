@@ -1,0 +1,18 @@
+@use '../../styles/variables' as *;
+
+.layout {
+  display: flex;
+  min-height: 100vh;
+  background: $color-bg;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  @media (max-width: 768px) {
+    margin-left: 0 !important;
+  }
+}

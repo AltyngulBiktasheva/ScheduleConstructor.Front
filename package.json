@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "react-router-dom": "^7.13.1",
     "scss": "^0.2.4",
     "urfu-ui-kit-react": "^1.6.1",
     "urfu-ui-kit-vanilla": "^2.5.1"
