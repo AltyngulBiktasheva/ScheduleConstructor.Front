@@ -89,10 +89,10 @@ export const DisciplineViewModal: React.FC<Props> = ({
           <Row label="Тип">
             <div className={styles.badgeRow}>
               <Badge variant={discipline.isStatic ? 'blue' : 'gray'}>
-                {discipline.isStatic ? 'Статичная' : 'Не статичная'}
+                {discipline.isStatic ? 'Постоянная' : 'Непостоянная'}
               </Badge>
               <Badge variant={discipline.canOverlap ? 'purple' : 'gray'}>
-                {discipline.canOverlap ? 'Совмещается' : 'Не совмещается'}
+                {discipline.canOverlap ? 'По выбору' : 'Обязательная'}
               </Badge>
             </div>
           </Row>

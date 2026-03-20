@@ -82,8 +82,8 @@ export const DisciplinesList: React.FC<Props> = ({
                   <div className={styles.nameCell}>
                     <span className={styles.name}>{d.name}</span>
                     <div className={styles.badges}>
-                      {d.isStatic && <Badge variant="blue">Статичная</Badge>}
-                      {d.canOverlap && <Badge variant="purple">Совмещается</Badge>}
+                      {d.isStatic && <Badge variant="blue">Постоянная</Badge>}
+                      {d.canOverlap && <Badge variant="purple">По выбору</Badge>}
                     </div>
                   </div>
                 </td>

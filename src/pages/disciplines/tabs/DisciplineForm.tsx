@@ -96,11 +96,11 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
     if (!form.name.trim()) errs.name = 'Обязательное поле';
     if (!form.forType) errs.forType = 'Обязательное поле';
     if (form.isStatic && (form.occurrences ? form.occurrences : []).length === 0)
-      errs.occurrences = 'Для статичной дисциплины необходимо указать время';
+      errs.occurrences = 'Для постоянной дисциплины необходимо указать время';
     if (form.isStatic && !form.dateRange?.from)
-      errs.dateFrom = 'Обязательное поле для статичной дисциплины';
+      errs.dateFrom = 'Обязательное поле для постоянной дисциплины';
     if (form.isStatic && !form.dateRange?.to)
-      errs.dateTo = 'Обязательное поле для статичной дисциплины';
+      errs.dateTo = 'Обязательное поле для постоянной дисциплины';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -174,11 +174,11 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
           <div className={styles.radioGroup}>
             <label className={styles.radioLabel}>
               <input type="radio" checked={!form.isStatic} onChange={() => set('isStatic', false)} />
-              Не статичная
+              Непостоянная
             </label>
             <label className={styles.radioLabel}>
               <input type="radio" checked={form.isStatic} onChange={() => set('isStatic', true)} />
-              Статичная
+              Постоянная
             </label>
           </div>
         </FormField>
@@ -187,11 +187,11 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
           <div className={styles.radioGroup}>
             <label className={styles.radioLabel}>
               <input type="radio" checked={!form.canOverlap} onChange={() => set('canOverlap', false)} />
-              Не совмещается
+              Обязательная
             </label>
             <label className={styles.radioLabel}>
               <input type="radio" checked={form.canOverlap} onChange={() => set('canOverlap', true)} />
-              Совмещается
+              По выбору
             </label>
           </div>
         </FormField>
@@ -215,7 +215,7 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
         label="Время проведения"
         required={form.isStatic}
         error={errors.occurrences}
-        hint={form.isStatic ? undefined : 'Необязательно для нестатичных дисциплин'}
+        hint={form.isStatic ? undefined : 'Необязательно для непостоянных дисциплин'}
       >
         <div className={styles.occurrences}>
           {(form.occurrences ? form.occurrences : []).map((occ, i) => (
