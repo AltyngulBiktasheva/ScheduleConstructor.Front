@@ -3,7 +3,7 @@ import { Modal } from '../../../components/Modal/Modal';
 import { Button } from '../../../components/Button/Button';
 import { Badge } from '../../../components/Badge/Badge';
 import { DisciplineForm } from '../tabs/DisciplineForm';
-import type { Discipline } from '../../../types/discipline';
+import type { Discipline } from '../../../types';
 import { DAYS } from '../../../constants/days';
 import styles from './DisciplineViewModal.module.scss';
 

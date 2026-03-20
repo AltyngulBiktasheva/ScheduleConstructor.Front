@@ -121,7 +121,7 @@ export const ScheduleGrid: React.FC<Props> = ({
           </button>
           {weekOffset !== 0 && (
             <button className={styles.todayBtn} onClick={() => onWeekOffsetChange?.(0)}>
-              Сегодня
+                Текущая неделя
             </button>
           )}
         </div>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FormField } from '../../../components/FormField/FormField';
 import { Button } from '../../../components/Button/Button';
-import type { Discipline, DisciplineAudience, DisciplineTeacher, WeeklyOccurrence, ForType, RepeatType } from '../../../types/discipline';
+import type { Discipline, DisciplineAudience, DisciplineTeacher, WeeklyOccurrence, ForType, RepeatType } from '../../../types';
 import { DAYS } from '../../../constants/days';
 import { BUILDING_OPTIONS, type BuildingType } from '../../../constants/buildings';
 import styles from './DisciplineForm.module.scss';

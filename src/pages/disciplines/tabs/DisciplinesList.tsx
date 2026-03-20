@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import type { Discipline } from '../../../types/discipline';
+import type { Discipline } from '../../../types';
 import { Badge } from '../../../components/Badge/Badge';
 import { DisciplineViewModal } from '../modals/DisciplineViewModal';
 import { DAYS } from '../../../constants/days';
