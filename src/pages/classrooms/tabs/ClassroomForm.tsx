@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { FormField } from '../../../components/FormField/FormField';
 import { Button } from '../../../components/Button/Button';
-import type { Classroom, ClassroomType } from '../../../types/classroom';
-import { CLASSROOM_TYPE_LABELS } from '../../../types/classroom';
+import type { Classroom, ClassroomType, BoardType } from '../../../types/classroom';
+import { CLASSROOM_TYPE_LABELS, BOARD_TYPE_LABELS } from '../../../types/classroom';
 import { BUILDING_OPTIONS, type BuildingType } from '../../../constants/buildings';
 import styles from './ClassroomForm.module.scss';
 
 function emptyForm(): Omit<Classroom, 'id'> {
-  return { name: '', building: 'turgeneva', type: 'standard', capacity: 30 };
+  return { name: '', building: 'turgeneva', type: 'standard', capacity: 30, boardType: 'chalk', hasProjector: false };
 }
 
 interface Props {
@@ -30,8 +30,7 @@ export const ClassroomForm: React.FC<Props> = ({ initial, onSave, onCancel }) =>
     const errs: Record<string, string> = {};
     if (!form.name.trim()) errs.name = 'Обязательное поле';
     if (!form.building) errs.building = 'Обязательное поле';
-    if (form.building === 'other' && !form.buildingName?.trim())
-      errs.buildingName = 'Обязательное поле';
+    if (form.building === 'other' && !form.buildingName?.trim()) errs.buildingName = 'Обязательное поле';
     if (!form.type) errs.type = 'Обязательное поле';
     if (!form.capacity || form.capacity < 1) errs.capacity = 'Укажите корректную вместимость';
     setErrors(errs);
@@ -44,32 +43,18 @@ export const ClassroomForm: React.FC<Props> = ({ initial, onSave, onCancel }) =>
   };
 
   const handleBuildingChange = (building: BuildingType) => {
-    setForm((prev) => ({
-      ...prev,
-      building,
-      buildingName: building === 'other' ? '' : undefined,
-    }));
+    setForm((prev) => ({ ...prev, building, buildingName: building === 'other' ? '' : undefined }));
   };
 
   return (
     <div className={styles.form}>
       <FormField label="Название аудитории" required error={errors.name}
         hint="Может содержать цифры, буквы и спецсимволы, например: 301, А-12, Спортзал">
-        <input
-          className="field-input"
-          value={form.name}
-          onChange={(e) => set('name', e.target.value)}
-          placeholder="301"
-          autoFocus
-        />
+        <input className="field-input" value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="301" autoFocus />
       </FormField>
 
       <FormField label="Корпус" required error={errors.building}>
-        <select
-          className="field-input"
-          value={form.building}
-          onChange={(e) => handleBuildingChange(e.target.value as BuildingType)}
-        >
+        <select className="field-input" value={form.building} onChange={(e) => handleBuildingChange(e.target.value as BuildingType)}>
           {BUILDING_OPTIONS.filter((o) => o.value !== 'online').map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
@@ -78,29 +63,15 @@ export const ClassroomForm: React.FC<Props> = ({ initial, onSave, onCancel }) =>
 
       {form.building === 'other' && (
         <FormField label="Название корпуса" required error={errors.buildingName}>
-          <input
-            className="field-input"
-            value={form.buildingName ?? ''}
-            onChange={(e) => set('buildingName', e.target.value)}
-            placeholder="Спортивный корпус"
-          />
+          <input className="field-input" value={form.buildingName ?? ''} onChange={(e) => set('buildingName', e.target.value)} placeholder="Спортивный корпус" />
         </FormField>
       )}
 
       <FormField label="Тип аудитории" required error={errors.type}>
         <div className={styles.typeGrid}>
           {(Object.keys(CLASSROOM_TYPE_LABELS) as ClassroomType[]).map((t) => (
-            <label
-              key={t}
-              className={`${styles.typeCard} ${form.type === t ? styles.typeCardActive : ''}`}
-            >
-              <input
-                type="radio"
-                name="type"
-                value={t}
-                checked={form.type === t}
-                onChange={() => set('type', t)}
-              />
+            <label key={t} className={`${styles.typeCard} ${form.type === t ? styles.typeCardActive : ''}`}>
+              <input type="radio" name="type" value={t} checked={form.type === t} onChange={() => set('type', t)} />
               <span className={styles.typeIcon}>{TYPE_ICONS[t]}</span>
               <span className={styles.typeLabel}>{CLASSROOM_TYPE_LABELS[t]}</span>
             </label>
@@ -108,19 +79,40 @@ export const ClassroomForm: React.FC<Props> = ({ initial, onSave, onCancel }) =>
         </div>
       </FormField>
 
-      <FormField label="Вместимость" required error={errors.capacity}
-        hint="Максимальное количество человек">
+      <FormField label="Вместимость" required error={errors.capacity} hint="Максимальное количество человек">
         <div className={styles.capacityRow}>
-          <input
-            className="field-input"
-            type="number"
-            min={1}
-            max={999}
-            value={form.capacity}
-            onChange={(e) => set('capacity', Math.max(1, parseInt(e.target.value) || 1))}
-            style={{ width: 120 }}
-          />
+          <input className="field-input" type="number" min={1} max={999} value={form.capacity}
+            onChange={(e) => set('capacity', Math.max(1, parseInt(e.target.value) || 1))} style={{ width: 120 }} />
           <span className={styles.capacityUnit}>чел.</span>
+        </div>
+      </FormField>
+
+      {/* Тип доски */}
+      <FormField label="Тип доски" required>
+        <div className={styles.radioGroup}>
+          {(Object.keys(BOARD_TYPE_LABELS) as BoardType[]).map((b) => (
+            <label key={b} className={styles.radioLabel}>
+              <input type="radio" name="boardType" checked={form.boardType === b} onChange={() => set('boardType', b)} />
+              <span className={styles.boardIcon}>{b === 'chalk' ? '🖊️' : '✏️'}</span>
+              {BOARD_TYPE_LABELS[b]}
+            </label>
+          ))}
+        </div>
+      </FormField>
+
+      {/* Проектор */}
+      <FormField label="Проектор" required>
+        <div className={styles.radioGroup}>
+          <label className={styles.radioLabel}>
+            <input type="radio" name="hasProjector" checked={!form.hasProjector} onChange={() => set('hasProjector', false)} />
+            <span className={styles.boardIcon}>🚫</span>
+            Нет
+          </label>
+          <label className={styles.radioLabel}>
+            <input type="radio" name="hasProjector" checked={form.hasProjector} onChange={() => set('hasProjector', true)} />
+            <span className={styles.boardIcon}>📽️</span>
+            Есть
+          </label>
         </div>
       </FormField>
 
@@ -128,12 +120,8 @@ export const ClassroomForm: React.FC<Props> = ({ initial, onSave, onCancel }) =>
         {showResetConfirm ? (
           <div className={styles.resetConfirm}>
             <span>Сбросить все поля?</span>
-            <Button size="sm" variant="danger" onClick={() => { setForm(emptyForm()); setErrors({}); setShowResetConfirm(false); }}>
-              Да, сбросить
-            </Button>
-            <Button size="sm" variant="secondary" onClick={() => setShowResetConfirm(false)}>
-              Отмена
-            </Button>
+            <Button size="sm" variant="danger" onClick={() => { setForm(emptyForm()); setErrors({}); setShowResetConfirm(false); }}>Да, сбросить</Button>
+            <Button size="sm" variant="secondary" onClick={() => setShowResetConfirm(false)}>Отмена</Button>
           </div>
         ) : (
           <>
@@ -150,8 +138,5 @@ export const ClassroomForm: React.FC<Props> = ({ initial, onSave, onCancel }) =>
 };
 
 const TYPE_ICONS: Record<ClassroomType, string> = {
-  standard:     '🪑',
-  computer:     '💻',
-  laboratory:   '🔬',
-  amphitheater: '🎭',
+  standard: '🪑', computer: '💻', laboratory: '🔬', amphitheater: '🎭',
 };

@@ -23,7 +23,9 @@ export const WishesViewer: React.FC<Props> = ({ wishes, onEdit }) => {
     wishes.forbiddenTimes.length > 0 ||
     wishes.preferredAudiences.length > 0 ||
     wishes.undesirableAudiences.length > 0 ||
-    wishes.forbiddenAudiences.length > 0;
+    wishes.forbiddenAudiences.length > 0 ||
+    wishes.preferredBoardType !== null ||
+    wishes.needsProjector !== null;
 
   const hasComment = wishes.comment.trim().length > 0;
 

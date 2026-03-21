@@ -96,3 +96,31 @@
   font-size: $font-size-sm;
   color: $color-gray-600;
 }
+
+.radioGroup {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 4px 0;
+}
+
+.radioLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #374151;
+
+  input[type='radio'] {
+    accent-color: #3b82f6;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+  }
+}
+
+.boardIcon {
+  font-size: 16px;
+  line-height: 1;
+}

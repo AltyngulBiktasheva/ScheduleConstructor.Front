@@ -210,3 +210,12 @@
   gap: $space-3;
   padding-top: $space-2;
 }
+
+
+// Prevent textarea overflow
+textarea.field-input {
+  resize: vertical;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}

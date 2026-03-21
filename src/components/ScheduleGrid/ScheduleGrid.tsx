@@ -83,18 +83,36 @@ export const ScheduleGrid: React.FC<Props> = ({
 
   const handleDragOver = (e: React.DragEvent) => e.preventDefault();
 
-  const weekLabel =
-    weekOffset === 0 ? 'Текущая неделя' : weekOffset > 0 ? `+${weekOffset} нед.` : `${weekOffset} нед.`;
+  const getWeekLabel = () => {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diffToMonday + weekOffset * 7);
+    const saturday = new Date(monday);
+    saturday.setDate(monday.getDate() + 5);
+    const fmt = (d: Date) =>
+      String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0');
+    return fmt(monday) + ' – ' + fmt(saturday);
+  };
 
   return (
     <div className={styles.wrapper}>
       <div className={styles.toolbar}>
         <div className={styles.weekNav}>
-          <button className={styles.navBtn} onClick={() => onWeekOffsetChange?.(weekOffset - 1)} title="Предыдущая неделя">
+          <button
+            className={styles.navBtn}
+            onClick={() => onWeekOffsetChange?.(weekOffset - 1)}
+            title="Предыдущая неделя"
+          >
             <ChevronLeft />
           </button>
-          <span className={styles.weekLabel}>{weekLabel}</span>
-          <button className={styles.navBtn} onClick={() => onWeekOffsetChange?.(weekOffset + 1)} title="Следующая неделя">
+          <span className={styles.weekLabel}>{getWeekLabel()}</span>
+          <button
+            className={styles.navBtn}
+            onClick={() => onWeekOffsetChange?.(weekOffset + 1)}
+            title="Следующая неделя"
+          >
             <ChevronRight />
           </button>
           {weekOffset !== 0 && (

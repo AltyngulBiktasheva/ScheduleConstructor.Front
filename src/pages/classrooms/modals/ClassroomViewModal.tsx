@@ -93,6 +93,10 @@ export const ClassroomViewModal: React.FC<Props> = ({
           </Badge>
         </Row>
         <Row label="Вместимость">до {classroom.capacity} чел.</Row>
+        <Row label="Тип доски">
+          {classroom.boardType === 'chalk' ? '🖊️ Меловая' : '✏️ Маркерная'}
+        </Row>
+        <Row label="Проектор">{classroom.hasProjector ? '📽️ Есть' : '🚫 Нет'}</Row>
       </div>
     </Modal>
   );

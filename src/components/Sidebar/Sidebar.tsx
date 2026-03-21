@@ -124,6 +124,7 @@ const NavGroup: React.FC<NavGroupProps> = ({ item, isOpen, isExpanded, onToggleE
             <NavLink
               key={child.id}
               to={child.path!}
+              end
               className={({ isActive }) =>
                 `${styles.childItem} ${isActive ? styles.active : ''}`
               }
