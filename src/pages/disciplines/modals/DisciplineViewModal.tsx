@@ -97,6 +97,7 @@ export const DisciplineViewModal: React.FC<Props> = ({
             </div>
           </Row>
           <Row label="Повторение">{formatRepeat(discipline.repeat)}</Row>
+          <Row label="Раз в неделю">{discipline.weeklyCount ?? 1}</Row>
           {discipline.dateRange && (
             <Row label="Период">
               {discipline.dateRange.from} — {discipline.dateRange.to}
@@ -167,8 +168,8 @@ function formatRepeat(repeat: string) {
   const map: Record<string, string> = {
     'every-week': 'Каждую неделю',
     'once': 'Единожды',
-    'every-two-weeks': 'Каждые две недели',
-    'custom': 'Кастомное',
+    'even-weeks': 'По чётным неделям',
+    'odd-weeks': 'По нечётным неделям',
   };
   return map[repeat] ?? repeat;
 }

@@ -232,3 +232,15 @@
   font-size: $font-size-sm;
   color: $color-gray-600;
 }
+
+.weeklyCountRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.weeklyCountLabel {
+  font-size: 14px;
+  color: #6b7280;
+  white-space: nowrap;
+}

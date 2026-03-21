@@ -6,7 +6,6 @@ import { DAYS } from '../../../constants/days';
 import { BUILDING_OPTIONS, type BuildingType } from '../../../constants/buildings';
 import styles from './DisciplineForm.module.scss';
 
-// Mock data — в будущем придёт из стора
 const MOCK_TEACHERS_LIST: DisciplineTeacher[] = [
   { id: 't1', name: 'Иванов И.И.' },
   { id: 't2', name: 'Петров П.П.' },
@@ -20,8 +19,8 @@ const MOCK_TEACHERS_LIST: DisciplineTeacher[] = [
 const REPEAT_OPTIONS: { value: RepeatType; label: string }[] = [
   { value: 'every-week', label: 'Каждую неделю' },
   { value: 'once', label: 'Единожды' },
-  { value: 'every-two-weeks', label: 'Каждые две недели' },
-  { value: 'custom', label: 'Кастомное' },
+  { value: 'even-weeks', label: 'По чётным неделям' },
+  { value: 'odd-weeks', label: 'По нечётным неделям' },
 ];
 
 function emptyForm(): Omit<Discipline, 'id'> {
@@ -34,6 +33,7 @@ function emptyForm(): Omit<Discipline, 'id'> {
     isStatic: false,
     canOverlap: false,
     repeat: 'every-week',
+    weeklyCount: 1,
     occurrences: [],
     dateRange: undefined,
     comment: '',
@@ -49,7 +49,7 @@ interface Props {
 
 export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) => {
   const [form, setForm] = useState<Omit<Discipline, 'id'>>(
-    initial ? { ...initial } : emptyForm()
+    initial ? { ...initial, weeklyCount: initial.weeklyCount ?? 1 } : emptyForm()
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -57,45 +57,46 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
-  // ─── Teachers ───────────────────────────────────────────────────────────────
+  const occurrences = form.occurrences ?? [];
+  const weeklyCount = form.weeklyCount ?? 1;
 
+  // ─── Teachers ───────────────────────────────────────────────────────────────
   const toggleTeacher = (teacher: DisciplineTeacher) => {
     const has = form.teachers.some((t) => t.id === teacher.id);
-    set('teachers', has
-      ? form.teachers.filter((t) => t.id !== teacher.id)
-      : [...form.teachers, teacher]
-    );
+    set('teachers', has ? form.teachers.filter((t) => t.id !== teacher.id) : [...form.teachers, teacher]);
   };
 
   // ─── Audiences ──────────────────────────────────────────────────────────────
-
-  const addAudience = () =>
-    set('audiences', [...form.audiences, { building: 'turgeneva' }]);
-
-  const removeAudience = (i: number) =>
-    set('audiences', form.audiences.filter((_, idx) => idx !== i));
-
+  const addAudience = () => set('audiences', [...form.audiences, { building: 'turgeneva' as BuildingType }]);
+  const removeAudience = (i: number) => set('audiences', form.audiences.filter((_, idx) => idx !== i));
   const updateAudience = (i: number, patch: Partial<DisciplineAudience>) =>
     set('audiences', form.audiences.map((a, idx) => idx === i ? { ...a, ...patch } : a));
 
-  // ─── Occurrences ────────────────────────────────────────────────────────────
-
-  const addOccurrence = () =>
-    set('occurrences', [...(form.occurrences ? form.occurrences : []), { dayId: 'mon', timeStart: '09:00', timeEnd: '10:30' }]);
-
-  const removeOccurrence = (i: number) =>
-    set('occurrences', (form.occurrences ? form.occurrences : []).filter((_, idx) => idx !== i));
-
+  // ─── Occurrences (только для статичных) ─────────────────────────────────────
+  const addOccurrence = () => {
+    if (occurrences.length >= weeklyCount) return;
+    set('occurrences', [...occurrences, { dayId: 'mon', timeStart: '09:00', timeEnd: '10:30' }]);
+  };
+  const removeOccurrence = (i: number) => set('occurrences', occurrences.filter((_, idx) => idx !== i));
   const updateOccurrence = (i: number, patch: Partial<WeeklyOccurrence>) =>
-    set('occurrences', (form.occurrences ? form.occurrences : []).map((o, idx) => idx === i ? { ...o, ...patch } : o));
+    set('occurrences', occurrences.map((o, idx) => idx === i ? { ...o, ...patch } : o));
+
+  // ─── weeklyCount change — trim occurrences if needed ─────────────────────────
+  const handleWeeklyCountChange = (count: number) => {
+    const clamped = Math.max(1, Math.min(6, count));
+    setForm((prev) => ({
+      ...prev,
+      weeklyCount: clamped,
+      occurrences: (prev.occurrences ?? []).slice(0, clamped),
+    }));
+  };
 
   // ─── Validation ─────────────────────────────────────────────────────────────
-
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
     if (!form.name.trim()) errs.name = 'Обязательное поле';
     if (!form.forType) errs.forType = 'Обязательное поле';
-    if (form.isStatic && (form.occurrences ? form.occurrences : []).length === 0)
+    if (form.isStatic && occurrences.length === 0)
       errs.occurrences = 'Для постоянной дисциплины необходимо указать время';
     if (form.isStatic && !form.dateRange?.from)
       errs.dateFrom = 'Обязательное поле для постоянной дисциплины';
@@ -110,13 +111,7 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
     onSave({ ...form, id: initial?.id ?? crypto.randomUUID() } as Discipline);
   };
 
-  const handleReset = () => {
-    setForm(emptyForm());
-    setErrors({});
-    setShowResetConfirm(false);
-  };
-
-  // ─── Time mask ──────────────────────────────────────────────────────────────
+  const handleReset = () => { setForm(emptyForm()); setErrors({}); setShowResetConfirm(false); };
 
   const handleTimeInput = (raw: string): string => {
     const digits = raw.replace(/\D/g, '').slice(0, 4);
@@ -129,8 +124,6 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
     return `${String(Math.min(23, h || 0)).padStart(2, '0')}:${String(Math.min(59, m || 0)).padStart(2, '0')}`;
   };
 
-  // ─── Date mask ──────────────────────────────────────────────────────────────
-
   const handleDateInput = (raw: string): string => {
     const digits = raw.replace(/\D/g, '').slice(0, 8);
     if (digits.length > 4) return `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4)}`;
@@ -138,37 +131,28 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
     return digits;
   };
 
+  const canAddOccurrence = occurrences.length < weeklyCount;
+
   return (
     <div className={styles.form}>
-      {/* ─── Название ─────────────────────────────────────────────────────── */}
+      {/* Название */}
       <FormField label="Название дисциплины" required error={errors.name}>
-        <input
-          className="field-input"
-          value={form.name}
-          onChange={(e) => set('name', e.target.value)}
-          placeholder="Математический анализ"
-        />
+        <input className="field-input" value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="Математический анализ" />
       </FormField>
 
-      {/* ─── Для кого ─────────────────────────────────────────────────────── */}
+      {/* Для кого */}
       <FormField label="Преподаётся для" required error={errors.forType}>
         <div className={styles.radioGroup}>
           {(['group', 'stream'] as ForType[]).map((v) => (
             <label key={v} className={styles.radioLabel}>
-              <input
-                type="radio"
-                name="forType"
-                value={v}
-                checked={form.forType === v}
-                onChange={() => set('forType', v)}
-              />
+              <input type="radio" name="forType" value={v} checked={form.forType === v} onChange={() => set('forType', v)} />
               {v === 'group' ? 'Группы' : 'Потоки'}
             </label>
           ))}
         </div>
       </FormField>
 
-      {/* ─── Флаги ────────────────────────────────────────────────────────── */}
+      {/* Тип + совмещение */}
       <div className={styles.row2}>
         <FormField label="Тип дисциплины" required>
           <div className={styles.radioGroup}>
@@ -197,39 +181,50 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
         </FormField>
       </div>
 
-      {/* ─── Повторение ───────────────────────────────────────────────────── */}
-      <FormField label="Повторение" required>
-        <select
-          className="field-input"
-          value={form.repeat}
-          onChange={(e) => set('repeat', e.target.value as RepeatType)}
-        >
-          {REPEAT_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
-      </FormField>
+      {/* Повторение + кол-во раз в неделю */}
+      <div className={styles.row2}>
+        <FormField label="Повторение" required>
+          <select className="field-input" value={form.repeat} onChange={(e) => set('repeat', e.target.value as RepeatType)}>
+            {REPEAT_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        </FormField>
 
-      {/* ─── Время и период — только для постоянных дисциплин ────────────── */}
+        <FormField label="Кол-во раз в неделю" hint="от 1 до 6">
+          <div className={styles.weeklyCountRow}>
+            <input
+              className="field-input"
+              type="number"
+              min={1}
+              max={6}
+              value={weeklyCount}
+              onChange={(e) => handleWeeklyCountChange(parseInt(e.target.value) || 1)}
+              style={{ width: 72 }}
+            />
+            <span className={styles.weeklyCountLabel}>раз в неделю</span>
+          </div>
+        </FormField>
+      </div>
+
+      {/* Время и даты — только для постоянных */}
       {form.isStatic && (
         <>
           <FormField
             label="Время проведения"
             required
             error={errors.occurrences}
-            hint="День недели и временной промежуток. Можно добавить несколько."
+            hint={weeklyCount > 1 ? `Можно добавить до ${weeklyCount} промежутков времени` : undefined}
           >
             <div className={styles.occurrences}>
-              {(form.occurrences ? form.occurrences : []).map((occ, i) => (
+              {occurrences.map((occ, i) => (
                 <div key={i} className={styles.occurrenceRow}>
                   <select
                     className={styles.daySelect}
                     value={occ.dayId}
                     onChange={(e) => updateOccurrence(i, { dayId: e.target.value })}
                   >
-                    {DAYS.map((d) => (
-                      <option key={d.id} value={d.id}>{d.name}</option>
-                    ))}
+                    {DAYS.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
                   <input
                     className={styles.timeInput}
@@ -251,9 +246,11 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
                   <button className={styles.removeBtn} onClick={() => removeOccurrence(i)} type="button">✕</button>
                 </div>
               ))}
-              <button className={styles.addBtn} onClick={addOccurrence} type="button">
-                + Добавить время
-              </button>
+              {canAddOccurrence && (
+                <button className={styles.addBtn} onClick={addOccurrence} type="button">
+                  + Добавить время
+                </button>
+              )}
             </div>
           </FormField>
 
@@ -280,23 +277,19 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
         </>
       )}
 
-      {/* ─── Преподаватели ────────────────────────────────────────────────── */}
+      {/* Преподаватели */}
       <FormField label="Преподаватели" hint="Выберите одного или нескольких">
         <div className={styles.checkList}>
           {MOCK_TEACHERS_LIST.map((t) => (
             <label key={t.id} className={styles.checkLabel}>
-              <input
-                type="checkbox"
-                checked={form.teachers.some((f) => f.id === t.id)}
-                onChange={() => toggleTeacher(t)}
-              />
+              <input type="checkbox" checked={form.teachers.some((f) => f.id === t.id)} onChange={() => toggleTeacher(t)} />
               {t.name}
             </label>
           ))}
         </div>
       </FormField>
 
-      {/* ─── Аудитории ────────────────────────────────────────────────────── */}
+      {/* Аудитории */}
       <FormField label="Аудитории" hint="Можно добавить несколько">
         <div className={styles.audienceList}>
           {form.audiences.map((a, i) => (
@@ -306,54 +299,30 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
                 value={a.building}
                 onChange={(e) => {
                   const building = e.target.value as BuildingType;
-                  updateAudience(i, {
-                    building,
-                    audience: building === 'online' ? undefined : a.audience,
-                    buildingName: building === 'other' ? '' : undefined,
-                  });
+                  updateAudience(i, { building, audience: building === 'online' ? undefined : a.audience, buildingName: building === 'other' ? '' : undefined });
                 }}
               >
-                {BUILDING_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
+                {BUILDING_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
               {a.building === 'other' && (
-                <input
-                  className={styles.audienceInput}
-                  value={a.buildingName ?? ''}
-                  onChange={(e) => updateAudience(i, { buildingName: e.target.value })}
-                  placeholder="Название корпуса"
-                />
+                <input className={styles.audienceInput} value={a.buildingName ?? ''} onChange={(e) => updateAudience(i, { buildingName: e.target.value })} placeholder="Название корпуса" />
               )}
               {a.building !== 'online' && (
-                <input
-                  className={styles.audienceInput}
-                  value={a.audience ?? ''}
-                  onChange={(e) => updateAudience(i, { audience: e.target.value })}
-                  placeholder="Аудитория"
-                />
+                <input className={styles.audienceInput} value={a.audience ?? ''} onChange={(e) => updateAudience(i, { audience: e.target.value })} placeholder="Аудитория" />
               )}
               <button className={styles.removeBtn} onClick={() => removeAudience(i)} type="button">✕</button>
             </div>
           ))}
-          <button className={styles.addBtn} onClick={addAudience} type="button">
-            + Добавить аудиторию
-          </button>
+          <button className={styles.addBtn} onClick={addAudience} type="button">+ Добавить аудиторию</button>
         </div>
       </FormField>
 
-      {/* ─── Комментарий ──────────────────────────────────────────────────── */}
+      {/* Комментарий */}
       <FormField label="Комментарий">
-        <textarea
-          className="field-input"
-          value={form.comment ?? ''}
-          onChange={(e) => set('comment', e.target.value)}
-          rows={3}
-          placeholder="Дополнительная информация..."
-        />
+        <textarea className="field-input" value={form.comment ?? ''} onChange={(e) => set('comment', e.target.value)} rows={3} placeholder="Дополнительная информация..." />
       </FormField>
 
-      {/* ─── Кнопки ───────────────────────────────────────────────────────── */}
+      {/* Кнопки */}
       <div className={styles.actions}>
         {showResetConfirm ? (
           <div className={styles.resetConfirm}>

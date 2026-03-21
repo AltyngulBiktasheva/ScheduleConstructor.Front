@@ -16,6 +16,7 @@ export const MOCK_DISCIPLINES_LIST: Discipline[] = [
       { dayId: 'wed', timeStart: '09:00', timeEnd: '10:30' },
     ],
     dateRange: { from: '01.09.2025', to: '31.12.2025' },
+    weeklyCount: 2,
   },
   {
     id: 'd2',
@@ -35,6 +36,7 @@ export const MOCK_DISCIPLINES_LIST: Discipline[] = [
     repeat: 'every-week',
     occurrences: [],
     comment: 'Лекционный курс. Требуется проектор.',
+    weeklyCount: 1,
   },
   {
     id: 'd3',
@@ -47,6 +49,7 @@ export const MOCK_DISCIPLINES_LIST: Discipline[] = [
     canOverlap: true,
     repeat: 'every-week',
     occurrences: [],
+    weeklyCount: 1,
   },
   {
     id: 'd4',
@@ -57,9 +60,10 @@ export const MOCK_DISCIPLINES_LIST: Discipline[] = [
     audiences: [{ building: 'turgeneva', audience: '410' }],
     isStatic: true,
     canOverlap: false,
-    repeat: 'every-two-weeks',
+    repeat: 'odd-weeks',
     occurrences: [{ dayId: 'fri', timeStart: '14:30', timeEnd: '16:00' }],
     dateRange: { from: '01.09.2025', to: '31.05.2026' },
+    weeklyCount: 1,
   },
   {
     id: 'd5',
@@ -73,6 +77,7 @@ export const MOCK_DISCIPLINES_LIST: Discipline[] = [
     repeat: 'every-week',
     occurrences: [{ dayId: 'tue', timeStart: '10:40', timeEnd: '12:10' }],
     dateRange: { from: '01.09.2025', to: '31.12.2025' },
+    weeklyCount: 1,
   },
   {
     id: 'd6',
@@ -86,5 +91,6 @@ export const MOCK_DISCIPLINES_LIST: Discipline[] = [
     repeat: 'every-week',
     occurrences: [],
     comment: 'Проводится совместно для нескольких потоков.',
+    weeklyCount: 1,
   },
 ];

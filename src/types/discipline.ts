@@ -1,6 +1,6 @@
 import type { BuildingType } from '../constants/buildings';
 
-export type RepeatType = 'every-week' | 'once' | 'every-two-weeks' | 'custom';
+export type RepeatType = 'every-week' | 'once' | 'even-weeks' | 'odd-weeks';
 export type ForType = 'group' | 'stream';
 
 export interface WeeklyOccurrence {
@@ -39,18 +39,23 @@ export interface Discipline {
   canOverlap: boolean;
 
   repeat: RepeatType;
+  // Сколько раз в неделю проводится дисциплина (1–6)
+  weeklyCount: number;
   occurrences?: WeeklyOccurrence[];
   dateRange?: DisciplineDateRange;
 
   comment?: string;
 
-  // Поля для сетки расписания
+  // ── Поля для сетки расписания ──────────────────────────────────────────
   isInGrid?: boolean;
   dayId?: string;
   timeStart?: string;
   timeEnd?: string;
   slotId?: string;
   highlightSlots?: boolean;
+
+  // Дисциплина-ребёнок: знает только своё время и id родителя
+  parentId?: string;
 
   // Устаревшие поля (совместимость с DisciplineCard / EditModal)
   building?: BuildingType;
