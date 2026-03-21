@@ -28,7 +28,7 @@ export function useGridMetrics(hourHeight: number) {
   const pixelsToTime = (px: number): string => {
     const minutes = Math.round((px / totalHeight) * totalMinutes) + GRID_START_HOUR * 60;
     const clamped = Math.max(GRID_START_HOUR * 60, Math.min(GRID_END_HOUR * 60, minutes));
-    const snapped = Math.round(clamped / 15) * 15;
+    const snapped = Math.round(clamped / 5) * 5;
     const h = Math.floor(snapped / 60);
     const m = snapped % 60;
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;

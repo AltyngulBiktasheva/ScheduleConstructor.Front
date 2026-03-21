@@ -128,7 +128,7 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
             </Field>
           )}
 
-          {formData.isInGrid && (
+          {!discipline.isStatic && formData.isInGrid && (
             <>
               <div className={styles.sectionLabel}>Время проведения</div>
 

@@ -10,6 +10,11 @@ export interface PositionedDiscipline {
   totalColumns: number;
 }
 
+export interface OverlapLayoutResult {
+  positioned: PositionedDiscipline[];
+  maxColumns: number;
+}
+
 function timeToMinutes(time: string): number {
   const [h, m] = time.split(':').map(Number);
   return h * 60 + m;
@@ -19,80 +24,69 @@ function overlaps(a: { start: number; end: number }, b: { start: number; end: nu
   return a.start < b.end && b.start < a.end;
 }
 
-export function useOverlapLayout(
-  disciplines: Discipline[],
-  dayId: string
-): PositionedDiscipline[] {
+export function useOverlapLayout(disciplines: Discipline[], dayId: string): OverlapLayoutResult {
   return useMemo(() => {
-    const items = disciplines
+    const items: Array<{
+      discipline: Discipline;
+      dayId: string;
+      timeStart: string;
+      timeEnd: string;
+      start: number;
+      end: number;
+      column: number;
+      totalColumns: number;
+    }> = [];
+
+    disciplines
       .filter((d) => d.isInGrid && d.dayId === dayId && d.timeStart && d.timeEnd)
-      .map((d) => ({
-        discipline: d,
-        dayId,
-        timeStart: d.timeStart!,
-        timeEnd: d.timeEnd!,
-        start: timeToMinutes(d.timeStart!),
-        end: timeToMinutes(d.timeEnd!),
-        column: 0,
-        totalColumns: 1,
-      }));
+      .forEach((d) => {
+        items.push({
+          discipline: d, dayId,
+          timeStart: d.timeStart!, timeEnd: d.timeEnd!,
+          start: timeToMinutes(d.timeStart!), end: timeToMinutes(d.timeEnd!),
+          column: 0, totalColumns: 1,
+        });
+      });
 
-    // Also handle multi-occurrence disciplines
-    const multiItems = disciplines
+    disciplines
       .filter((d) => d.occurrences && d.occurrences.length > 0)
-      .flatMap((d) =>
-        (d.occurrences || [])
-          .filter((occ) => occ.dayId === dayId)
-          .map((occ) => ({
-            discipline: d,
-            dayId,
-            timeStart: occ.timeStart,
-            timeEnd: occ.timeEnd,
-            start: timeToMinutes(occ.timeStart),
-            end: timeToMinutes(occ.timeEnd),
-            column: 0,
-            totalColumns: 1,
-          }))
-      );
+      .forEach((d) => {
+        (d.occurrences || []).filter((occ) => occ.dayId === dayId).forEach((occ) => {
+          items.push({
+            discipline: d, dayId,
+            timeStart: occ.timeStart, timeEnd: occ.timeEnd,
+            start: timeToMinutes(occ.timeStart), end: timeToMinutes(occ.timeEnd),
+            column: 0, totalColumns: 1,
+          });
+        });
+      });
 
-    const all = [...items, ...multiItems];
+    if (items.length === 0) return { positioned: [], maxColumns: 1 };
 
-    // Assign columns using greedy interval coloring
-    const columns: Array<number> = [];
-    all.forEach((item) => {
-      const usedCols = all
-        .filter(
-          (other) =>
-            other !== item &&
-            overlaps({ start: item.start, end: item.end }, { start: other.start, end: other.end })
-        )
-        .map((other) => other.column);
-
+    // Greedy interval coloring
+    items.forEach((item) => {
+      const usedCols = items
+        .filter((o) => o !== item && overlaps({ start: item.start, end: item.end }, { start: o.start, end: o.end }))
+        .map((o) => o.column);
       let col = 0;
       while (usedCols.includes(col)) col++;
       item.column = col;
-      columns.push(col);
     });
 
-    // const maxCol = columns.length > 0 ? Math.max(...columns) : 0;
-
-    // Compute totalColumns for each group
-    all.forEach((item) => {
-      const overlappingCols = all
-        .filter((other) =>
-          overlaps({ start: item.start, end: item.end }, { start: other.start, end: other.end })
-        )
+    items.forEach((item) => {
+      const cols = items
+        .filter((o) => overlaps({ start: item.start, end: item.end }, { start: o.start, end: o.end }))
         .map((o) => o.column);
-      item.totalColumns = Math.max(...overlappingCols) + 1;
+      item.totalColumns = Math.max(...cols) + 1;
     });
 
-    return all.map(({ discipline, dayId, timeStart, timeEnd, column, totalColumns }) => ({
-      discipline,
-      dayId,
-      timeStart,
-      timeEnd,
-      column,
-      totalColumns,
-    }));
+    const maxColumns = Math.max(...items.map((i) => i.totalColumns));
+
+    return {
+      positioned: items.map(({ discipline, dayId, timeStart, timeEnd, column, totalColumns }) => ({
+        discipline, dayId, timeStart, timeEnd, column, totalColumns,
+      })),
+      maxColumns,
+    };
   }, [disciplines, dayId]);
 }

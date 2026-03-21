@@ -210,72 +210,75 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
         </select>
       </FormField>
 
-      {/* ─── Время проведения ─────────────────────────────────────────────── */}
-      <FormField
-        label="Время проведения"
-        required={form.isStatic}
-        error={errors.occurrences}
-        hint={form.isStatic ? undefined : 'Необязательно для непостоянных дисциплин'}
-      >
-        <div className={styles.occurrences}>
-          {(form.occurrences ? form.occurrences : []).map((occ, i) => (
-            <div key={i} className={styles.occurrenceRow}>
-              <select
-                className={styles.daySelect}
-                value={occ.dayId}
-                onChange={(e) => updateOccurrence(i, { dayId: e.target.value })}
-              >
-                {DAYS.map((d) => (
-                  <option key={d.id} value={d.id}>{d.name}</option>
-                ))}
-              </select>
-              <input
-                className={styles.timeInput}
-                value={occ.timeStart}
-                onChange={(e) => updateOccurrence(i, { timeStart: handleTimeInput(e.target.value) })}
-                onBlur={(e) => updateOccurrence(i, { timeStart: normalizeTime(e.target.value) })}
-                placeholder="09:00"
-                maxLength={5}
-              />
-              <span className={styles.timeSep}>—</span>
-              <input
-                className={styles.timeInput}
-                value={occ.timeEnd}
-                onChange={(e) => updateOccurrence(i, { timeEnd: handleTimeInput(e.target.value) })}
-                onBlur={(e) => updateOccurrence(i, { timeEnd: normalizeTime(e.target.value) })}
-                placeholder="10:30"
-                maxLength={5}
-              />
-              <button className={styles.removeBtn} onClick={() => removeOccurrence(i)} type="button">✕</button>
+      {/* ─── Время и период — только для постоянных дисциплин ────────────── */}
+      {form.isStatic && (
+        <>
+          <FormField
+            label="Время проведения"
+            required
+            error={errors.occurrences}
+            hint="День недели и временной промежуток. Можно добавить несколько."
+          >
+            <div className={styles.occurrences}>
+              {(form.occurrences ? form.occurrences : []).map((occ, i) => (
+                <div key={i} className={styles.occurrenceRow}>
+                  <select
+                    className={styles.daySelect}
+                    value={occ.dayId}
+                    onChange={(e) => updateOccurrence(i, { dayId: e.target.value })}
+                  >
+                    {DAYS.map((d) => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                  <input
+                    className={styles.timeInput}
+                    value={occ.timeStart}
+                    onChange={(e) => updateOccurrence(i, { timeStart: handleTimeInput(e.target.value) })}
+                    onBlur={(e) => updateOccurrence(i, { timeStart: normalizeTime(e.target.value) })}
+                    placeholder="09:00"
+                    maxLength={5}
+                  />
+                  <span className={styles.timeSep}>—</span>
+                  <input
+                    className={styles.timeInput}
+                    value={occ.timeEnd}
+                    onChange={(e) => updateOccurrence(i, { timeEnd: handleTimeInput(e.target.value) })}
+                    onBlur={(e) => updateOccurrence(i, { timeEnd: normalizeTime(e.target.value) })}
+                    placeholder="10:30"
+                    maxLength={5}
+                  />
+                  <button className={styles.removeBtn} onClick={() => removeOccurrence(i)} type="button">✕</button>
+                </div>
+              ))}
+              <button className={styles.addBtn} onClick={addOccurrence} type="button">
+                + Добавить время
+              </button>
             </div>
-          ))}
-          <button className={styles.addBtn} onClick={addOccurrence} type="button">
-            + Добавить время
-          </button>
-        </div>
-      </FormField>
+          </FormField>
 
-      {/* ─── Период проведения ────────────────────────────────────────────── */}
-      <div className={styles.row2}>
-        <FormField label="Дата начала" required={form.isStatic} error={errors.dateFrom}>
-          <input
-            className="field-input"
-            value={form.dateRange?.from ?? ''}
-            onChange={(e) => set('dateRange', { from: handleDateInput(e.target.value), to: form.dateRange?.to ?? '' })}
-            placeholder="01.09.2025"
-            maxLength={10}
-          />
-        </FormField>
-        <FormField label="Дата окончания" required={form.isStatic} error={errors.dateTo}>
-          <input
-            className="field-input"
-            value={form.dateRange?.to ?? ''}
-            onChange={(e) => set('dateRange', { from: form.dateRange?.from ?? '', to: handleDateInput(e.target.value) })}
-            placeholder="31.12.2025"
-            maxLength={10}
-          />
-        </FormField>
-      </div>
+          <div className={styles.row2}>
+            <FormField label="Дата начала" required error={errors.dateFrom}>
+              <input
+                className="field-input"
+                value={form.dateRange?.from ?? ''}
+                onChange={(e) => set('dateRange', { from: handleDateInput(e.target.value), to: form.dateRange?.to ?? '' })}
+                placeholder="01.09.2025"
+                maxLength={10}
+              />
+            </FormField>
+            <FormField label="Дата окончания" required error={errors.dateTo}>
+              <input
+                className="field-input"
+                value={form.dateRange?.to ?? ''}
+                onChange={(e) => set('dateRange', { from: form.dateRange?.from ?? '', to: handleDateInput(e.target.value) })}
+                placeholder="31.12.2025"
+                maxLength={10}
+              />
+            </FormField>
+          </div>
+        </>
+      )}
 
       {/* ─── Преподаватели ────────────────────────────────────────────────── */}
       <FormField label="Преподаватели" hint="Выберите одного или нескольких">

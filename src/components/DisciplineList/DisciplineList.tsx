@@ -9,6 +9,7 @@ interface Props {
   onDisciplineClick: (discipline: Discipline) => void;
   onToggleHighlight?: (disciplineId: string) => void;
   highlightedDisciplineId?: string | null;
+  loadingHighlightId?: string | null;
 }
 
 export const DisciplineList: React.FC<Props> = ({
@@ -17,12 +18,15 @@ export const DisciplineList: React.FC<Props> = ({
   onDisciplineClick,
   onToggleHighlight,
   highlightedDisciplineId,
+  loadingHighlightId,
 }) => {
   const handleDragStart = (e: React.DragEvent, discipline: Discipline) => {
+    if (discipline.isStatic) return;
     e.dataTransfer.setData('disciplineId', discipline.id);
-    const duration = discipline.timeStart && discipline.timeEnd
-      ? String(timeToMinutes(discipline.timeEnd) - timeToMinutes(discipline.timeStart))
-      : '90';
+    const duration =
+      discipline.timeStart && discipline.timeEnd
+        ? String(timeToMinutes(discipline.timeEnd) - timeToMinutes(discipline.timeStart))
+        : '90';
     e.dataTransfer.setData('duration', duration);
   };
 
@@ -45,10 +49,11 @@ export const DisciplineList: React.FC<Props> = ({
             <DisciplineCard
               key={discipline.id}
               discipline={discipline}
-              isHighlighted={highlightedDisciplineId === discipline.id}
+              isHighlightActive={highlightedDisciplineId === discipline.id}
+              isLoadingHighlight={loadingHighlightId === discipline.id}
               onDragStart={(e) => handleDragStart(e, discipline)}
               onClick={() => onDisciplineClick(discipline)}
-              onToggleHighlight={onToggleHighlight}
+              onToggleHighlight={discipline.isStatic ? undefined : onToggleHighlight}
             />
           ))}
         </div>
