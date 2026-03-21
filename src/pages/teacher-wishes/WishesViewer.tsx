@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '../../components/Button/Button';
-import type { TeacherWishes, TimeWish, AudienceWish } from '../../types/teacher';
+import type { TeacherWishes, TimeWish, AudienceWish } from '../../types';
 import { DAYS } from '../../constants/days';
 import styles from './WishesViewer.module.scss';
 

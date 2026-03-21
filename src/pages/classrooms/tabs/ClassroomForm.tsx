@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { FormField } from '../../../components/FormField/FormField';
 import { Button } from '../../../components/Button/Button';
-import type { Classroom, ClassroomType, BoardType } from '../../../types/classroom';
-import { CLASSROOM_TYPE_LABELS, BOARD_TYPE_LABELS } from '../../../types/classroom';
+import type { Classroom, ClassroomType, BoardType } from '../../../types';
+import { CLASSROOM_TYPE_LABELS, BOARD_TYPE_LABELS } from '../../../types';
 import { BUILDING_OPTIONS, type BuildingType } from '../../../constants/buildings';
 import styles from './ClassroomForm.module.scss';
 

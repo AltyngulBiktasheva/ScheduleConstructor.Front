@@ -1,4 +1,4 @@
-import type { Classroom } from '../types/classroom';
+import type { Classroom } from '../types';
 
 export const MOCK_CLASSROOMS: Classroom[] = [
   { id: "c1",  name: "101", building: "turgeneva",  type: "standard",     capacity: 30,  boardType: "chalk",  hasProjector: false },

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Button } from '../../components/Button/Button';
 import { FormField } from '../../components/FormField/FormField';
-import type { TeacherWishes, TimeWish, AudienceWish } from '../../types/teacher';
-import { BOARD_TYPE_LABELS, type BoardType } from '../../types/classroom';
+import type { TeacherWishes, TimeWish, AudienceWish } from '../../types';
+import { BOARD_TYPE_LABELS, type BoardType } from '../../types';
 import { DAYS } from '../../constants/days';
 import { BUILDING_OPTIONS, type BuildingType } from '../../constants/buildings';
 import styles from './WishesEditor.module.scss';

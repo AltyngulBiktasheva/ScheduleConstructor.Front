@@ -1,5 +1,5 @@
-import type { Teacher } from '../types/teacher';
-import { emptyWishes } from '../types/teacher';
+import type { Teacher } from '../types';
+import { emptyWishes } from '../types';
 
 export const MOCK_TEACHERS: Teacher[] = [
   {

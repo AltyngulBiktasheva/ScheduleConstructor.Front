@@ -3,8 +3,8 @@ import { Modal } from '../../../components/Modal/Modal';
 import { Button } from '../../../components/Button/Button';
 import { Badge } from '../../../components/Badge/Badge';
 import { ClassroomForm } from '../tabs/ClassroomForm';
-import type { Classroom } from '../../../types/classroom';
-import { CLASSROOM_TYPE_LABELS } from '../../../types/classroom';
+import type { Classroom } from '../../../types';
+import { CLASSROOM_TYPE_LABELS } from '../../../types';
 import styles from './ClassroomViewModal.module.scss';
 
 interface Props {
