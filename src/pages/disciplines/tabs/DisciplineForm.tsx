@@ -5,16 +5,9 @@ import type { Discipline, DisciplineAudience, DisciplineTeacher, WeeklyOccurrenc
 import { DAYS } from '../../../constants/days';
 import { BUILDING_OPTIONS, type BuildingType } from '../../../constants/buildings';
 import styles from './DisciplineForm.module.scss';
-
-const MOCK_TEACHERS_LIST: DisciplineTeacher[] = [
-  { id: 't1', name: 'Иванов И.И.' },
-  { id: 't2', name: 'Петров П.П.' },
-  { id: 't3', name: 'Новикова Е.Н.' },
-  { id: 't4', name: 'Сидоров С.С.' },
-  { id: 't5', name: 'Смирнова А.А.' },
-  { id: 't6', name: 'Козлов В.В.' },
-  { id: 't7', name: 'Орлов Д.В.' },
-];
+import { useEffect } from 'react';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import { fetchTeachersAll } from '../../../store/slices/teachersListSlice';
 
 const REPEAT_OPTIONS: { value: RepeatType; label: string }[] = [
   { value: 'every-week', label: 'Каждую неделю' },
@@ -53,6 +46,14 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  const dispatch = useAppDispatch();
+  const { teachers: teachersList } = useAppSelector((s) => s.teachersList);
+  const disciplineTeachers = teachersList.map((t) => ({ id: t.id, name: t.name }));
+
+  useEffect(() => {
+    if (teachersList.length === 0) dispatch(fetchTeachersAll());
+  }, [dispatch, teachersList.length]);
 
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -280,7 +281,7 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
       {/* Преподаватели */}
       <FormField label="Преподаватели" hint="Выберите одного или нескольких">
         <div className={styles.checkList}>
-          {MOCK_TEACHERS_LIST.map((t) => (
+          {disciplineTeachers.map((t) => (
             <label key={t.id} className={styles.checkLabel}>
               <input type="checkbox" checked={form.teachers.some((f) => f.id === t.id)} onChange={() => toggleTeacher(t)} />
               {t.name}

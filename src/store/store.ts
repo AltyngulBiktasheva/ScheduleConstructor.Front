@@ -1,4 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
+
+// ── Детальные слайсы (одна запись) ────────────────────────────────────────────
 import academicDisciplineReducer from './slices/academicDisciplineSlice';
 import campusReducer from './slices/campusSlice';
 import lessonReducer from './slices/lessonSlice';
@@ -8,8 +10,15 @@ import studentGroupReducer from './slices/studentGroupSlice';
 import teacherReducer from './slices/teacherSlice';
 import teacherPreferenceReducer from './slices/teacherPreferenceSlice';
 
+// ── Списочные слайсы (коллекции для страниц) ──────────────────────────────────
+import teachersListReducer from './slices/teachersListSlice';
+import classroomsListReducer from './slices/classroomsListSlice';
+import disciplinesListReducer from './slices/disciplinesListSlice';
+import groupsListReducer from './slices/groupsListSlice';
+
 export const store = configureStore({
   reducer: {
+    // детальные
     academicDiscipline: academicDisciplineReducer,
     campus: campusReducer,
     lesson: lessonReducer,
@@ -18,6 +27,11 @@ export const store = configureStore({
     studentGroup: studentGroupReducer,
     teacher: teacherReducer,
     teacherPreference: teacherPreferenceReducer,
+    // списочные
+    teachersList: teachersListReducer,
+    classroomsList: classroomsListReducer,
+    disciplinesList: disciplinesListReducer,
+    groupsList: groupsListReducer,
   },
 });
 

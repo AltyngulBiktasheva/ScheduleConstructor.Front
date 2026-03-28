@@ -1,26 +1,29 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import { fetchTeachersAll } from '../../../store/slices/teachersListSlice';
 import styles from './SliceCard.module.scss';
-
-const MOCK_TEACHERS = [
-  'Иванов И.И.', 'Петров П.П.', 'Сидоров С.С.',
-  'Смирнова А.А.', 'Козлов В.В.', 'Новикова Е.Н.',
-  'Морозов Д.А.', 'Лебедева О.В.', 'Соколов К.Р.',
-];
 
 interface Props {
   onSelect: (entityId: string, label: string) => void;
 }
 
 export const TeacherSlice: React.FC<Props> = ({ onSelect }) => {
+  const dispatch = useAppDispatch();
+  const { teachers, loading } = useAppSelector((s) => s.teachersList);
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState('');
 
-  const filtered = MOCK_TEACHERS.filter((t) =>
-    t.toLowerCase().includes(query.toLowerCase())
+  useEffect(() => {
+    if (teachers.length === 0) dispatch(fetchTeachersAll());
+  }, [dispatch, teachers.length]);
+
+  const filtered = teachers.filter((t) =>
+    t.name.toLowerCase().includes(query.toLowerCase())
   );
 
   const handleOpen = () => {
-    if (selected) onSelect(selected, selected);
+    const teacher = teachers.find((t) => t.id === selected);
+    if (teacher) onSelect(teacher.id, teacher.name);
   };
 
   return (
@@ -40,12 +43,16 @@ export const TeacherSlice: React.FC<Props> = ({ onSelect }) => {
 
       <div className={styles.field}>
         <label>Преподаватель</label>
-        <select value={selected} onChange={(e) => setSelected(e.target.value)}>
-          <option value="">— выберите преподавателя —</option>
-          {filtered.map((t) => (
-            <option key={t} value={t}>{t}</option>
-          ))}
-        </select>
+        {loading ? (
+          <div>Загрузка…</div>
+        ) : (
+          <select value={selected} onChange={(e) => setSelected(e.target.value)}>
+            <option value="">— выберите преподавателя —</option>
+            {filtered.map((t) => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       <button className={styles.openBtn} disabled={!selected} onClick={handleOpen}>

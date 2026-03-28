@@ -1,14 +1,24 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { PageHeader } from '../../components/PageHeader/PageHeader';
 import { GroupPicker } from '../../components/GroupPicker/GroupPicker';
 import { ScheduleGrid } from '../../components/ScheduleGrid/ScheduleGrid';
-import { MOCK_GROUPS, MOCK_STREAMS } from '../../mockData/groups';
-import { MOCK_DISCIPLINES } from '../../mockData/schedule';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { fetchGroupsAll } from '../../store/slices/groupsListSlice';
+import { fetchDisciplinesAll } from '../../store/slices/disciplinesListSlice';
 import styles from './Styles.module.scss';
 
 export const StudentSchedulePage: React.FC = () => {
+  const dispatch = useAppDispatch();
+  const { groups, streams, loading } = useAppSelector((s) => s.groupsList);
+  const { disciplines } = useAppSelector((s) => s.disciplinesList);
+
   const [selection, setSelection] = useState<{ ids: string[]; label: string } | null>(null);
   const [weekOffset, setWeekOffset] = useState(0);
+
+  useEffect(() => {
+    if (groups.length === 0) dispatch(fetchGroupsAll());
+    if (disciplines.length === 0) dispatch(fetchDisciplinesAll());
+  }, [dispatch, groups.length, disciplines.length]);
 
   if (!selection) {
     return (
@@ -17,19 +27,21 @@ export const StudentSchedulePage: React.FC = () => {
           title="Расписание"
           subtitle="Выберите группу для просмотра расписания"
         />
-        <GroupPicker
-          groups={MOCK_GROUPS}
-          streams={MOCK_STREAMS}
-          onSelect={(ids, label) => setSelection({ ids, label })}
-        />
+        {loading ? (
+          <div>Загрузка…</div>
+        ) : (
+          <GroupPicker
+            groups={groups}
+            streams={streams}
+            onSelect={(ids, label) => setSelection({ ids, label })}
+          />
+        )}
       </div>
     );
   }
 
-  const groupDisciplines = MOCK_DISCIPLINES.filter((d) =>
-    d.isInGrid && selection.ids.some(() =>
-      d.dayId != null
-    )
+  const groupDisciplines = disciplines.filter((d) =>
+    d.isInGrid && selection.ids.some(() => d.dayId != null)
   );
 
   return (
