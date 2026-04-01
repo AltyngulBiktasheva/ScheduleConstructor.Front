@@ -23,7 +23,7 @@ const initialState: StudentGroupState = {
 
 export const fetchStudentGroup = createAsyncThunk(
   'studentGroup/fetch',
-  async (params: { studentGroupId: string; scheduleId: string }, { rejectWithValue }) => {
+  async (params: { studentGroupId: string }, { rejectWithValue }) => {
     try {
       const { data } = await studentGroupApi.getStudentGroup(params);
       return data;
@@ -37,8 +37,7 @@ export const saveStudentGroup = createAsyncThunk(
   'studentGroup/save',
   async (dto: SaveStudentGroupDto, { rejectWithValue }) => {
     try {
-      const { data } = await studentGroupApi.saveStudentGroup(dto);
-      return data; // UUID группы
+      await studentGroupApi.saveStudentGroup(dto);
     } catch (err: unknown) {
       return rejectWithValue((err as Error).message);
     }
@@ -97,7 +96,7 @@ export const useStudentGroup = () => {
 
   return {
     ...state,
-    fetch: (params: { studentGroupId: string; scheduleId: string }) =>
+    fetch: (params: { studentGroupId: string }) =>
       dispatch(fetchStudentGroup(params)),
     save: (dto: SaveStudentGroupDto) => dispatch(saveStudentGroup(dto)),
     clear: () => dispatch(clearStudentGroup()),

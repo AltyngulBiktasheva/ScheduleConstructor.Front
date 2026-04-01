@@ -124,3 +124,10 @@
   font-size: 16px;
   line-height: 1;
 }
+
+.loadingText,
+.emptyText {
+  font-size: $font-size-sm;
+  color: $color-gray-500;
+  padding: $space-2 0;
+}

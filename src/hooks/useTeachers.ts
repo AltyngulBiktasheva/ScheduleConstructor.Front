@@ -1,15 +1,10 @@
 /**
- * Заменяет старый локальный хук.
- * Сохраняет тот же публичный интерфейс: { teachers, newlyCreatedId, add, update, remove }
- * Данные теперь хранятся в Redux и загружаются с бэкенда.
+ * Публичный интерфейс: { teachers, newlyCreatedId, add, update, remove }
+ * Данные хранятся в Redux и синхронизируются с бэкендом.
  *
- * Маппинг: TeacherViewDto (API) ↔ Teacher (фронтовый тип)
+ * Маппинг: TeacherRegistryItemDto (API) ↔ Teacher (фронтовый тип)
  *   API:   { id, fullname, contacts }
  *   Front: { id, name, wishes }
- *
- * Пожелания (wishes) живут отдельно — teacherPreference slice.
- * Здесь они подставляются как emptyWishes() и могут быть
- * заполнены через useTeacherPreference при открытии карточки.
  */
 import { useEffect, useState, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -18,6 +13,7 @@ import {
   addTeacherLocally,
   updateTeacherLocally,
   removeTeacherLocally,
+  saveTeacherOnServer,
 } from '../store/slices/teachersListSlice';
 import type { Teacher } from '../types/teacher';
 
@@ -38,6 +34,7 @@ export function useTeachers() {
   const add = useCallback(
     (teacher: Teacher) => {
       dispatch(addTeacherLocally(teacher));
+      dispatch(saveTeacherOnServer(teacher));
       markCreated(teacher.id);
     },
     [dispatch],
@@ -46,6 +43,7 @@ export function useTeachers() {
   const update = useCallback(
     (updated: Teacher) => {
       dispatch(updateTeacherLocally(updated));
+      dispatch(saveTeacherOnServer(updated));
     },
     [dispatch],
   );

@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { lessonApi } from '../../api';
-import type { DateInterval, LessonViewDto, LessonWeekConflictDto, SaveLessonRequestDto } from '../../api';
+import type { LessonViewDto, LessonWeekConflictDto, SaveLessonRequestDto } from '../../api';
 import { useAppDispatch, useAppSelector } from '../hooks';
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -27,7 +27,7 @@ const initialState: LessonState = {
 
 export const fetchLesson = createAsyncThunk(
   'lesson/fetch',
-  async (params: { lessonId: string; scheduleId: string }, { rejectWithValue }) => {
+  async (params: { lessonId: string }, { rejectWithValue }) => {
     try {
       const { data } = await lessonApi.getLesson(params);
       return data;
@@ -41,8 +41,7 @@ export const saveLesson = createAsyncThunk(
   'lesson/save',
   async (dto: SaveLessonRequestDto, { rejectWithValue }) => {
     try {
-      const { data } = await lessonApi.saveLesson(dto);
-      return data; // UUID сохранённого занятия
+      await lessonApi.saveLesson(dto);
     } catch (err: unknown) {
       return rejectWithValue((err as Error).message);
     }
@@ -52,14 +51,11 @@ export const saveLesson = createAsyncThunk(
 export const fetchLessonWeekConflicts = createAsyncThunk(
   'lesson/fetchWeekConflicts',
   async (
-    params: { lessonId: string; dateInterval: DateInterval },
+    params: { lessonId: string; dateFrom: string; dateTo: string },
     { rejectWithValue },
   ) => {
     try {
-      const { data } = await lessonApi.getLessonWeekConflicts(
-        params.lessonId,
-        params.dateInterval,
-      );
+      const { data } = await lessonApi.getLessonWeekConflicts(params);
       return data;
     } catch (err: unknown) {
       return rejectWithValue((err as Error).message);
@@ -83,7 +79,6 @@ const lessonSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // fetch
       .addCase(fetchLesson.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -96,7 +91,6 @@ const lessonSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      // save
       .addCase(saveLesson.pending, (state) => {
         state.saving = true;
         state.error = null;
@@ -108,7 +102,6 @@ const lessonSlice = createSlice({
         state.saving = false;
         state.error = action.payload as string;
       })
-      // weekConflicts
       .addCase(fetchLessonWeekConflicts.pending, (state) => {
         state.conflictsLoading = true;
         state.error = null;
@@ -135,11 +128,11 @@ export const useLesson = () => {
 
   return {
     ...state,
-    fetch: (params: { lessonId: string; scheduleId: string }) =>
+    fetch: (params: { lessonId: string }) =>
       dispatch(fetchLesson(params)),
     save: (dto: SaveLessonRequestDto) =>
       dispatch(saveLesson(dto)),
-    fetchWeekConflicts: (params: { lessonId: string; dateInterval: DateInterval }) =>
+    fetchWeekConflicts: (params: { lessonId: string; dateFrom: string; dateTo: string }) =>
       dispatch(fetchLessonWeekConflicts(params)),
     clear: () => dispatch(clearLesson()),
     clearConflicts: () => dispatch(clearWeekConflicts()),

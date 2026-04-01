@@ -1,19 +1,22 @@
 import apiClient from './client';
-import type { AcademicDisciplineViewDto, SaveAcademicDisciplineDto } from './types';
+import type {
+  AcademicDisciplineRegistryItemDto,
+  AcademicDisciplineViewDto,
+  RegistryDto,
+  SaveAcademicDisciplineDto,
+  SearchParametersDto,
+} from './types';
 
 export const academicDisciplineApi = {
+  /** Получить список академических дисциплин */
+  searchAcademicDisciplines: (body: { searchParameters: SearchParametersDto }) =>
+    apiClient.post<RegistryDto<AcademicDisciplineRegistryItemDto>>('/academic-discipline/search', body),
+
   /** Получить данные академической дисциплины */
-  getAcademicDiscipline: (params: {
-    academicDisciplineId: string;
-    scheduleId: string;
-  }) =>
-    apiClient.get<AcademicDisciplineViewDto>('/AcademicDiscipline/GetAcademicDiscipline', {
-      params,
-    }),
+  getAcademicDiscipline: (params: { academicDisciplineId: string }) =>
+    apiClient.get<AcademicDisciplineViewDto>('/academic-discipline/view', { params }),
 
   /** Сохранить академическую дисциплину (создать или обновить) */
   saveAcademicDiscipline: (data: SaveAcademicDisciplineDto) =>
-    apiClient.get<void>('/AcademicDiscipline/SaveAcademicDiscipline', {
-      data,
-    }),
+    apiClient.post<void>('/academic-discipline/save', data),
 };

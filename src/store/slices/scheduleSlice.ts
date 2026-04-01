@@ -26,7 +26,7 @@ export const fetchSchedules = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const { data } = await scheduleApi.searchSchedules();
-      return data;
+      return data.items;
     } catch (err: unknown) {
       return rejectWithValue((err as Error).message);
     }
@@ -35,10 +35,11 @@ export const fetchSchedules = createAsyncThunk(
 
 export const saveSchedule = createAsyncThunk(
   'schedule/save',
-  async (dto: SaveScheduleDto, { rejectWithValue }) => {
+  async (dto: SaveScheduleDto, { dispatch, rejectWithValue }) => {
     try {
-      const { data } = await scheduleApi.saveSchedule(dto);
-      return data; // UUID нового расписания
+      await scheduleApi.saveSchedule(dto);
+      // После сохранения перезагружаем список
+      dispatch(fetchSchedules());
     } catch (err: unknown) {
       return rejectWithValue((err as Error).message);
     }
@@ -57,7 +58,6 @@ const scheduleSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // fetchAll
       .addCase(fetchSchedules.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -70,7 +70,6 @@ const scheduleSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      // save
       .addCase(saveSchedule.pending, (state) => {
         state.saving = true;
         state.error = null;

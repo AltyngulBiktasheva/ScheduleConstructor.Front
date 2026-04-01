@@ -1,12 +1,12 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { campusApi } from '../../api';
-import type { CampusDto, SaveCampusDto } from '../../api';
+import type { CampusRegistryItemDto, SaveCampusDto } from '../../api';
 import { useAppDispatch, useAppSelector } from '../hooks';
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
 interface CampusState {
-  list: CampusDto[];
+  list: CampusRegistryItemDto[];
   loading: boolean;
   saving: boolean;
   error: string | null;
@@ -25,8 +25,8 @@ export const fetchCampuses = createAsyncThunk(
   'campus/fetchAll',
   async (_, { rejectWithValue }) => {
     try {
-      const { data } = await campusApi.getCampuses();
-      return data;
+      const { data } = await campusApi.searchCampuses();
+      return data.items;
     } catch (err: unknown) {
       return rejectWithValue((err as Error).message);
     }
@@ -35,10 +35,10 @@ export const fetchCampuses = createAsyncThunk(
 
 export const saveCampus = createAsyncThunk(
   'campus/save',
-  async (dto: SaveCampusDto, { rejectWithValue }) => {
+  async (dto: SaveCampusDto, { dispatch, rejectWithValue }) => {
     try {
-      const { data } = await campusApi.saveCampus(dto);
-      return data; // возвращает UUID созданного корпуса
+      await campusApi.saveCampus(dto);
+      dispatch(fetchCampuses());
     } catch (err: unknown) {
       return rejectWithValue((err as Error).message);
     }
@@ -57,7 +57,6 @@ const campusSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // fetchAll
       .addCase(fetchCampuses.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -70,7 +69,6 @@ const campusSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      // save
       .addCase(saveCampus.pending, (state) => {
         state.saving = true;
         state.error = null;

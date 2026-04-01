@@ -1,14 +1,9 @@
 /**
- * Заменяет старый локальный хук.
  * Публичный интерфейс: { classrooms, newlyCreatedId, add, update, remove }
+ * Данные хранятся в Redux и синхронизируются с бэкендом.
  *
- * Маппинг: RoomViewDto (API) ↔ Classroom (фронтовый тип)
- *   API:   { id, name, campusId, roomType }
- *   Front: { id, name, building, type, capacity, boardType, hasProjector }
- *
- * Примечание: API не возвращает capacity/boardType/hasProjector —
- * эти поля устанавливаются в дефолт при получении с сервера.
- * При создании (add) все поля доступны из формы.
+ * Маппинг: RoomTreeDto → Classroom (via fetchClassroomsAll)
+ * При сохранении используется campusId из Classroom.
  */
 import { useEffect, useState, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -17,6 +12,7 @@ import {
   addClassroomLocally,
   updateClassroomLocally,
   removeClassroomLocally,
+  saveClassroomOnServer,
 } from '../store/slices/classroomsListSlice';
 import type { Classroom } from '../types/classroom';
 
@@ -37,6 +33,7 @@ export function useClassrooms() {
   const add = useCallback(
     (classroom: Classroom) => {
       dispatch(addClassroomLocally(classroom));
+      dispatch(saveClassroomOnServer(classroom));
       markCreated(classroom.id);
     },
     [dispatch],
@@ -45,6 +42,7 @@ export function useClassrooms() {
   const update = useCallback(
     (updated: Classroom) => {
       dispatch(updateClassroomLocally(updated));
+      dispatch(saveClassroomOnServer(updated));
     },
     [dispatch],
   );

@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FormField } from '../../../components/FormField/FormField';
 import { Button } from '../../../components/Button/Button';
 import type { Classroom, ClassroomType, BoardType } from '../../../types';
 import { CLASSROOM_TYPE_LABELS, BOARD_TYPE_LABELS } from '../../../types';
-import { BUILDING_OPTIONS, type BuildingType } from '../../../constants/buildings';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import { fetchCampuses } from '../../../store/slices/campusSlice';
 import styles from './ClassroomForm.module.scss';
 
 function emptyForm(): Omit<Classroom, 'id'> {
-  return { name: '', building: 'turgeneva', type: 'standard', capacity: 30, boardType: 'chalk', hasProjector: false };
+  return { name: '', building: '', campusId: '', type: 'standard', capacity: 30, boardType: 'chalk', hasProjector: false };
 }
 
 interface Props {
@@ -17,20 +18,46 @@ interface Props {
 }
 
 export const ClassroomForm: React.FC<Props> = ({ initial, onSave, onCancel }) => {
+  const dispatch = useAppDispatch();
+  const { list: campuses, loading: campusesLoading } = useAppSelector((s) => s.campus);
+
   const [form, setForm] = useState<Omit<Classroom, 'id'>>(
     initial ? { ...initial } : emptyForm()
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
+  useEffect(() => {
+    if (campuses.length === 0) dispatch(fetchCampuses());
+  }, [dispatch, campuses.length]);
+
+  // При появлении кампусов и если кампус ещё не выбран — выбираем первый
+  useEffect(() => {
+    if (campuses.length > 0 && !form.campusId) {
+      setForm((prev) => ({
+        ...prev,
+        campusId: campuses[0].id,
+        building: campuses[0].name,
+      }));
+    }
+  }, [campuses, form.campusId]);
+
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
+
+  const handleCampusChange = (campusId: string) => {
+    const campus = campuses.find((c) => c.id === campusId);
+    setForm((prev) => ({
+      ...prev,
+      campusId,
+      building: campus?.name ?? campusId,
+    }));
+  };
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
     if (!form.name.trim()) errs.name = 'Обязательное поле';
-    if (!form.building) errs.building = 'Обязательное поле';
-    if (form.building === 'other' && !form.buildingName?.trim()) errs.buildingName = 'Обязательное поле';
+    if (!form.campusId) errs.campusId = 'Выберите корпус';
     if (!form.type) errs.type = 'Обязательное поле';
     if (!form.capacity || form.capacity < 1) errs.capacity = 'Укажите корректную вместимость';
     setErrors(errs);
@@ -42,10 +69,6 @@ export const ClassroomForm: React.FC<Props> = ({ initial, onSave, onCancel }) =>
     onSave({ ...form, id: initial?.id ?? crypto.randomUUID() } as Classroom);
   };
 
-  const handleBuildingChange = (building: BuildingType) => {
-    setForm((prev) => ({ ...prev, building, buildingName: building === 'other' ? '' : undefined }));
-  };
-
   return (
     <div className={styles.form}>
       <FormField label="Название аудитории" required error={errors.name}
@@ -53,19 +76,23 @@ export const ClassroomForm: React.FC<Props> = ({ initial, onSave, onCancel }) =>
         <input className="field-input" value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="301" autoFocus />
       </FormField>
 
-      <FormField label="Корпус" required error={errors.building}>
-        <select className="field-input" value={form.building} onChange={(e) => handleBuildingChange(e.target.value as BuildingType)}>
-          {BUILDING_OPTIONS.filter((o) => o.value !== 'online').map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
+      <FormField label="Корпус" required error={errors.campusId}>
+        {campusesLoading ? (
+          <div className={styles.loadingText}>Загрузка корпусов…</div>
+        ) : campuses.length === 0 ? (
+          <div className={styles.emptyText}>Нет доступных корпусов. Сначала создайте корпус.</div>
+        ) : (
+          <select
+            className="field-input"
+            value={form.campusId ?? ''}
+            onChange={(e) => handleCampusChange(e.target.value)}
+          >
+            {campuses.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        )}
       </FormField>
-
-      {form.building === 'other' && (
-        <FormField label="Название корпуса" required error={errors.buildingName}>
-          <input className="field-input" value={form.buildingName ?? ''} onChange={(e) => set('buildingName', e.target.value)} placeholder="Спортивный корпус" />
-        </FormField>
-      )}
 
       <FormField label="Тип аудитории" required error={errors.type}>
         <div className={styles.typeGrid}>
@@ -87,7 +114,6 @@ export const ClassroomForm: React.FC<Props> = ({ initial, onSave, onCancel }) =>
         </div>
       </FormField>
 
-      {/* Тип доски */}
       <FormField label="Тип доски" required>
         <div className={styles.radioGroup}>
           {(Object.keys(BOARD_TYPE_LABELS) as BoardType[]).map((b) => (
@@ -100,7 +126,6 @@ export const ClassroomForm: React.FC<Props> = ({ initial, onSave, onCancel }) =>
         </div>
       </FormField>
 
-      {/* Проектор */}
       <FormField label="Проектор" required>
         <div className={styles.radioGroup}>
           <label className={styles.radioLabel}>

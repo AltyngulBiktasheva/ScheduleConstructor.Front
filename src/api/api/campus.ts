@@ -1,12 +1,12 @@
 import apiClient from './client';
-import type { CampusDto, SaveCampusDto } from './types';
+import type { CampusRegistryItemDto, RegistryDto, SaveCampusDto, SearchParametersDto } from './types';
 
 export const campusApi = {
   /** Получить список учебных корпусов */
-  getCampuses: () =>
-    apiClient.get<CampusDto[]>('/Campus/GetCampuses'),
+  searchCampuses: (body: { searchParameters: SearchParametersDto } = { searchParameters: { page: 1, itemsPerPage: 100 } }) =>
+    apiClient.post<RegistryDto<CampusRegistryItemDto>>('/campus/search', body),
 
-  /** Создать новый учебный корпус */
+  /** Создать / обновить учебный корпус */
   saveCampus: (data: SaveCampusDto) =>
-    apiClient.post<string>('/Campus/SaveCampus', data),
+    apiClient.post<void>('/campus/save', data),
 };

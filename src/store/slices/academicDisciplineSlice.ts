@@ -23,7 +23,7 @@ const initialState: AcademicDisciplineState = {
 
 export const fetchAcademicDiscipline = createAsyncThunk(
   'academicDiscipline/fetch',
-  async (params: { academicDisciplineId: string; scheduleId: string }, { rejectWithValue }) => {
+  async (params: { academicDisciplineId: string }, { rejectWithValue }) => {
     try {
       const { data } = await academicDisciplineApi.getAcademicDiscipline(params);
       return data;
@@ -96,7 +96,7 @@ export const useAcademicDiscipline = () => {
 
   return {
     ...state,
-    fetch: (params: { academicDisciplineId: string; scheduleId: string }) =>
+    fetch: (params: { academicDisciplineId: string }) =>
       dispatch(fetchAcademicDiscipline(params)),
     save: (dto: SaveAcademicDisciplineDto) =>
       dispatch(saveAcademicDiscipline(dto)),

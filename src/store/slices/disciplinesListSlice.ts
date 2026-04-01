@@ -1,18 +1,17 @@
 /**
  * Хранит список дисциплин для страницы DisciplinesPage.
  *
- * Маппинг AcademicDisciplineViewDto → Discipline:
+ * Маппинг AcademicDisciplineRegistryItemDto → Discipline:
  *   Фронтовый тип Discipline значительно богаче DTO.
  *   При загрузке с сервера поля расписания (dayId, timeStart, occurrences и т.д.)
  *   будут отсутствовать — это нормально, они заполняются в конструкторе расписания.
  *
- * scheduleId: требуется для API — берётся из store.schedule.list[0].id
- * (TODO: когда появится выбор расписания — пробрасывать явно).
+ * scheduleId: требуется для сохранения — берётся из аргумента saveDto.
  */
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { academicDisciplineApi } from '../../api';
+import type { SaveAcademicDisciplineDto } from '../../api';
 import type { Discipline } from '../../types/discipline';
-import { MOCK_DISCIPLINES_LIST } from '../../mockData/disciplines';
 
 // ─── State ───────────────────────────────────────────────────────────────────
 
@@ -30,20 +29,27 @@ const initialState: DisciplinesListState = {
 
 // ─── Thunks ──────────────────────────────────────────────────────────────────
 
-/**
- * Загружает список дисциплин.
- * API предоставляет только GetAcademicDiscipline (одна запись по id).
- * TODO: когда появится endpoint списка — заменить моки на реальный вызов.
- */
+/** Загружает список дисциплин с бэкенда */
 export const fetchDisciplinesAll = createAsyncThunk(
   'disciplinesList/fetchAll',
   async (_, { rejectWithValue }) => {
     try {
-      // TODO: заменить на реальный запрос
-      // const { data } = await academicDisciplineApi.getAcademicDisciplines({ scheduleId });
-      // return data.map(mapDtoToDiscipline);
-      await new Promise((r) => setTimeout(r, 0));
-      return MOCK_DISCIPLINES_LIST;
+      const { data } = await academicDisciplineApi.searchAcademicDisciplines({
+        searchParameters: { page: 1, itemsPerPage: 100 },
+      });
+      return data.items.map((dto): Discipline => ({
+        id: dto.id,
+        name: dto.name,
+        forType: 'group',
+        forIds: [],
+        teachers: [],
+        audiences: [],
+        isStatic: false,
+        canOverlap: false,
+        repeat: 'every-week',
+        weeklyCount: 1,
+        comment: dto.comment ?? undefined,
+      }));
     } catch (err: unknown) {
       return rejectWithValue((err as Error).message);
     }
@@ -52,26 +58,16 @@ export const fetchDisciplinesAll = createAsyncThunk(
 
 /**
  * Сохраняет дисциплину на сервере.
- * scheduleId передаётся в payload — его нужно получить из активного расписания.
+ * Принимает готовый SaveAcademicDisciplineDto, чтобы вызывающий код мог указать scheduleId.
  */
 export const saveDisciplineOnServer = createAsyncThunk(
   'disciplinesList/save',
   async (
-    { discipline, scheduleId }: { discipline: Discipline; scheduleId: string },
+    { discipline, dto }: { discipline: Discipline; dto: SaveAcademicDisciplineDto },
     { rejectWithValue },
   ) => {
     try {
-      await academicDisciplineApi.saveAcademicDiscipline({
-        id: discipline.id,
-        scheduleId,
-        name: discipline.name,
-        cypher: discipline.id, // фронт не имеет отдельного поля cypher — используем id
-        semester: 1,           // TODO: добавить semester в фронтовый тип Discipline
-        academicDisciplineTargetType: 'General',
-        hasExam: false,
-        hasTest: false,
-        comment: discipline.comment,
-      });
+      await academicDisciplineApi.saveAcademicDiscipline(dto);
       return discipline;
     } catch (err: unknown) {
       return rejectWithValue((err as Error).message);
@@ -109,10 +105,6 @@ const disciplinesListSlice = createSlice({
       .addCase(fetchDisciplinesAll.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
-      })
-      .addCase(saveDisciplineOnServer.fulfilled, (state, action) => {
-        const idx = state.disciplines.findIndex((d) => d.id === action.payload.id);
-        if (idx !== -1) state.disciplines[idx] = action.payload;
       });
   },
 });

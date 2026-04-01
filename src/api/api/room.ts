@@ -4,13 +4,13 @@ import type { RoomTreeDto, RoomViewDto, SaveRoomDto } from './types';
 export const roomApi = {
   /** Получить данные аудитории */
   getRoom: (params: { roomId: string }) =>
-    apiClient.get<RoomViewDto>('/Room/GetRoom', { params }),
+    apiClient.get<RoomViewDto>('/room/view', { params }),
 
-  /** Получить дерево аудиторий */
+  /** Получить дерево аудиторий (сгруппированы по кампусу) */
   getRoomTree: () =>
-    apiClient.get<RoomTreeDto>('/Room/GetRoomTree'),
+    apiClient.get<RoomTreeDto[]>('/room/tree'),
 
-  /** Добавить аудиторию */
+  /** Добавить / обновить аудиторию */
   saveRoom: (data: SaveRoomDto) =>
-    apiClient.post<string>('/Room/SaveRoom', data),
+    apiClient.post<void>('/room/save', data),
 };

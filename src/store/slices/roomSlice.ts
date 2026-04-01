@@ -7,7 +7,7 @@ import { useAppDispatch, useAppSelector } from '../hooks';
 
 interface RoomState {
   current: RoomViewDto | null;
-  tree: RoomTreeDto | null;
+  tree: RoomTreeDto[] | null;
   loading: boolean;
   treeLoading: boolean;
   saving: boolean;
@@ -16,7 +16,7 @@ interface RoomState {
 
 const initialState: RoomState = {
   current: null,
-  tree: null,
+  tree: null as RoomTreeDto[] | null,
   loading: false,
   treeLoading: false,
   saving: false,
@@ -53,8 +53,7 @@ export const saveRoom = createAsyncThunk(
   'room/save',
   async (dto: SaveRoomDto, { rejectWithValue }) => {
     try {
-      const { data } = await roomApi.saveRoom(dto);
-      return data; // UUID новой аудитории
+      await roomApi.saveRoom(dto);
     } catch (err: unknown) {
       return rejectWithValue((err as Error).message);
     }

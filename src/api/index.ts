@@ -1,10 +1,1 @@
-export * from './types';
-export { academicDisciplineApi } from './academicDiscipline';
-export { campusApi } from './campus';
-export { lessonApi } from './lesson';
-export { roomApi } from './room';
-export { scheduleApi } from './schedule';
-export { studentGroupApi } from './studentGroup';
-export { teacherApi } from './teacher';
-export { teacherPreferenceApi } from './teacherPreference';
-export { default as apiClient } from './client';
+export * from './api';

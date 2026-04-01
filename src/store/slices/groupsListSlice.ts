@@ -1,20 +1,16 @@
 /**
  * Хранит список групп и потоков для страницы GroupsPage.
  *
- * Маппинг StudentGroupViewDto → Group / Stream:
+ * Маппинг StudentGroupRegistryItemDto → Group / Stream:
  *   StudentGroupType.Thread  → Stream (поток)
- *   StudentGroupType.Group   → Group  (группа)
- *   StudentGroupType.SemiGroup → Group (подгруппа, трактуется как группа)
- *
- *   children (StudentGroupShortViewDto[]) → groupIds у потока
- *                                         → subgroups у группы
+ *   StudentGroupType.Group / SemiGroup → Group (группа / подгруппа)
  *
  * API: SaveStudentGroup принимает scheduleId — пробрасывается в payload.
  */
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { studentGroupApi } from '../../api';
+import type { SaveStudentGroupDto } from '../../api';
 import type { Group, Stream } from '../../types/group';
-import { MOCK_GROUPS, MOCK_STREAMS } from '../../mockData/groups';
 
 // ─── State ───────────────────────────────────────────────────────────────────
 
@@ -34,61 +30,52 @@ const initialState: GroupsListState = {
 
 // ─── Thunks ──────────────────────────────────────────────────────────────────
 
-/**
- * Загружает все группы и потоки.
- * TODO: заменить моки на реальный endpoint когда появится GetStudentGroups (список).
- */
+/** Загружает все группы и потоки с бэкенда */
 export const fetchGroupsAll = createAsyncThunk(
   'groupsList/fetchAll',
   async (_, { rejectWithValue }) => {
     try {
-      await new Promise((r) => setTimeout(r, 0));
-      return { groups: MOCK_GROUPS, streams: MOCK_STREAMS };
+      const { data } = await studentGroupApi.searchStudentGroups({
+        searchParameters: { page: 1, itemsPerPage: 100 },
+      });
+
+      const streams: Stream[] = data.items
+        .filter((dto) => dto.studentGroupType === 'Thread')
+        .map((dto) => ({
+          id: dto.id,
+          name: dto.name,
+          groupIds: [],
+          disciplineIds: [],
+        }));
+
+      const groups: Group[] = data.items
+        .filter((dto) => dto.studentGroupType !== 'Thread')
+        .map((dto) => ({
+          id: dto.id,
+          name: dto.name,
+          streamId: '',
+          subgroups: [],
+          studentCount: 0,
+          disciplineIds: [],
+        }));
+
+      return { groups, streams };
     } catch (err: unknown) {
       return rejectWithValue((err as Error).message);
     }
   },
 );
 
-/** Создаёт группу на сервере */
-export const createGroupOnServer = createAsyncThunk(
-  'groupsList/createGroup',
+/** Создаёт / обновляет студенческую группу на сервере */
+export const saveStudentGroupOnServer = createAsyncThunk(
+  'groupsList/saveGroup',
   async (
-    { group, scheduleId }: { group: Group; scheduleId: string },
+    { entity, dto }: { entity: Group | Stream; dto: SaveStudentGroupDto },
     { rejectWithValue },
   ) => {
     try {
-      const { data: newId } = await studentGroupApi.saveStudentGroup({
-        scheduleId,
-        name: group.name,
-        semesterNumber: 1, // TODO: добавить семестр в тип Group
-        studentGroupType: 'Group',
-        cypher: group.id,
-      });
-      return { ...group, id: newId };
-    } catch (err: unknown) {
-      return rejectWithValue((err as Error).message);
-    }
-  },
-);
-
-/** Создаёт поток на сервере */
-export const createStreamOnServer = createAsyncThunk(
-  'groupsList/createStream',
-  async (
-    { stream, scheduleId }: { stream: Stream; scheduleId: string },
-    { rejectWithValue },
-  ) => {
-    try {
-      const { data: newId } = await studentGroupApi.saveStudentGroup({
-        scheduleId,
-        name: stream.name,
-        semesterNumber: 1,
-        studentGroupType: 'Thread',
-        cypher: stream.id,
-        childIds: stream.groupIds,
-      });
-      return { ...stream, id: newId };
+      await studentGroupApi.saveStudentGroup(dto);
+      return entity;
     } catch (err: unknown) {
       return rejectWithValue((err as Error).message);
     }
@@ -103,7 +90,6 @@ const groupsListSlice = createSlice({
   reducers: {
     addGroupLocally(state, action: PayloadAction<Group>) {
       state.groups.push(action.payload);
-      // добавляем id группы в соответствующий поток
       const stream = state.streams.find((s) => s.id === action.payload.streamId);
       if (stream && !stream.groupIds.includes(action.payload.id)) {
         stream.groupIds.push(action.payload.id);
@@ -114,7 +100,6 @@ const groupsListSlice = createSlice({
       if (idx === -1) return;
       const prev = state.groups[idx];
       state.groups[idx] = action.payload;
-      // обновляем членство в потоках если streamId изменился
       if (prev.streamId !== action.payload.streamId) {
         const oldStream = state.streams.find((s) => s.id === prev.streamId);
         if (oldStream) oldStream.groupIds = oldStream.groupIds.filter((id) => id !== prev.id);
@@ -156,14 +141,6 @@ const groupsListSlice = createSlice({
       .addCase(fetchGroupsAll.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
-      })
-      .addCase(createGroupOnServer.fulfilled, (state, action) => {
-        const idx = state.groups.findIndex((g) => g.id === action.meta.arg.group.id);
-        if (idx !== -1) state.groups[idx] = action.payload;
-      })
-      .addCase(createStreamOnServer.fulfilled, (state, action) => {
-        const idx = state.streams.findIndex((s) => s.id === action.meta.arg.stream.id);
-        if (idx !== -1) state.streams[idx] = action.payload;
       });
   },
 });

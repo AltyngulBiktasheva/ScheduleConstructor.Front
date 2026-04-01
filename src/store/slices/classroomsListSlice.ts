@@ -1,18 +1,17 @@
 /**
  * Хранит список аудиторий для страницы ClassroomsPage.
  *
- * Маппинг RoomViewDto → Classroom:
- *   roomType → type (Standard→standard, Multimedia→computer, Laboratory→laboratory, Amphitheater→amphitheater)
- *   campusId → building (временно сохраняется как id корпуса)
+ * Данные загружаются из GET /room/tree.
+ * Маппинг RoomTreeDto → Classroom:
+ *   campusName → building (для отображения)
+ *   campusId   → campusId (для сохранения на бэкенд)
  *
- * Поля capacity / boardType / hasProjector отсутствуют в API — проставляются дефолтами.
- * При создании через форму все поля заполняются пользователем.
+ * При создании через форму: campusId берётся из выбранного кампуса.
  */
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { roomApi } from '../../api';
 import type { RoomType } from '../../api';
 import type { Classroom, ClassroomType } from '../../types/classroom';
-import { MOCK_CLASSROOMS } from '../../mockData/classrooms';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -23,7 +22,7 @@ const ROOM_TYPE_MAP: Record<RoomType, ClassroomType> = {
   Amphitheater: 'amphitheater',
 };
 
-const CLASSROOM_TYPE_REVERSE: Record<ClassroomType, RoomType> = {
+export const CLASSROOM_TYPE_REVERSE: Record<ClassroomType, RoomType> = {
   standard: 'Standard',
   computer: 'Multimedia',
   laboratory: 'Laboratory',
@@ -46,36 +45,43 @@ const initialState: ClassroomsListState = {
 
 // ─── Thunks ──────────────────────────────────────────────────────────────────
 
-/**
- * Загружает дерево аудиторий и плоско разворачивает его в список.
- * TODO: когда структура RoomTreeDto будет раскрыта в Swagger — заменить маппинг.
- */
+/** Загружает дерево аудиторий и плоско разворачивает в список */
 export const fetchClassroomsAll = createAsyncThunk(
   'classroomsList/fetchAll',
   async (_, { rejectWithValue }) => {
     try {
-      // TODO: заменить на реальный запрос, когда RoomTreeDto будет наполнен
-      // const { data } = await roomApi.getRoomTree();
-      // return flattenRoomTree(data).map(mapDtoToClassroom);
-      await new Promise((r) => setTimeout(r, 0));
-      return MOCK_CLASSROOMS;
+      const { data } = await roomApi.getRoomTree();
+      return data.flatMap((campus) =>
+        campus.childRooms.map((room): Classroom => ({
+          id: room.id,
+          name: room.name,
+          building: campus.campusName,
+          campusId: campus.campusId,
+          type: 'standard',
+          capacity: 30,
+          boardType: 'chalk',
+          hasProjector: false,
+        })),
+      );
     } catch (err: unknown) {
       return rejectWithValue((err as Error).message);
     }
   },
 );
 
-/** Создаёт аудиторию на сервере и возвращает её с серверным UUID */
-export const createClassroomOnServer = createAsyncThunk(
-  'classroomsList/create',
+/** Создаёт / обновляет аудиторию на сервере */
+export const saveClassroomOnServer = createAsyncThunk(
+  'classroomsList/save',
   async (classroom: Classroom, { rejectWithValue }) => {
     try {
-      const { data: newId } = await roomApi.saveRoom({
+      if (!classroom.campusId) throw new Error('Не выбран кампус для аудитории');
+      await roomApi.saveRoom({
+        id: classroom.id,
         name: classroom.name,
-        campusId: classroom.building, // building хранит id корпуса
+        campusId: classroom.campusId,
         roomType: CLASSROOM_TYPE_REVERSE[classroom.type],
       });
-      return { ...classroom, id: newId };
+      return classroom;
     } catch (err: unknown) {
       return rejectWithValue((err as Error).message);
     }
@@ -112,10 +118,6 @@ const classroomsListSlice = createSlice({
       .addCase(fetchClassroomsAll.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
-      })
-      .addCase(createClassroomOnServer.fulfilled, (state, action) => {
-        const idx = state.classrooms.findIndex((c) => c.id === action.meta.arg.id);
-        if (idx !== -1) state.classrooms[idx] = action.payload;
       });
   },
 });

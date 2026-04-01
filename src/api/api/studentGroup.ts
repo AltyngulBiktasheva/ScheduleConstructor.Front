@@ -1,12 +1,22 @@
 import apiClient from './client';
-import type { SaveStudentGroupDto, StudentGroupViewDto } from './types';
+import type {
+  RegistryDto,
+  SaveStudentGroupDto,
+  SearchParametersDto,
+  StudentGroupRegistryItemDto,
+  StudentGroupViewDto,
+} from './types';
 
 export const studentGroupApi = {
-  /** Получить данные академической группы */
-  getStudentGroup: (params: { studentGroupId: string; scheduleId: string }) =>
-    apiClient.get<StudentGroupViewDto>('/StudentGroup/GetStudentGroup', { params }),
+  /** Получить список академических групп */
+  searchStudentGroups: (body: { searchParameters: SearchParametersDto }) =>
+    apiClient.post<RegistryDto<StudentGroupRegistryItemDto>>('/student-group/search', body),
 
-  /** Создать студенческую группу */
+  /** Получить данные академической группы */
+  getStudentGroup: (params: { studentGroupId: string }) =>
+    apiClient.get<StudentGroupViewDto>('/student-group/view', { params }),
+
+  /** Создать / обновить академическую группу */
   saveStudentGroup: (data: SaveStudentGroupDto) =>
-    apiClient.post<string>('/StudentGroup/SaveStudentGroup', data),
+    apiClient.post<void>('/student-group/save', data),
 };

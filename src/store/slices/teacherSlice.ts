@@ -37,8 +37,7 @@ export const saveTeacher = createAsyncThunk(
   'teacher/save',
   async (dto: SaveTeacherDto, { rejectWithValue }) => {
     try {
-      const { data } = await teacherApi.saveTeacher(dto);
-      return data; // UUID преподавателя
+      await teacherApi.saveTeacher(dto);
     } catch (err: unknown) {
       return rejectWithValue((err as Error).message);
     }

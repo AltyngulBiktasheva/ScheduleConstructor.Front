@@ -1,11 +1,8 @@
 /**
- * Заменяет старый локальный хук.
- * Публичный интерфейс полностью совпадает с оригиналом.
+ * Публичный интерфейс совпадает с оригиналом.
+ * Данные хранятся в Redux и синхронизируются с бэкендом.
  *
- * Маппинг: StudentGroupViewDto (API) ↔ Group/Stream (фронтовые типы)
- *   API не разделяет Group и Stream — все группы плоские.
- *   Логика разделения на потоки/группы делается на фронте через parentId.
- *   StudentGroupType.Thread → Stream, Group/SemiGroup → Group.
+ * scheduleId для сохранения берётся из store.schedule.list[0].id.
  */
 import { useEffect, useState, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -17,16 +14,20 @@ import {
   addStreamLocally,
   updateStreamLocally,
   removeStreamLocally,
+  saveStudentGroupOnServer,
 } from '../store/slices/groupsListSlice';
+import { fetchSchedules, saveSchedule } from '../store/slices/scheduleSlice';
 import type { Group, Stream } from '../types/group';
 
 export function useGroups() {
   const dispatch = useAppDispatch();
   const { groups, streams, loading } = useAppSelector((s) => s.groupsList);
+  const scheduleList = useAppSelector((s) => s.schedule.list);
   const [newlyCreatedId, setNewlyCreatedId] = useState<string | null>(null);
 
   useEffect(() => {
     dispatch(fetchGroupsAll());
+    dispatch(fetchSchedules());
   }, [dispatch]);
 
   const markCreated = (id: string) => {
@@ -34,17 +35,60 @@ export function useGroups() {
     setTimeout(() => setNewlyCreatedId(null), 3000);
   };
 
+  const getOrCreateScheduleId = useCallback(async (): Promise<string | null> => {
+    if (scheduleList.length > 0) return scheduleList[0].id;
+    const id = crypto.randomUUID();
+    await dispatch(saveSchedule({ id, name: 'Основное расписание' }));
+    const updated = await dispatch(fetchSchedules());
+    const list = (updated.payload as typeof scheduleList) ?? [];
+    return list[0]?.id ?? null;
+  }, [scheduleList, dispatch]);
+
   const addGroup = useCallback(
-    (group: Group) => {
+    async (group: Group) => {
       dispatch(addGroupLocally(group));
       markCreated(group.id);
+      const scheduleId = await getOrCreateScheduleId();
+      if (!scheduleId) return;
+      dispatch(
+        saveStudentGroupOnServer({
+          entity: group,
+          dto: {
+            id: group.id,
+            scheduleId,
+            name: group.name,
+            semesterNumber: 1,
+            studentGroupType: 'Group',
+            cypher: group.name,
+            parentId: group.streamId || null,
+          },
+        }),
+      );
     },
-    [dispatch],
+    [dispatch, getOrCreateScheduleId],
   );
 
   const updateGroup = useCallback(
-    (updated: Group) => dispatch(updateGroupLocally(updated)),
-    [dispatch],
+    async (updated: Group) => {
+      dispatch(updateGroupLocally(updated));
+      const scheduleId = await getOrCreateScheduleId();
+      if (!scheduleId) return;
+      dispatch(
+        saveStudentGroupOnServer({
+          entity: updated,
+          dto: {
+            id: updated.id,
+            scheduleId,
+            name: updated.name,
+            semesterNumber: 1,
+            studentGroupType: 'Group',
+            cypher: updated.name,
+            parentId: updated.streamId || null,
+          },
+        }),
+      );
+    },
+    [dispatch, getOrCreateScheduleId],
   );
 
   const removeGroup = useCallback(
@@ -53,16 +97,50 @@ export function useGroups() {
   );
 
   const addStream = useCallback(
-    (stream: Stream) => {
+    async (stream: Stream) => {
       dispatch(addStreamLocally(stream));
       markCreated(stream.id);
+      const scheduleId = await getOrCreateScheduleId();
+      if (!scheduleId) return;
+      dispatch(
+        saveStudentGroupOnServer({
+          entity: stream,
+          dto: {
+            id: stream.id,
+            scheduleId,
+            name: stream.name,
+            semesterNumber: 1,
+            studentGroupType: 'Thread',
+            cypher: stream.name,
+            childIds: stream.groupIds,
+          },
+        }),
+      );
     },
-    [dispatch],
+    [dispatch, getOrCreateScheduleId],
   );
 
   const updateStream = useCallback(
-    (updated: Stream) => dispatch(updateStreamLocally(updated)),
-    [dispatch],
+    async (updated: Stream) => {
+      dispatch(updateStreamLocally(updated));
+      const scheduleId = await getOrCreateScheduleId();
+      if (!scheduleId) return;
+      dispatch(
+        saveStudentGroupOnServer({
+          entity: updated,
+          dto: {
+            id: updated.id,
+            scheduleId,
+            name: updated.name,
+            semesterNumber: 1,
+            studentGroupType: 'Thread',
+            cypher: updated.name,
+            childIds: updated.groupIds,
+          },
+        }),
+      );
+    },
+    [dispatch, getOrCreateScheduleId],
   );
 
   const removeStream = useCallback(

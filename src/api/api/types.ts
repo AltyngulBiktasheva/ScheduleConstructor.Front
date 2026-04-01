@@ -45,6 +45,22 @@ export interface DateWithTimeInterval {
   timeInterval: TimeInterval;
 }
 
+// ─── Registry helpers ─────────────────────────────────────────────────────────
+
+export interface SearchParametersDto {
+  page: number;
+  itemsPerPage?: number | null;
+  orderBy?: string | null;
+  orderAsc?: boolean | null;
+  thenBy?: string | null;
+  thenAsc?: boolean | null;
+}
+
+export interface RegistryDto<T> {
+  items: T[];
+  itemsCount: number;
+}
+
 // ─── AcademicDiscipline ───────────────────────────────────────────────────────
 
 export interface AcademicDisciplineLessonBatchInfoDto {
@@ -79,16 +95,30 @@ export interface AcademicDisciplineViewDto {
   comment?: string | null;
 }
 
+export interface AcademicDisciplineRegistryItemDto {
+  id: string;
+  name: string;
+  cypher: string;
+  semesterNumber: number;
+  academicDisciplineTargetType: AcademicDisciplineTargetType;
+  allowedLessonTypes: AcademicDisciplineType[];
+  lecturePayload?: AcademicDisciplinePayloadDto | null;
+  practicePayload?: AcademicDisciplinePayloadDto | null;
+  labPayload?: AcademicDisciplinePayloadDto | null;
+  comment?: string | null;
+}
+
 export interface SaveAcademicDisciplineDto {
   id?: string | null;
   scheduleId: string;
-  name?: string | null;
-  cypher?: string | null;
-  semester: number;
+  name: string;
+  cypher: string;
+  semesterNumber: number;
   academicDisciplineTargetType: AcademicDisciplineTargetType;
-  lecturePayload?: AcademicDisciplinePayloadDto;
-  practicePayload?: AcademicDisciplinePayloadDto;
-  labPayload?: AcademicDisciplinePayloadDto;
+  allowedLessonTypes?: AcademicDisciplineType[] | null;
+  lecturePayload?: AcademicDisciplinePayloadDto | null;
+  practicePayload?: AcademicDisciplinePayloadDto | null;
+  labPayload?: AcademicDisciplinePayloadDto | null;
   hasExam: boolean;
   hasTest: boolean;
   comment?: string | null;
@@ -96,13 +126,14 @@ export interface SaveAcademicDisciplineDto {
 
 // ─── Campus ───────────────────────────────────────────────────────────────────
 
-// CampusDto is empty in spec — defined as a placeholder
-export interface CampusDto {
-  [key: string]: unknown;
+export interface CampusRegistryItemDto {
+  id: string;
+  name: string;
 }
 
 export interface SaveCampusDto {
-  name?: string | null;
+  id?: string | null;
+  name: string;
 }
 
 // ─── Lesson ───────────────────────────────────────────────────────────────────
@@ -126,27 +157,44 @@ export interface LessonValidationMessage {
 export interface LessonViewDto {
   id?: string | null;
   academicDisciplineId?: string | null;
-  academicDisciplineType: AcademicDisciplineType;
+  academicDisciplineType?: AcademicDisciplineType | null;
   studentGroupId: string;
   teacherId?: string | null;
   roomId?: string | null;
-  dateWithTimeInterval: DateWithTimeInterval;
+  dateWithTimeInterval?: DateWithTimeInterval | null;
   flexibilityType: LessonFlexibilityType;
+  allowCombining: boolean;
   hoursCost: number;
   createdFromDiscipline: boolean;
   validationMessages?: LessonValidationMessage[] | null;
+}
+
+export interface LessonRegistryItemDto {
+  id: string;
+  academicDisciplineId?: string | null;
+  academicDisciplineType?: AcademicDisciplineType | null;
+  studentGroupId: string;
+  teacherId?: string | null;
+  roomId?: string | null;
+  dateWithTimeInterval?: DateWithTimeInterval | null;
+  flexibilityType: LessonFlexibilityType;
+  allowCombining: boolean;
+  hoursCost: number;
+  createdFromDiscipline: boolean;
+  validationMessages: LessonValidationMessage[];
 }
 
 export interface SaveLessonRequestDto {
   id?: string | null;
   scheduleId: string;
   academicDisciplineId?: string | null;
-  academicDisciplineType: AcademicDisciplineType;
+  academicDisciplineType?: AcademicDisciplineType | null;
   studentGroupId: string;
   teacherId?: string | null;
   roomId?: string | null;
-  dateWithTimeInterval: DateWithTimeInterval;
+  dateWithTimeInterval?: DateWithTimeInterval | null;
   flexibilityType: LessonFlexibilityType;
+  allowCombining: boolean;
   hoursCost: number;
 }
 
@@ -157,9 +205,15 @@ export interface LessonWeekConflictDto {
 
 // ─── Room ─────────────────────────────────────────────────────────────────────
 
-// RoomTreeDto is empty in spec — defined as a placeholder
+export interface RoomShortDto {
+  id: string;
+  name: string;
+}
+
 export interface RoomTreeDto {
-  [key: string]: unknown;
+  campusId: string;
+  campusName: string;
+  childRooms: RoomShortDto[];
 }
 
 export interface RoomViewDto {
@@ -170,20 +224,22 @@ export interface RoomViewDto {
 }
 
 export interface SaveRoomDto {
-  name?: string | null;
+  id?: string | null;
+  name: string;
   campusId: string;
   roomType: RoomType;
 }
 
 // ─── Schedule ─────────────────────────────────────────────────────────────────
 
-// ScheduleDto is empty in spec — defined as a placeholder
 export interface ScheduleDto {
-  [key: string]: unknown;
+  id: string;
+  name: string;
 }
 
 export interface SaveScheduleDto {
-  name?: string | null;
+  id?: string | null;
+  name: string;
 }
 
 // ─── StudentGroup ─────────────────────────────────────────────────────────────
@@ -202,13 +258,21 @@ export interface StudentGroupViewDto {
   children?: StudentGroupShortViewDto[] | null;
 }
 
+export interface StudentGroupRegistryItemDto {
+  id: string;
+  name: string;
+  semesterNumber: number;
+  studentGroupType: StudentGroupType;
+  cypher: string;
+}
+
 export interface SaveStudentGroupDto {
   id?: string | null;
   scheduleId: string;
-  name?: string | null;
+  name: string;
   semesterNumber: number;
   studentGroupType: StudentGroupType;
-  cypher?: string | null;
+  cypher: string;
   parentId?: string | null;
   childIds?: string[] | null;
 }
@@ -221,8 +285,16 @@ export interface TeacherViewDto {
   contacts?: string | null;
 }
 
+export interface TeacherRegistryItemDto {
+  id: string;
+  fullname: string;
+  contacts?: string | null;
+}
+
 export interface SaveTeacherDto {
-  fullname?: string | null;
+  id?: string | null;
+  fullname: string;
+  contacts?: string | null;
 }
 
 // ─── TeacherPreference ────────────────────────────────────────────────────────

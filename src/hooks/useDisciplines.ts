@@ -1,10 +1,9 @@
 /**
- * Заменяет старый локальный хук.
  * Публичный интерфейс: { disciplines, newlyCreatedId, add, update, remove }
+ * Данные хранятся в Redux и синхронизируются с бэкендом.
  *
- * Маппинг: AcademicDisciplineViewDto (API) ↔ Discipline (фронтовый тип)
- *   Фронтовый тип богаче — поля расписания (dayId, timeStart и т.д.)
- *   не приходят из этого endpoint и остаются undefined после загрузки.
+ * scheduleId для сохранения берётся из store.schedule.list[0].id.
+ * Если расписаний нет — создаётся дефолтное.
  */
 import { useEffect, useState, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -13,16 +12,20 @@ import {
   addDisciplineLocally,
   updateDisciplineLocally,
   removeDisciplineLocally,
+  saveDisciplineOnServer,
 } from '../store/slices/disciplinesListSlice';
+import { fetchSchedules, saveSchedule } from '../store/slices/scheduleSlice';
 import type { Discipline } from '../types/discipline';
 
 export function useDisciplines() {
   const dispatch = useAppDispatch();
   const { disciplines, loading } = useAppSelector((s) => s.disciplinesList);
+  const scheduleList = useAppSelector((s) => s.schedule.list);
   const [newlyCreatedId, setNewlyCreatedId] = useState<string | null>(null);
 
   useEffect(() => {
     dispatch(fetchDisciplinesAll());
+    dispatch(fetchSchedules());
   }, [dispatch]);
 
   const markCreated = (id: string) => {
@@ -30,19 +33,67 @@ export function useDisciplines() {
     setTimeout(() => setNewlyCreatedId(null), 3000);
   };
 
+  const getOrCreateScheduleId = useCallback(async (): Promise<string | null> => {
+    if (scheduleList.length > 0) return scheduleList[0].id;
+    // Создаём дефолтное расписание
+    const id = crypto.randomUUID();
+    await dispatch(saveSchedule({ id, name: 'Основное расписание' }));
+    const updated = await dispatch(fetchSchedules());
+    const list = (updated.payload as typeof scheduleList) ?? [];
+    return list[0]?.id ?? null;
+  }, [scheduleList, dispatch]);
+
   const add = useCallback(
-    (discipline: Discipline) => {
+    async (discipline: Discipline) => {
       dispatch(addDisciplineLocally(discipline));
       markCreated(discipline.id);
+      const scheduleId = await getOrCreateScheduleId();
+      if (!scheduleId) return;
+      dispatch(
+        saveDisciplineOnServer({
+          discipline,
+          dto: {
+            id: discipline.id,
+            scheduleId,
+            name: discipline.name,
+            cypher: discipline.id,
+            semesterNumber: 1,
+            academicDisciplineTargetType: 'General',
+            allowedLessonTypes: [],
+            hasExam: false,
+            hasTest: false,
+            comment: discipline.comment,
+          },
+        }),
+      );
     },
-    [dispatch],
+    [dispatch, getOrCreateScheduleId],
   );
 
   const update = useCallback(
-    (updated: Discipline) => {
+    async (updated: Discipline) => {
       dispatch(updateDisciplineLocally(updated));
+      const scheduleId = await getOrCreateScheduleId();
+      if (!scheduleId) return;
+      dispatch(
+        saveDisciplineOnServer({
+          discipline: updated,
+          dto: {
+            id: updated.id,
+            scheduleId,
+            name: updated.name,
+            cypher: updated.id,
+            semesterNumber: 1,
+            academicDisciplineTargetType: 'General',
+            allowedLessonTypes: [],
+            hasExam: false,
+            hasTest: false,
+            comment: updated.comment,
+          },
+        }),
+      );
     },
-    [dispatch],
+    [dispatch, getOrCreateScheduleId],
   );
 
   const remove = useCallback(

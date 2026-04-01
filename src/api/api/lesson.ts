@@ -1,19 +1,27 @@
 import apiClient from './client';
-import type { DateInterval, LessonViewDto, LessonWeekConflictDto, SaveLessonRequestDto } from './types';
+import type {
+  LessonRegistryItemDto,
+  LessonViewDto,
+  LessonWeekConflictDto,
+  RegistryDto,
+  SaveLessonRequestDto,
+  SearchParametersDto,
+} from './types';
 
 export const lessonApi = {
+  /** Получить список занятий */
+  searchLessons: (body: { searchParameters: SearchParametersDto }) =>
+    apiClient.post<RegistryDto<LessonRegistryItemDto>>('/lesson/search', body),
+
   /** Получить данные занятия */
-  getLesson: (params: { lessonId: string; scheduleId: string }) =>
-    apiClient.get<LessonViewDto>('/Lesson/GetLesson', { params }),
+  getLesson: (params: { lessonId: string }) =>
+    apiClient.get<LessonViewDto>('/lesson/view', { params }),
 
   /** Добавить / обновить занятие */
   saveLesson: (data: SaveLessonRequestDto) =>
-    apiClient.post<string>('/Lesson/SaveLesson', data),
+    apiClient.post<void>('/lesson/save', data),
 
   /** Получить временные конфликты занятия по дням недели */
-  getLessonWeekConflicts: (lessonId: string, dateInterval: DateInterval) =>
-    apiClient.get<LessonWeekConflictDto[]>('/Lesson/GetLessonWeekConflicts', {
-      params: { lessonId },
-      data: dateInterval,
-    }),
+  getLessonWeekConflicts: (params: { lessonId: string; dateFrom: string; dateTo: string }) =>
+    apiClient.get<LessonWeekConflictDto[]>('/lesson/week-conflicts', { params }),
 };

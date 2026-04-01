@@ -1,5 +1,3 @@
-import type { BuildingType } from '../constants/buildings';
-
 export type ClassroomType = 'standard' | 'computer' | 'laboratory' | 'amphitheater';
 export type BoardType = 'chalk' | 'marker';
 
@@ -18,8 +16,9 @@ export const BOARD_TYPE_LABELS: Record<BoardType, string> = {
 export interface Classroom {
   id: string;
   name: string;
-  building: BuildingType;
+  building: string;      // отображаемое имя корпуса (или BuildingType для старых данных)
   buildingName?: string;
+  campusId?: string;     // UUID кампуса для API (обязателен при сохранении)
   type: ClassroomType;
   capacity: number;
   boardType: BoardType;

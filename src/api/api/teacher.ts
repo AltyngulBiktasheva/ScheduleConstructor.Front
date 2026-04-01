@@ -1,12 +1,16 @@
 import apiClient from './client';
-import type { SaveTeacherDto, TeacherViewDto } from './types';
+import type { RegistryDto, SaveTeacherDto, SearchParametersDto, TeacherRegistryItemDto, TeacherViewDto } from './types';
 
 export const teacherApi = {
+  /** Получить список преподавателей */
+  searchTeachers: (body: { searchParameters: SearchParametersDto }) =>
+    apiClient.post<RegistryDto<TeacherRegistryItemDto>>('/teacher/search', body),
+
   /** Получить данные преподавателя */
   getTeacher: (params: { teacherId: string }) =>
-    apiClient.get<TeacherViewDto>('/Teacher/GetTeacher', { params }),
+    apiClient.get<TeacherViewDto>('/teacher/view', { params }),
 
   /** Сохранить преподавателя */
   saveTeacher: (data: SaveTeacherDto) =>
-    apiClient.post<string>('/Teacher/SaveTeacher', data),
+    apiClient.post<void>('/teacher/save', data),
 };
