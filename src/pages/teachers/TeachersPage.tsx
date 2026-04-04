@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { PageHeader } from '../../components/PageHeader/PageHeader';
 import { Tabs } from '../../components/Tabs/Tabs';
+import { ScheduleSelector } from '../../components/ScheduleSelector/ScheduleSelector';
 import { TeachersList } from './tabs/TeachersList';
 import { TeacherForm } from './tabs/TeacherForm';
 import { useTeachers } from '../../hooks/useTeachers';
@@ -24,6 +25,7 @@ export const TeachersPage: React.FC = () => {
   return (
     <div className={styles.page}>
       <PageHeader title="Преподаватели" subtitle="Управление преподавателями и их пожеланиями" />
+      <ScheduleSelector />
       <Tabs tabs={TABS} activeId={activeTab} onChange={setActiveTab} />
       <div className={styles.content}>
         {activeTab === 'list' && (

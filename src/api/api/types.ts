@@ -1,7 +1,7 @@
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
 export type AcademicDisciplineTargetType = 'General' | 'Specialized' | 'ByChoice' | 'Optional';
-export type AcademicDisciplineType = 'Lecture' | 'Practice' | 'Lab';
+export type AcademicDisciplineType = 'Lecture' | 'Practice' | 'Lab' | 'Exam' | 'Test';
 export type DisciplineLessonRepeatType = 1 | 2 | 3 | 4;
 export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 export type LessonFlexibilityType = 'Fixed' | 'Flexible';

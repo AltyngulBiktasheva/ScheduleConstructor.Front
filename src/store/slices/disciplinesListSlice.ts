@@ -1,12 +1,10 @@
 /**
- * Хранит список дисциплин для страницы DisciplinesPage.
+ * Хранит список дисциплин (корневых и дочерних) для страницы DisciplinesPage.
  *
- * Маппинг AcademicDisciplineRegistryItemDto → Discipline:
- *   Фронтовый тип Discipline значительно богаче DTO.
- *   При загрузке с сервера поля расписания (dayId, timeStart, occurrences и т.д.)
- *   будут отсутствовать — это нормально, они заполняются в конструкторе расписания.
+ * Корневая дисциплина (isRoot=true): шаблон с набором допустимых видов занятий.
+ * Дочерняя дисциплина (isRoot=false): конкретное занятие, ссылается на корневую через parentId.
  *
- * scheduleId: требуется для сохранения — берётся из аргумента saveDto.
+ * Обе сохраняются на бэке как AcademicDiscipline через /academic-discipline/save.
  */
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { academicDisciplineApi } from '../../api';
@@ -35,11 +33,22 @@ export const fetchDisciplinesAll = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const { data } = await academicDisciplineApi.searchAcademicDisciplines({
-        searchParameters: { page: 1, itemsPerPage: 100 },
+        searchParameters: { page: 1, itemsPerPage: 500 },
       });
       return data.items.map((dto): Discipline => ({
         id: dto.id,
         name: dto.name,
+        // Если у дисциплины больше одного допустимого типа — считаем её корневой
+        isRoot: dto.allowedLessonTypes.length !== 1,
+        cypher: dto.cypher,
+        semesterNumber: dto.semesterNumber,
+        allowedLessonTypes: dto.allowedLessonTypes,
+        lessonType: dto.allowedLessonTypes.length === 1 ? dto.allowedLessonTypes[0] : undefined,
+        totalHoursCount:
+          dto.lecturePayload?.totalHoursCount ??
+          dto.practicePayload?.totalHoursCount ??
+          dto.labPayload?.totalHoursCount ??
+          undefined,
         forType: 'group',
         forIds: [],
         teachers: [],
@@ -57,17 +66,21 @@ export const fetchDisciplinesAll = createAsyncThunk(
 );
 
 /**
- * Сохраняет дисциплину на сервере.
- * Принимает готовый SaveAcademicDisciplineDto, чтобы вызывающий код мог указать scheduleId.
+ * Сохраняет дисциплину (корневую или дочернюю) на сервере.
+ * При создании (isNew=true) id не передаётся — генерируется на бэке.
  */
 export const saveDisciplineOnServer = createAsyncThunk(
   'disciplinesList/save',
   async (
-    { discipline, dto }: { discipline: Discipline; dto: SaveAcademicDisciplineDto },
-    { rejectWithValue },
+    { discipline, dto, isNew }: { discipline: Discipline; dto: SaveAcademicDisciplineDto; isNew: boolean },
+    { dispatch, rejectWithValue },
   ) => {
     try {
-      await academicDisciplineApi.saveAcademicDiscipline(dto);
+      await academicDisciplineApi.saveAcademicDiscipline({
+        ...dto,
+        id: isNew ? undefined : dto.id,
+      });
+      if (isNew) dispatch(fetchDisciplinesAll());
       return discipline;
     } catch (err: unknown) {
       return rejectWithValue((err as Error).message);

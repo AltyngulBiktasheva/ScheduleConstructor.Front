@@ -1,8 +1,8 @@
 /**
- * Публичный интерфейс: { disciplines, newlyCreatedId, add, update, remove }
+ * Публичный интерфейс: { disciplines, newlyCreatedId, add, addRoot, update, remove }
  * Данные хранятся в Redux и синхронизируются с бэкендом.
  *
- * scheduleId для сохранения берётся из store.schedule.list[0].id.
+ * scheduleId берётся из store.schedule.selectedScheduleId, либо из первого расписания.
  * Если расписаний нет — создаётся дефолтное.
  */
 import { useEffect, useState, useCallback } from 'react';
@@ -16,11 +16,12 @@ import {
 } from '../store/slices/disciplinesListSlice';
 import { fetchSchedules, saveSchedule } from '../store/slices/scheduleSlice';
 import type { Discipline } from '../types/discipline';
+import type { RootDisciplineFormData } from '../pages/disciplines/tabs/RootDisciplineForm';
 
 export function useDisciplines() {
   const dispatch = useAppDispatch();
   const { disciplines, loading } = useAppSelector((s) => s.disciplinesList);
-  const scheduleList = useAppSelector((s) => s.schedule.list);
+  const { list: scheduleList, selectedScheduleId } = useAppSelector((s) => s.schedule);
   const [newlyCreatedId, setNewlyCreatedId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -34,34 +35,93 @@ export function useDisciplines() {
   };
 
   const getOrCreateScheduleId = useCallback(async (): Promise<string | null> => {
+    // Приоритет: явно выбранное расписание
+    if (selectedScheduleId) return selectedScheduleId;
     if (scheduleList.length > 0) return scheduleList[0].id;
     // Создаём дефолтное расписание
-    const id = crypto.randomUUID();
-    await dispatch(saveSchedule({ id, name: 'Основное расписание' }));
+    await dispatch(saveSchedule({ name: 'Основное расписание' }));
     const updated = await dispatch(fetchSchedules());
     const list = (updated.payload as typeof scheduleList) ?? [];
     return list[0]?.id ?? null;
-  }, [scheduleList, dispatch]);
+  }, [selectedScheduleId, scheduleList, dispatch]);
 
+  /** Создать корневую дисциплину (шаблон с набором видов занятий) */
+  const addRoot = useCallback(
+    async (data: RootDisciplineFormData) => {
+      const scheduleId = await getOrCreateScheduleId();
+      if (!scheduleId) return;
+
+      const tempDiscipline: Discipline = {
+        id: crypto.randomUUID(), // временный — бэк перегенерирует
+        name: data.name,
+        isRoot: true,
+        cypher: data.cypher,
+        semesterNumber: data.semesterNumber,
+        allowedLessonTypes: data.allowedLessonTypes,
+        forType: 'group',
+        forIds: [],
+        teachers: [],
+        audiences: [],
+        isStatic: false,
+        canOverlap: false,
+        repeat: 'every-week',
+        weeklyCount: 1,
+      };
+
+      dispatch(addDisciplineLocally(tempDiscipline));
+      markCreated(tempDiscipline.id);
+
+      dispatch(
+        saveDisciplineOnServer({
+          discipline: tempDiscipline,
+          isNew: true,
+          dto: {
+            scheduleId,
+            name: data.name,
+            cypher: data.cypher,
+            semesterNumber: data.semesterNumber,
+            academicDisciplineTargetType: 'General',
+            allowedLessonTypes: data.allowedLessonTypes,
+            hasExam: data.allowedLessonTypes.includes('Exam'),
+            hasTest: data.allowedLessonTypes.includes('Test'),
+          },
+        }),
+      );
+    },
+    [dispatch, getOrCreateScheduleId],
+  );
+
+  /** Создать дочернюю дисциплину (конкретное занятие) */
   const add = useCallback(
     async (discipline: Discipline) => {
       dispatch(addDisciplineLocally(discipline));
       markCreated(discipline.id);
+
       const scheduleId = await getOrCreateScheduleId();
       if (!scheduleId) return;
+
+      // Формируем payload для конкретного типа занятия
+      const hoursCount = discipline.totalHoursCount ?? 0;
+      const payload = hoursCount > 0 ? { totalHoursCount: hoursCount, studyWeeksCount: 1, lessonsPerWeekCount: 1 } : null;
+
+      const lessonType = discipline.lessonType;
+
       dispatch(
         saveDisciplineOnServer({
           discipline,
+          isNew: true,
           dto: {
-            id: discipline.id,
             scheduleId,
             name: discipline.name,
-            cypher: discipline.id,
-            semesterNumber: 1,
+            cypher: discipline.cypher ?? discipline.name,
+            semesterNumber: discipline.semesterNumber ?? 1,
             academicDisciplineTargetType: 'General',
-            allowedLessonTypes: [],
-            hasExam: false,
-            hasTest: false,
+            allowedLessonTypes: lessonType ? [lessonType] : [],
+            lecturePayload: lessonType === 'Lecture' && payload ? payload : undefined,
+            practicePayload: lessonType === 'Practice' && payload ? payload : undefined,
+            labPayload: lessonType === 'Lab' && payload ? payload : undefined,
+            hasExam: lessonType === 'Exam',
+            hasTest: lessonType === 'Test',
             comment: discipline.comment,
           },
         }),
@@ -75,23 +135,53 @@ export function useDisciplines() {
       dispatch(updateDisciplineLocally(updated));
       const scheduleId = await getOrCreateScheduleId();
       if (!scheduleId) return;
-      dispatch(
-        saveDisciplineOnServer({
-          discipline: updated,
-          dto: {
-            id: updated.id,
-            scheduleId,
-            name: updated.name,
-            cypher: updated.id,
-            semesterNumber: 1,
-            academicDisciplineTargetType: 'General',
-            allowedLessonTypes: [],
-            hasExam: false,
-            hasTest: false,
-            comment: updated.comment,
-          },
-        }),
-      );
+
+      const hoursCount = updated.totalHoursCount ?? 0;
+      const payload = hoursCount > 0 ? { totalHoursCount: hoursCount, studyWeeksCount: 1, lessonsPerWeekCount: 1 } : null;
+      const lessonType = updated.lessonType;
+
+      if (updated.isRoot) {
+        dispatch(
+          saveDisciplineOnServer({
+            discipline: updated,
+            isNew: false,
+            dto: {
+              id: updated.id,
+              scheduleId,
+              name: updated.name,
+              cypher: updated.cypher ?? updated.name,
+              semesterNumber: updated.semesterNumber ?? 1,
+              academicDisciplineTargetType: 'General',
+              allowedLessonTypes: updated.allowedLessonTypes ?? [],
+              hasExam: (updated.allowedLessonTypes ?? []).includes('Exam'),
+              hasTest: (updated.allowedLessonTypes ?? []).includes('Test'),
+              comment: updated.comment,
+            },
+          }),
+        );
+      } else {
+        dispatch(
+          saveDisciplineOnServer({
+            discipline: updated,
+            isNew: false,
+            dto: {
+              id: updated.id,
+              scheduleId,
+              name: updated.name,
+              cypher: updated.cypher ?? updated.name,
+              semesterNumber: updated.semesterNumber ?? 1,
+              academicDisciplineTargetType: 'General',
+              allowedLessonTypes: lessonType ? [lessonType] : [],
+              lecturePayload: lessonType === 'Lecture' && payload ? payload : undefined,
+              practicePayload: lessonType === 'Practice' && payload ? payload : undefined,
+              labPayload: lessonType === 'Lab' && payload ? payload : undefined,
+              hasExam: lessonType === 'Exam',
+              hasTest: lessonType === 'Test',
+              comment: updated.comment,
+            },
+          }),
+        );
+      }
     },
     [dispatch, getOrCreateScheduleId],
   );
@@ -103,5 +193,5 @@ export function useDisciplines() {
     [dispatch],
   );
 
-  return { disciplines, loading, newlyCreatedId, add, update, remove };
+  return { disciplines, loading, newlyCreatedId, add, addRoot, update, remove };
 }

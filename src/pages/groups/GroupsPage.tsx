@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { PageHeader } from '../../components/PageHeader/PageHeader';
 import { Tabs } from '../../components/Tabs/Tabs';
+import { ScheduleSelector } from '../../components/ScheduleSelector/ScheduleSelector';
 import { GroupsList } from './tabs/GroupsList';
 import { GroupForm } from './tabs/GroupForm';
 import { StreamForm } from './tabs/StreamForm';
@@ -35,6 +36,7 @@ export const GroupsPage: React.FC = () => {
   return (
     <div className={styles.page}>
       <PageHeader title="Академические группы" subtitle="Управление потоками, группами и подгруппами" />
+      <ScheduleSelector />
       <Tabs tabs={TABS} activeId={activeTab} onChange={setActiveTab} />
       <div className={styles.content}>
         {activeTab === 'list' && (

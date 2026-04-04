@@ -15,12 +15,13 @@ import type { Classroom, ClassroomType } from '../../types/classroom';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const ROOM_TYPE_MAP: Record<RoomType, ClassroomType> = {
-  Standard: 'standard',
-  Multimedia: 'computer',
-  Laboratory: 'laboratory',
-  Amphitheater: 'amphitheater',
-};
+// Расскомментировать при необходимости
+// const ROOM_TYPE_MAP: Record<RoomType, ClassroomType> = {
+//   Standard: 'standard',
+//   Multimedia: 'computer',
+//   Laboratory: 'laboratory',
+//   Amphitheater: 'amphitheater',
+// };
 
 export const CLASSROOM_TYPE_REVERSE: Record<ClassroomType, RoomType> = {
   standard: 'Standard',
@@ -69,18 +70,26 @@ export const fetchClassroomsAll = createAsyncThunk(
   },
 );
 
-/** Создаёт / обновляет аудиторию на сервере */
+/**
+ * Создаёт / обновляет аудиторию на сервере.
+ * При создании (isNew=true) id не передаётся — генерируется на бэке.
+ * После создания перезагружает список.
+ */
 export const saveClassroomOnServer = createAsyncThunk(
   'classroomsList/save',
-  async (classroom: Classroom, { rejectWithValue }) => {
+  async (
+    { classroom, isNew }: { classroom: Classroom; isNew: boolean },
+    { dispatch, rejectWithValue },
+  ) => {
     try {
       if (!classroom.campusId) throw new Error('Не выбран кампус для аудитории');
       await roomApi.saveRoom({
-        id: classroom.id,
+        id: isNew ? undefined : classroom.id,
         name: classroom.name,
         campusId: classroom.campusId,
         roomType: CLASSROOM_TYPE_REVERSE[classroom.type],
       });
+      if (isNew) dispatch(fetchClassroomsAll());
       return classroom;
     } catch (err: unknown) {
       return rejectWithValue((err as Error).message);

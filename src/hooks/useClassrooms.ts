@@ -33,7 +33,7 @@ export function useClassrooms() {
   const add = useCallback(
     (classroom: Classroom) => {
       dispatch(addClassroomLocally(classroom));
-      dispatch(saveClassroomOnServer(classroom));
+      dispatch(saveClassroomOnServer({ classroom, isNew: true }));
       markCreated(classroom.id);
     },
     [dispatch],
@@ -42,7 +42,7 @@ export function useClassrooms() {
   const update = useCallback(
     (updated: Classroom) => {
       dispatch(updateClassroomLocally(updated));
-      dispatch(saveClassroomOnServer(updated));
+      dispatch(saveClassroomOnServer({ classroom: updated, isNew: false }));
     },
     [dispatch],
   );

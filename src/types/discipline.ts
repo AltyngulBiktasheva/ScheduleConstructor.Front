@@ -1,4 +1,5 @@
 import type { BuildingType } from '../constants/buildings';
+import type { AcademicDisciplineType } from '../api';
 
 export type RepeatType = 'every-week' | 'once' | 'even-weeks' | 'odd-weeks';
 export type ForType = 'group' | 'stream';
@@ -29,8 +30,19 @@ export interface Discipline {
   id: string;
   name: string;
 
+  // ── Корневая дисциплина (шаблон) ──────────────────────────────────────
+  isRoot?: boolean;
+  cypher?: string;
+  semesterNumber?: number;
+  allowedLessonTypes?: AcademicDisciplineType[];
+
+  // ── Дочерняя дисциплина (занятие) ─────────────────────────────────────
+  parentId?: string;               // id корневой дисциплины
+  lessonType?: AcademicDisciplineType; // тип занятия
+  totalHoursCount?: number;        // количество часов
+
   forType: ForType;
-  forIds: string[];
+  forIds: string[];                // id групп/потоков
 
   teachers: DisciplineTeacher[];
   audiences: DisciplineAudience[];

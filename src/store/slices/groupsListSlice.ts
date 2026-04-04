@@ -66,15 +66,23 @@ export const fetchGroupsAll = createAsyncThunk(
   },
 );
 
-/** Создаёт / обновляет студенческую группу на сервере */
+/**
+ * Создаёт / обновляет студенческую группу / поток на сервере.
+ * При создании (isNew=true) id не передаётся — генерируется на бэке.
+ * После создания перезагружает список.
+ */
 export const saveStudentGroupOnServer = createAsyncThunk(
   'groupsList/saveGroup',
   async (
-    { entity, dto }: { entity: Group | Stream; dto: SaveStudentGroupDto },
-    { rejectWithValue },
+    { entity, dto, isNew }: { entity: Group | Stream; dto: SaveStudentGroupDto; isNew: boolean },
+    { dispatch, rejectWithValue },
   ) => {
     try {
-      await studentGroupApi.saveStudentGroup(dto);
+      await studentGroupApi.saveStudentGroup({
+        ...dto,
+        id: isNew ? undefined : dto.id,
+      });
+      if (isNew) dispatch(fetchGroupsAll());
       return entity;
     } catch (err: unknown) {
       return rejectWithValue((err as Error).message);

@@ -15,6 +15,8 @@ export interface Group {
 export interface Stream {
   id: string;
   name: string;
+  cypher?: string;
+  semesterNumber?: number;
   groupIds: string[];
   disciplineIds: string[];
 }

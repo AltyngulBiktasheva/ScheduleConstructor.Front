@@ -48,13 +48,18 @@ export const fetchTeachersAll = createAsyncThunk(
 
 /**
  * Создаёт / обновляет преподавателя на сервере.
- * ID генерируется на клиенте через crypto.randomUUID() в форме.
+ * При создании (isNew=true) id не передаётся — генерируется на бэке.
+ * После создания перезагружает список, чтобы получить реальный id.
  */
 export const saveTeacherOnServer = createAsyncThunk(
   'teachersList/save',
-  async (teacher: Teacher, { rejectWithValue }) => {
+  async ({ teacher, isNew }: { teacher: Teacher; isNew: boolean }, { dispatch, rejectWithValue }) => {
     try {
-      await teacherApi.saveTeacher({ id: teacher.id, fullname: teacher.name });
+      await teacherApi.saveTeacher({
+        id: isNew ? undefined : teacher.id,
+        fullname: teacher.name,
+      });
+      if (isNew) dispatch(fetchTeachersAll());
       return teacher;
     } catch (err: unknown) {
       return rejectWithValue((err as Error).message);

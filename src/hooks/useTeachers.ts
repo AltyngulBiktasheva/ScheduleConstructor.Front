@@ -34,7 +34,7 @@ export function useTeachers() {
   const add = useCallback(
     (teacher: Teacher) => {
       dispatch(addTeacherLocally(teacher));
-      dispatch(saveTeacherOnServer(teacher));
+      dispatch(saveTeacherOnServer({ teacher, isNew: true }));
       markCreated(teacher.id);
     },
     [dispatch],
@@ -43,7 +43,7 @@ export function useTeachers() {
   const update = useCallback(
     (updated: Teacher) => {
       dispatch(updateTeacherLocally(updated));
-      dispatch(saveTeacherOnServer(updated));
+      dispatch(saveTeacherOnServer({ teacher: updated, isNew: false }));
     },
     [dispatch],
   );

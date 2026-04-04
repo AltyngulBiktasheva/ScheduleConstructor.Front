@@ -22,7 +22,7 @@ import type { Group, Stream } from '../types/group';
 export function useGroups() {
   const dispatch = useAppDispatch();
   const { groups, streams, loading } = useAppSelector((s) => s.groupsList);
-  const scheduleList = useAppSelector((s) => s.schedule.list);
+  const { list: scheduleList, selectedScheduleId } = useAppSelector((s) => s.schedule);
   const [newlyCreatedId, setNewlyCreatedId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -36,13 +36,13 @@ export function useGroups() {
   };
 
   const getOrCreateScheduleId = useCallback(async (): Promise<string | null> => {
+    if (selectedScheduleId) return selectedScheduleId;
     if (scheduleList.length > 0) return scheduleList[0].id;
-    const id = crypto.randomUUID();
-    await dispatch(saveSchedule({ id, name: 'Основное расписание' }));
+    await dispatch(saveSchedule({ name: 'Основное расписание' }));
     const updated = await dispatch(fetchSchedules());
     const list = (updated.payload as typeof scheduleList) ?? [];
     return list[0]?.id ?? null;
-  }, [scheduleList, dispatch]);
+  }, [selectedScheduleId, scheduleList, dispatch]);
 
   const addGroup = useCallback(
     async (group: Group) => {
@@ -53,8 +53,8 @@ export function useGroups() {
       dispatch(
         saveStudentGroupOnServer({
           entity: group,
+          isNew: true,
           dto: {
-            id: group.id,
             scheduleId,
             name: group.name,
             semesterNumber: 1,
@@ -76,6 +76,7 @@ export function useGroups() {
       dispatch(
         saveStudentGroupOnServer({
           entity: updated,
+          isNew: false,
           dto: {
             id: updated.id,
             scheduleId,
@@ -105,13 +106,13 @@ export function useGroups() {
       dispatch(
         saveStudentGroupOnServer({
           entity: stream,
+          isNew: true,
           dto: {
-            id: stream.id,
             scheduleId,
             name: stream.name,
-            semesterNumber: 1,
+            semesterNumber: stream.semesterNumber ?? 1,
             studentGroupType: 'Thread',
-            cypher: stream.name,
+            cypher: stream.cypher ?? stream.name,
             childIds: stream.groupIds,
           },
         }),
@@ -128,13 +129,14 @@ export function useGroups() {
       dispatch(
         saveStudentGroupOnServer({
           entity: updated,
+          isNew: false,
           dto: {
             id: updated.id,
             scheduleId,
             name: updated.name,
-            semesterNumber: 1,
+            semesterNumber: updated.semesterNumber ?? 1,
             studentGroupType: 'Thread',
-            cypher: updated.name,
+            cypher: updated.cypher ?? updated.name,
             childIds: updated.groupIds,
           },
         }),

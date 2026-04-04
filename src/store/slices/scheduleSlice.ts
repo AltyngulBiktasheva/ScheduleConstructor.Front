@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector } from '../hooks';
 
 interface ScheduleState {
   list: ScheduleDto[];
+  selectedScheduleId: string | null;
   loading: boolean;
   saving: boolean;
   error: string | null;
@@ -14,6 +15,7 @@ interface ScheduleState {
 
 const initialState: ScheduleState = {
   list: [],
+  selectedScheduleId: null,
   loading: false,
   saving: false,
   error: null,
@@ -52,6 +54,9 @@ const scheduleSlice = createSlice({
   name: 'schedule',
   initialState,
   reducers: {
+    setSelectedScheduleId(state, action: { payload: string | null }) {
+      state.selectedScheduleId = action.payload;
+    },
     clearScheduleError(state) {
       state.error = null;
     },
@@ -84,7 +89,7 @@ const scheduleSlice = createSlice({
   },
 });
 
-export const { clearScheduleError } = scheduleSlice.actions;
+export const { setSelectedScheduleId, clearScheduleError } = scheduleSlice.actions;
 export default scheduleSlice.reducer;
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -97,6 +102,7 @@ export const useSchedule = () => {
     ...state,
     fetchAll: () => dispatch(fetchSchedules()),
     save: (dto: SaveScheduleDto) => dispatch(saveSchedule(dto)),
+    selectSchedule: (id: string | null) => dispatch(setSelectedScheduleId(id)),
     clearError: () => dispatch(clearScheduleError()),
   };
 };
