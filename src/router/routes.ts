@@ -4,6 +4,7 @@ export const ROUTES = {
   // Для составителей
   CONSTRUCTOR: '/constructor',
   CONSTRUCTOR_SCHEDULE: '/constructor/schedule',
+  SCHEDULES: '/constructor/schedules',
   DISCIPLINES: '/constructor/disciplines',
   CLASSROOMS: '/constructor/classrooms',
   TEACHERS: '/constructor/teachers',

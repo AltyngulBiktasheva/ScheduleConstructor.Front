@@ -15,6 +15,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: 'grid',
     children: [
       { id: 'constructor', label: 'Конструктор расписания', path: ROUTES.CONSTRUCTOR, icon: 'calendar' },
+      { id: 'schedules', label: 'Проекты расписания', path: ROUTES.SCHEDULES, icon: 'folder' },
       { id: 'disciplines', label: 'Дисциплины', path: ROUTES.DISCIPLINES, icon: 'book' },
       { id: 'classrooms', label: 'Аудитории', path: ROUTES.CLASSROOMS, icon: 'door' },
       { id: 'teachers', label: 'Преподаватели', path: ROUTES.TEACHERS, icon: 'user' },

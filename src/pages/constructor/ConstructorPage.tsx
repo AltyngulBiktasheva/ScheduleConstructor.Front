@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { PageHeader } from '../../components/PageHeader/PageHeader';
 import { Tabs } from '../../components/Tabs/Tabs';
 import { MainContainer } from '../../components/MainContainer/MainContainer';
+import { ScheduleSelector } from '../../components/ScheduleSelector/ScheduleSelector';
 import { ClassroomSlice } from './slices/ClassroomSlice';
 import { TeacherSlice } from './slices/TeacherSlice';
 import { GroupSlice } from './slices/GroupSlice';
@@ -40,6 +41,7 @@ export const ConstructorPage: React.FC = () => {
         title="Конструктор расписания"
         subtitle="Составьте расписание для аудиторий, преподавателей или групп"
       />
+      <ScheduleSelector />
 
       {!selection ? (
         <>

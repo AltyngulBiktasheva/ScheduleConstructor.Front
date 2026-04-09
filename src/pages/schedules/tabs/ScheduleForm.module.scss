@@ -1,0 +1,59 @@
+@use '../../../styles/variables' as *;
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: $space-5;
+  background: $color-white;
+  border-radius: $border-radius-lg;
+  box-shadow: $shadow;
+  padding: $space-6;
+  max-width: 560px;
+}
+
+.row2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $space-4;
+}
+
+.radioGroup {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 4px 0;
+}
+
+.radioLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #374151;
+
+  input[type='radio'] {
+    accent-color: #3b82f6;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+  }
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: $space-3;
+  padding-top: $space-2;
+  border-top: 1px solid $border-color;
+}
+
+.resetConfirm {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  margin-left: auto;
+  font-size: $font-size-sm;
+  color: $color-gray-600;
+}

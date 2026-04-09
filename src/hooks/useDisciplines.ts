@@ -39,7 +39,7 @@ export function useDisciplines() {
     if (selectedScheduleId) return selectedScheduleId;
     if (scheduleList.length > 0) return scheduleList[0].id;
     // Создаём дефолтное расписание
-    await dispatch(saveSchedule({ name: 'Основное расписание' }));
+    await dispatch(saveSchedule({ name: 'Основное расписание', startsWithEvenWeek: true, startDate: '2025-09-01', endDate: '2026-01-31' }));
     const updated = await dispatch(fetchSchedules());
     const list = (updated.payload as typeof scheduleList) ?? [];
     return list[0]?.id ?? null;
@@ -102,7 +102,7 @@ export function useDisciplines() {
 
       // Формируем payload для конкретного типа занятия
       const hoursCount = discipline.totalHoursCount ?? 0;
-      const payload = hoursCount > 0 ? { totalHoursCount: hoursCount, studyWeeksCount: 1, lessonsPerWeekCount: 1 } : null;
+      const payload = hoursCount > 0 ? { totalHoursCount: hoursCount } : null;
 
       const lessonType = discipline.lessonType;
 
@@ -137,7 +137,7 @@ export function useDisciplines() {
       if (!scheduleId) return;
 
       const hoursCount = updated.totalHoursCount ?? 0;
-      const payload = hoursCount > 0 ? { totalHoursCount: hoursCount, studyWeeksCount: 1, lessonsPerWeekCount: 1 } : null;
+      const payload = hoursCount > 0 ? { totalHoursCount: hoursCount } : null;
       const lessonType = updated.lessonType;
 
       if (updated.isRoot) {

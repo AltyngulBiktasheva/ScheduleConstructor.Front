@@ -3,6 +3,7 @@ import { Layout } from './components/Layout/Layout';
 import { ROUTES } from './router/routes';
 
 import { ConstructorPage } from './pages/constructor/ConstructorPage';
+import { SchedulesPage } from './pages/schedules/SchedulesPage';
 import { DisciplinesPage } from './pages/disciplines/DisciplinesPage';
 import { ClassroomsPage } from './pages/classrooms/ClassroomsPage';
 import { TeachersPage } from './pages/teachers/TeachersPage';
@@ -23,6 +24,7 @@ function App() {
 
           {/* Для составителей */}
           <Route path={ROUTES.CONSTRUCTOR} element={<ConstructorPage />} />
+          <Route path={ROUTES.SCHEDULES} element={<SchedulesPage />} />
           <Route path={ROUTES.DISCIPLINES} element={<DisciplinesPage />} />
           <Route path={ROUTES.CLASSROOMS} element={<ClassroomsPage />} />
           <Route path={ROUTES.TEACHERS} element={<TeachersPage />} />

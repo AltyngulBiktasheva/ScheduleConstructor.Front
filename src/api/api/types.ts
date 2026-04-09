@@ -76,9 +76,7 @@ export interface AcademicDisciplineLessonBatchInfoDto {
 
 export interface AcademicDisciplinePayloadDto {
   totalHoursCount: number;
-  studyWeeksCount: number;
-  lessonsPerWeekCount: number;
-  lessonBatchInfoDto: AcademicDisciplineLessonBatchInfoDto;
+  lessonBatchInfo?: AcademicDisciplineLessonBatchInfoDto | null;
 }
 
 export interface AcademicDisciplineViewDto {
@@ -237,9 +235,20 @@ export interface ScheduleDto {
   name: string;
 }
 
+export interface ScheduleRegistryItemDto {
+  id: string;
+  name: string;
+  startsWithEvenWeek: boolean;
+  startDate: string; // YYYY-MM-DD
+  endDate: string;   // YYYY-MM-DD
+}
+
 export interface SaveScheduleDto {
   id?: string | null;
   name: string;
+  startsWithEvenWeek: boolean;
+  startDate: string; // YYYY-MM-DD
+  endDate: string;   // YYYY-MM-DD
 }
 
 // ─── StudentGroup ─────────────────────────────────────────────────────────────

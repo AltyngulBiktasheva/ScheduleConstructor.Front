@@ -1,15 +1,16 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { scheduleApi } from '../../api';
-import type { SaveScheduleDto, ScheduleDto } from '../../api';
+import type { SaveScheduleDto, ScheduleRegistryItemDto } from '../../api';
 import { useAppDispatch, useAppSelector } from '../hooks';
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
 interface ScheduleState {
-  list: ScheduleDto[];
+  list: ScheduleRegistryItemDto[];
   selectedScheduleId: string | null;
   loading: boolean;
   saving: boolean;
+  deleting: boolean;
   error: string | null;
 }
 
@@ -18,6 +19,7 @@ const initialState: ScheduleState = {
   selectedScheduleId: null,
   loading: false,
   saving: false,
+  deleting: false,
   error: null,
 };
 
@@ -40,8 +42,20 @@ export const saveSchedule = createAsyncThunk(
   async (dto: SaveScheduleDto, { dispatch, rejectWithValue }) => {
     try {
       await scheduleApi.saveSchedule(dto);
-      // После сохранения перезагружаем список
       dispatch(fetchSchedules());
+    } catch (err: unknown) {
+      return rejectWithValue((err as Error).message);
+    }
+  },
+);
+
+export const deleteSchedule = createAsyncThunk(
+  'schedule/delete',
+  async (scheduleId: string, { dispatch, rejectWithValue }) => {
+    try {
+      await scheduleApi.deleteSchedule(scheduleId);
+      dispatch(fetchSchedules());
+      return scheduleId;
     } catch (err: unknown) {
       return rejectWithValue((err as Error).message);
     }
@@ -70,6 +84,14 @@ const scheduleSlice = createSlice({
       .addCase(fetchSchedules.fulfilled, (state, action) => {
         state.loading = false;
         state.list = action.payload;
+        // Авто-выбор первого расписания если ни одно не выбрано
+        if (!state.selectedScheduleId && action.payload.length > 0) {
+          state.selectedScheduleId = action.payload[0].id;
+        }
+        // Если выбранное расписание было удалено — сбросить выбор
+        if (state.selectedScheduleId && !action.payload.find((s) => s.id === state.selectedScheduleId)) {
+          state.selectedScheduleId = action.payload[0]?.id ?? null;
+        }
       })
       .addCase(fetchSchedules.rejected, (state, action) => {
         state.loading = false;
@@ -84,6 +106,17 @@ const scheduleSlice = createSlice({
       })
       .addCase(saveSchedule.rejected, (state, action) => {
         state.saving = false;
+        state.error = action.payload as string;
+      })
+      .addCase(deleteSchedule.pending, (state) => {
+        state.deleting = true;
+        state.error = null;
+      })
+      .addCase(deleteSchedule.fulfilled, (state) => {
+        state.deleting = false;
+      })
+      .addCase(deleteSchedule.rejected, (state, action) => {
+        state.deleting = false;
         state.error = action.payload as string;
       });
   },
@@ -102,6 +135,7 @@ export const useSchedule = () => {
     ...state,
     fetchAll: () => dispatch(fetchSchedules()),
     save: (dto: SaveScheduleDto) => dispatch(saveSchedule(dto)),
+    delete: (id: string) => dispatch(deleteSchedule(id)),
     selectSchedule: (id: string | null) => dispatch(setSelectedScheduleId(id)),
     clearError: () => dispatch(clearScheduleError()),
   };
