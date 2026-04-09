@@ -2,7 +2,7 @@
 
 export type AcademicDisciplineTargetType = 'General' | 'Specialized' | 'ByChoice' | 'Optional';
 export type AcademicDisciplineType = 'Lecture' | 'Practice' | 'Lab' | 'Exam' | 'Test';
-export type DisciplineLessonRepeatType = 1 | 2 | 3 | 4;
+export type DisciplineLessonRepeatType = 'Weekly' | 'EveryOtherWeek' | 'Once' | 'Custom';
 export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 export type LessonFlexibilityType = 'Fixed' | 'Flexible';
 export type LessonValidationErrorType = 'Warning' | 'Error';
@@ -64,13 +64,14 @@ export interface RegistryDto<T> {
 // ─── AcademicDiscipline ───────────────────────────────────────────────────────
 
 export interface AcademicDisciplineLessonBatchInfoDto {
-  studentGroupId: string;
+  id?: string | null;
+  studentGroupIds: string[];
   teacherId?: string | null;
   roomId?: string | null;
   dayOfWeekTimeIntervals?: DayOfWeekTimeInterval[] | null;
   repeatType: DisciplineLessonRepeatType;
-  dateFrom: string;
-  dateTo: string;
+  dateInterval: DateInterval;
+  allowCombining: boolean;
   hoursCost: number;
 }
 
@@ -109,16 +110,14 @@ export interface AcademicDisciplineRegistryItemDto {
 export interface SaveAcademicDisciplineDto {
   id?: string | null;
   scheduleId: string;
-  name: string;
-  cypher: string;
+  name?: string | null;
+  cypher?: string | null;
   semesterNumber: number;
   academicDisciplineTargetType: AcademicDisciplineTargetType;
   allowedLessonTypes?: AcademicDisciplineType[] | null;
   lecturePayload?: AcademicDisciplinePayloadDto | null;
   practicePayload?: AcademicDisciplinePayloadDto | null;
   labPayload?: AcademicDisciplinePayloadDto | null;
-  hasExam: boolean;
-  hasTest: boolean;
   comment?: string | null;
 }
 
