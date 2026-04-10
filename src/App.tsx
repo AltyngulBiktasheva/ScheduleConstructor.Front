@@ -1,6 +1,9 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout/Layout';
 import { ROUTES } from './router/routes';
+import { useAppDispatch } from './store/hooks';
+import { ensureDefaultCampuses } from './store/slices/campusSlice';
 
 import { ConstructorPage } from './pages/constructor/ConstructorPage';
 import { SchedulesPage } from './pages/schedules/SchedulesPage';
@@ -16,6 +19,12 @@ import { NotFoundPage } from './pages/not-found/NotFoundPage';
 import './App.css';
 
 function App() {
+  const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    dispatch(ensureDefaultCampuses());
+  }, [dispatch]);
+
   return (
     <BrowserRouter>
       <Routes>

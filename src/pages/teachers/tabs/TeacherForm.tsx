@@ -13,6 +13,7 @@ interface Props {
 
 export const TeacherForm: React.FC<Props> = ({ initial, onSave, onCancel }) => {
   const [name, setName] = useState(initial?.name ?? '');
+  const [contacts, setContacts] = useState(initial?.contacts ?? '');
   const [error, setError] = useState('');
 
   const handleSave = () => {
@@ -20,6 +21,7 @@ export const TeacherForm: React.FC<Props> = ({ initial, onSave, onCancel }) => {
     onSave({
       id: initial?.id ?? crypto.randomUUID(),
       name: name.trim(),
+      contacts: contacts.trim() || undefined,
       wishes: initial?.wishes ?? emptyWishes(),
     });
   };
@@ -35,6 +37,15 @@ export const TeacherForm: React.FC<Props> = ({ initial, onSave, onCancel }) => {
           placeholder="Фамилия Имя Отчество"
           autoFocus
           onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+        />
+      </FormField>
+
+      <FormField label="Контакты" hint="Телефон, email или другая контактная информация">
+        <input
+          className="field-input"
+          value={contacts}
+          onChange={(e) => setContacts(e.target.value)}
+          placeholder="+7 900 000-00-00 / ivanov@urfu.ru"
         />
       </FormField>
 

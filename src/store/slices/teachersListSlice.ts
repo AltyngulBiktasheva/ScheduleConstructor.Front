@@ -38,6 +38,7 @@ export const fetchTeachersAll = createAsyncThunk(
       return data.items.map((dto) => ({
         id: dto.id,
         name: dto.fullname,
+        contacts: dto.contacts ?? undefined,
         wishes: emptyWishes(),
       }));
     } catch (err: unknown) {
@@ -58,6 +59,7 @@ export const saveTeacherOnServer = createAsyncThunk(
       await teacherApi.saveTeacher({
         id: isNew ? undefined : teacher.id,
         fullname: teacher.name,
+        contacts: teacher.contacts,
       });
       if (isNew) dispatch(fetchTeachersAll());
       return teacher;

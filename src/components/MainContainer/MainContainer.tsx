@@ -1,190 +1,300 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { ScheduleGrid } from '../ScheduleGrid/ScheduleGrid';
 import { DisciplineList } from '../DisciplineList/DisciplineList';
 import { EditModal } from '../EditModal/EditModal';
 import type { Discipline } from '../../types';
 import type { SlotHighlight } from '../../api/slotHighlights';
 import { fetchSlotHighlights } from '../../api/slotHighlights';
-import { MOCK_DISCIPLINES } from '../../mockData';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { fetchWeekLessons, saveLesson, deleteWeekLesson } from '../../store/slices/lessonSlice';
+import { fetchDisciplinesAll } from '../../store/slices/disciplinesListSlice';
+import type { LessonWeekItemDto, AcademicDisciplineType } from '../../api';
 import styles from './Styles.module.scss';
 
-// Родительская дисциплина: дисциплина без parentId
-// Дочерняя дисциплина: дисциплина с parentId
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-function getChildrenOfParent(disciplines: Discipline[], parentId: string): Discipline[] {
-  return disciplines.filter((d) => d.parentId === parentId && d.isInGrid);
+export interface SliceSelection {
+  type: 'classrooms' | 'teachers' | 'groups';
+  entityId: string | string[];
+  label: string;
 }
 
-function createChild(parent: Discipline, dayId: string, timeStart: string, timeEnd: string): Discipline {
+interface Props {
+  selection: SliceSelection;
+}
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const DAY_IDS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function getWeekDates(weekOffset: number): string[] {
+  const now = new Date();
+  const dow = now.getDay();
+  const diffToMonday = dow === 0 ? -6 : 1 - dow;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + diffToMonday + weekOffset * 7);
+  return Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return d.toISOString().split('T')[0];
+  });
+}
+
+function lessonToDiscipline(lesson: LessonWeekItemDto, weekDates: string[]): Discipline {
+  const dateIdx = weekDates.indexOf(lesson.dateWithTimeInterval.date);
+  const dayId = dateIdx >= 0 ? DAY_IDS[dateIdx] : 'mon';
+
   return {
-    ...parent,
-    id: `${parent.id}-child-${Date.now()}`,
-    parentId: parent.id,
+    id: lesson.id,
+    name: lesson.name || 'Занятие',
+    academicDisciplineId: lesson.academicDisciplineId ?? undefined,
+    lessonType: lesson.academicDisciplineType ?? undefined,
+    roomId: lesson.roomId ?? undefined,
+    forType: 'group',
+    forIds: lesson.studentGroups.map((g) => g.id),
+    teachers: lesson.teacherId
+      ? [{ id: lesson.teacherId, name: lesson.teacherName || '' }]
+      : [],
+    audiences: lesson.roomName
+      ? [{ building: 'other', buildingName: lesson.roomName }]
+      : [],
+    isStatic: lesson.flexibilityType === 'Fixed',
+    canOverlap: lesson.allowCombining,
+    repeat: 'every-week',
+    weeklyCount: 1,
     isInGrid: true,
     dayId,
-    timeStart,
-    timeEnd,
-    occurrences: undefined,
-    weeklyCount: 1,
-    isStatic: parent.isStatic,
+    timeStart: lesson.dateWithTimeInterval.timeInterval.timeFrom.slice(0, 5),
+    timeEnd: lesson.dateWithTimeInterval.timeInterval.timeTo.slice(0, 5),
+    errorLevel: lesson.currentErrorsMaxLevel ?? null,
+    teacher: lesson.teacherName ?? undefined,
+    audience: lesson.roomName ?? undefined,
   };
 }
 
-export const MainContainer: React.FC = () => {
-  const [disciplines, setDisciplines] = useState<Discipline[]>(MOCK_DISCIPLINES);
+function filterLessonsByEntity(
+  lessons: LessonWeekItemDto[],
+  selection: SliceSelection,
+): LessonWeekItemDto[] {
+  const ids = Array.isArray(selection.entityId)
+    ? selection.entityId
+    : [selection.entityId];
+
+  return lessons.filter((lesson) => {
+    if (selection.type === 'classrooms') return ids.includes(lesson.roomId ?? '');
+    if (selection.type === 'teachers') return ids.includes(lesson.teacherId ?? '');
+    if (selection.type === 'groups') return lesson.studentGroups.some((g) => ids.includes(g.id));
+    return false;
+  });
+}
+
+function padTime(t: string): string {
+  // HH:MM → HH:MM:00
+  return t.length === 5 ? `${t}:00` : t;
+}
+
+// ─── Component ───────────────────────────────────────────────────────────────
+
+export const MainContainer: React.FC<Props> = ({ selection }) => {
+  const dispatch = useAppDispatch();
+  const { weekLessons, weekLessonsLoading } = useAppSelector((s) => s.lesson);
+  const { disciplines: listDisciplines } = useAppSelector((s) => s.disciplinesList);
+  const selectedScheduleId = useAppSelector((s) => s.schedule.selectedScheduleId);
+
+  const [weekOffset, setWeekOffset] = useState(0);
   const [editingDiscipline, setEditingDiscipline] = useState<Discipline | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [loadingHighlightId, setLoadingHighlightId] = useState<string | null>(null);
   const [highlights, setHighlights] = useState<SlotHighlight[]>([]);
-  const [weekOffset, setWeekOffset] = useState(0);
 
-  // ── Логика видимости в списке ────────────────────────────────────────────────
-  // Показываем в списке только дисциплины-родители (без parentId),
-  // у которых детей на сетке меньше чем weeklyCount
-  const listDisciplines = disciplines.filter((d) => {
-    if (d.parentId) return false;         // дети в списке не показываем
-    if (d.isInGrid && d.weeklyCount <= 1) return false; // уже полностью на сетке
-    const children = getChildrenOfParent(disciplines, d.id);
-    return children.length < (d.weeklyCount ?? 1);
-  });
+  // ── Загрузка занятий недели ───────────────────────────────────────────────
+  useEffect(() => {
+    if (!selectedScheduleId) return;
+    const weekDates = getWeekDates(weekOffset);
+    dispatch(fetchWeekLessons({
+      scheduleId: selectedScheduleId,
+      dateFrom: weekDates[0],
+      dateTo: weekDates[5],
+    }));
+  }, [dispatch, selectedScheduleId, weekOffset]);
 
-  // ── Дисциплины для сетки: дети + родители с weeklyCount === 1 на сетке ───────
-  const gridDisciplines = disciplines.filter((d) => d.isInGrid);
+  // ── Загрузка дисциплин для списка ────────────────────────────────────────
+  useEffect(() => {
+    if (listDisciplines.length === 0) dispatch(fetchDisciplinesAll());
+  }, [dispatch, listDisciplines.length]);
 
-  // ── Перемещение на сетку ─────────────────────────────────────────────────────
+  // ── Фильтрация занятий по сущности ───────────────────────────────────────
+  const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
+  const entityLessons = filterLessonsByEntity(weekLessons, selection);
+  const gridDisciplines = entityLessons.map((l) => lessonToDiscipline(l, weekDates));
+
+  // Дисциплины для списка — только не-корневые (листовые)
+  const listItems = listDisciplines.filter((d) => !d.isRoot);
+
+  // ── Перезагрузка после сохранения / удаления ─────────────────────────────
+  const refetchWeek = useCallback(() => {
+    if (!selectedScheduleId) return;
+    const dates = getWeekDates(weekOffset);
+    dispatch(fetchWeekLessons({
+      scheduleId: selectedScheduleId,
+      dateFrom: dates[0],
+      dateTo: dates[5],
+    }));
+  }, [dispatch, selectedScheduleId, weekOffset]);
+
+  // ── DnD: перемещение / создание занятия ──────────────────────────────────
   const handleDisciplineMove = useCallback(
-    (disciplineId: string, dayId: string, timeStart: string, timeEnd: string) => {
-      setDisciplines((prev) => {
-        const discipline = prev.find((d) => d.id === disciplineId);
-        if (!discipline) return prev;
+    async (disciplineId: string, dayId: string, timeStart: string, timeEnd: string) => {
+      if (!selectedScheduleId) return;
 
-        // Статичные нельзя двигать
-        if (discipline.isStatic && discipline.isInGrid) return prev;
+      const dates = getWeekDates(weekOffset);
+      const dayIdx = DAY_IDS.indexOf(dayId as typeof DAY_IDS[number]);
+      const date = dates[dayIdx] ?? dates[0];
 
-        const weeklyCount = discipline.weeklyCount ?? 1;
-        const children = prev.filter((d) => d.parentId === disciplineId && d.isInGrid);
+      const existingLesson = weekLessons.find((l) => l.id === disciplineId);
 
-        // Если это родитель и weeklyCount > 1 — создаём ребёнка
-        if (!discipline.parentId && weeklyCount > 1) {
-          // Если родитель ещё не на сетке (первый ребёнок) — ставим родителя
-          if (!discipline.isInGrid) {
-            const child = createChild(discipline, dayId, timeStart, timeEnd);
-            return [...prev, child];
-          }
-          // Если родитель уже на сетке — добавляем ещё одного ребёнка
-          if (children.length < weeklyCount - 1) {
-            const child = createChild(discipline, dayId, timeStart, timeEnd);
-            return [...prev, child];
-          }
-          return prev;
-        }
+      if (existingLesson) {
+        // Перемещаем существующее занятие
+        if (existingLesson.flexibilityType === 'Fixed') return;
+        await dispatch(saveLesson({
+          id: existingLesson.id,
+          scheduleId: selectedScheduleId,
+          academicDisciplineId: existingLesson.academicDisciplineId,
+          academicDisciplineType: existingLesson.academicDisciplineType,
+          studentGroupIds: existingLesson.studentGroups.map((g) => g.id),
+          teacherId: existingLesson.teacherId,
+          roomId: existingLesson.roomId,
+          dateWithTimeInterval: {
+            date,
+            timeInterval: { timeFrom: padTime(timeStart), timeTo: padTime(timeEnd) },
+          },
+          flexibilityType: existingLesson.flexibilityType,
+          allowCombining: existingLesson.allowCombining,
+          hoursCost: 2,
+        }));
+      } else {
+        // Создаём новое занятие из дисциплины в списке
+        const listDiscipline = listDisciplines.find((d) => d.id === disciplineId);
+        if (!listDiscipline) return;
 
-        // weeklyCount === 1 или это ребёнок — обычное перемещение
-        return prev.map((d) =>
-          d.id === disciplineId
-            ? { ...d, isInGrid: true, dayId, timeStart, timeEnd, occurrences: undefined }
-            : d
-        );
-      });
+        const groupIds = selection.type === 'groups'
+          ? (Array.isArray(selection.entityId) ? selection.entityId : [selection.entityId])
+          : listDiscipline.forIds;
+
+        await dispatch(saveLesson({
+          scheduleId: selectedScheduleId,
+          academicDisciplineId: disciplineId,
+          academicDisciplineType: listDiscipline.lessonType,
+          studentGroupIds: groupIds,
+          teacherId: listDiscipline.teachers[0]?.id ?? undefined,
+          roomId: selection.type === 'classrooms'
+            ? (selection.entityId as string)
+            : undefined,
+          dateWithTimeInterval: {
+            date,
+            timeInterval: { timeFrom: padTime(timeStart), timeTo: padTime(timeEnd) },
+          },
+          flexibilityType: 'Flexible',
+          allowCombining: false,
+          hoursCost: listDiscipline.totalHoursCount ?? 2,
+        }));
+      }
+
+      refetchWeek();
     },
-    []
+    [dispatch, selectedScheduleId, weekOffset, weekLessons, listDisciplines, selection, refetchWeek],
   );
 
-  // ── Возврат в список ─────────────────────────────────────────────────────────
-  const handleDisciplineReturn = useCallback((disciplineId: string) => {
-    setDisciplines((prev) => {
-      const discipline = prev.find((d) => d.id === disciplineId);
-      if (!discipline || discipline.isStatic) return prev;
+  // ── DnD: возврат занятия в список (удаление) ─────────────────────────────
+  const handleDisciplineReturn = useCallback(
+    async (disciplineId: string) => {
+      if (!selectedScheduleId) return;
+      const lesson = weekLessons.find((l) => l.id === disciplineId);
+      if (!lesson || lesson.flexibilityType === 'Fixed') return;
 
-      // Если это ребёнок — удаляем его (родитель снова появится в списке)
-      if (discipline.parentId) {
-        return prev.filter((d) => d.id !== disciplineId);
-      }
+      await dispatch(deleteWeekLesson({ scheduleId: selectedScheduleId, lessonId: disciplineId }));
+    },
+    [dispatch, selectedScheduleId, weekLessons],
+  );
 
-      // Родитель с weeklyCount === 1 — снимаем с сетки
-      return prev.map((d) =>
-        d.id === disciplineId
-          ? { ...d, isInGrid: false, dayId: undefined, timeStart: undefined, timeEnd: undefined, occurrences: undefined }
-          : d
-      );
-    });
-  }, []);
-
-  // ── Клик на карточку ─────────────────────────────────────────────────────────
+  // ── Клик на карточку → открыть модалку ───────────────────────────────────
   const handleDisciplineClick = useCallback((discipline: Discipline) => {
-    // Если кликнули на ребёнка — открываем родителя с инфой о всех детях
-    if (discipline.parentId) {
-      setDisciplines((prev) => {
-        const parent = prev.find((d) => d.id === discipline.parentId);
-        if (parent) {
-          const children = getChildrenOfParent(prev, parent.id);
-          // Собираем occurrences из детей для отображения
-          const occurrences = children.map((c) => ({
-            dayId: c.dayId!,
-            timeStart: c.timeStart!,
-            timeEnd: c.timeEnd!,
-          }));
-          setEditingDiscipline({ ...parent, occurrences });
-        }
-        return prev;
-      });
-      return;
-    }
-    // Родитель: показываем времена детей
-    const children = getChildrenOfParent(disciplines, discipline.id);
-    if (children.length > 0) {
-      const occurrences = children.map((c) => ({ dayId: c.dayId!, timeStart: c.timeStart!, timeEnd: c.timeEnd! }));
-      setEditingDiscipline({ ...discipline, occurrences });
-    } else {
-      setEditingDiscipline(discipline);
-    }
-  }, [disciplines]);
-
-  // ── Сохранение из EditModal ──────────────────────────────────────────────────
-  const handleSaveDiscipline = useCallback((updated: Discipline) => {
-    setDisciplines((prev) => {
-      const existing = prev.find((d) => d.id === updated.id);
-      if (!existing) return prev;
-
-      // Если у дисциплины заданы occurrences через модалку — синхронизируем детей
-      if (updated.occurrences && updated.occurrences.length > 0 && (existing.weeklyCount ?? 1) > 1) {
-        const withoutOldChildren = prev.filter((d) => d.parentId !== updated.id);
-        const newChildren = updated.occurrences.map((occ) =>
-          createChild(updated, occ.dayId, occ.timeStart, occ.timeEnd)
-        );
-        return withoutOldChildren.map((d) => d.id === updated.id ? { ...updated, occurrences: undefined } : d).concat(newChildren);
-      }
-
-      return prev.map((d) => d.id === updated.id ? updated : d);
-    });
-    setEditingDiscipline(null);
+    setEditingDiscipline(discipline);
   }, []);
 
-  // ── Подсветка слотов ─────────────────────────────────────────────────────────
+  // ── Сохранение из EditModal → POST /lesson/save ───────────────────────────
+  const handleSaveDiscipline = useCallback(
+    async (updated: Discipline) => {
+      if (!selectedScheduleId) return;
+
+      const lesson = weekLessons.find((l) => l.id === updated.id);
+      if (!lesson) {
+        setEditingDiscipline(null);
+        return;
+      }
+
+      const date = updated.dayId
+        ? weekDates[DAY_IDS.indexOf(updated.dayId as typeof DAY_IDS[number])] ?? weekDates[0]
+        : lesson.dateWithTimeInterval.date;
+
+      await dispatch(saveLesson({
+        id: lesson.id,
+        scheduleId: selectedScheduleId,
+        academicDisciplineId: lesson.academicDisciplineId,
+        academicDisciplineType: lesson.academicDisciplineType,
+        studentGroupIds: lesson.studentGroups.map((g) => g.id),
+        teacherId: updated.teachers?.[0]?.id ?? lesson.teacherId,
+        roomId: updated.roomId ?? lesson.roomId,
+        dateWithTimeInterval: {
+          date,
+          timeInterval: {
+            timeFrom: padTime(updated.timeStart ?? lesson.dateWithTimeInterval.timeInterval.timeFrom.slice(0, 5)),
+            timeTo: padTime(updated.timeEnd ?? lesson.dateWithTimeInterval.timeInterval.timeTo.slice(0, 5)),
+          },
+        },
+        flexibilityType: lesson.flexibilityType,
+        allowCombining: lesson.allowCombining,
+        hoursCost: 2,
+      }));
+
+      setEditingDiscipline(null);
+      refetchWeek();
+    },
+    [dispatch, selectedScheduleId, weekLessons, weekDates, refetchWeek],
+  );
+
+  // ── Eye icon → week-conflicts → highlights ────────────────────────────────
   const handleToggleHighlight = useCallback(async (disciplineId: string) => {
     if (highlightedId === disciplineId) {
       setHighlightedId(null);
       setHighlights([]);
       return;
     }
-    const discipline = disciplines.find((d) => d.id === disciplineId);
-    if (!discipline) return;
+
+    const discipline = gridDisciplines.find((d) => d.id === disciplineId);
+    if (!discipline?.academicDisciplineId || !discipline.lessonType) return;
 
     setLoadingHighlightId(disciplineId);
     setHighlightedId(null);
     setHighlights([]);
 
     try {
-      const result = await fetchSlotHighlights(discipline);
+      const result = await fetchSlotHighlights({
+        academicDisciplineId: discipline.academicDisciplineId,
+        academicDisciplineType: discipline.lessonType as AcademicDisciplineType,
+      });
       setHighlights(result);
       setHighlightedId(disciplineId);
     } finally {
       setLoadingHighlightId(null);
     }
-  }, [highlightedId, disciplines]);
+  }, [highlightedId, gridDisciplines]);
 
   return (
     <div className={styles.container}>
+      {weekLessonsLoading && <div className={styles.loading}>Загрузка...</div>}
       <ScheduleGrid
         disciplines={gridDisciplines}
         highlights={highlights}
@@ -197,7 +307,7 @@ export const MainContainer: React.FC = () => {
         onWeekOffsetChange={setWeekOffset}
       />
       <DisciplineList
-        disciplines={listDisciplines}
+        disciplines={listItems}
         onReturn={handleDisciplineReturn}
         onDisciplineClick={handleDisciplineClick}
         onToggleHighlight={handleToggleHighlight}

@@ -33,6 +33,7 @@ export interface TeacherWishes {
 export interface Teacher {
   id: string;
   name: string;
+  contacts?: string;
   wishes: TeacherWishes;
 }
 

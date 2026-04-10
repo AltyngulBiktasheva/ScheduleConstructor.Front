@@ -1,30 +1,38 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import { fetchClassroomsAll } from '../../../store/slices/classroomsListSlice';
 import styles from './SliceCard.module.scss';
-
-const BUILDINGS: Record<string, { label: string; rooms: string[] }> = {
-  turgeneva: {
-    label: 'Тургенева',
-    rooms: ['101', '102', '201', '202', '203', '301', '302', '401', '410'],
-  },
-  kuybysheva: {
-    label: 'Куйбышева',
-    rooms: ['101', '102', '201', '205', '301', '401', '501'],
-  },
-};
 
 interface Props {
   onSelect: (entityId: string, label: string) => void;
 }
 
 export const ClassroomSlice: React.FC<Props> = ({ onSelect }) => {
-  const [buildingId, setBuildingId] = useState('');
+  const dispatch = useAppDispatch();
+  const { classrooms, loading } = useAppSelector((s) => s.classroomsList);
+  const [buildingName, setBuildingName] = useState('');
   const [roomId, setRoomId] = useState('');
 
-  const rooms = buildingId ? BUILDINGS[buildingId]?.rooms ?? [] : [];
+  useEffect(() => {
+    if (classrooms.length === 0) dispatch(fetchClassroomsAll());
+  }, [dispatch, classrooms.length]);
+
+  // Получаем уникальные корпуса из загруженных аудиторий
+  const buildings = Array.from(new Set(classrooms.map((c) => c.building))).sort();
+
+  // Аудитории выбранного корпуса
+  const rooms = buildingName
+    ? classrooms.filter((c) => c.building === buildingName)
+    : [];
+
+  const handleBuildingChange = (name: string) => {
+    setBuildingName(name);
+    setRoomId('');
+  };
 
   const handleOpen = () => {
-    const buildingLabel = BUILDINGS[buildingId]?.label ?? '';
-    onSelect(`${buildingId}/${roomId}`, `${buildingLabel}, ауд. ${roomId}`);
+    const room = classrooms.find((c) => c.id === roomId);
+    if (room) onSelect(room.id, `${room.building}, ауд. ${room.name}`);
   };
 
   return (
@@ -33,20 +41,24 @@ export const ClassroomSlice: React.FC<Props> = ({ onSelect }) => {
 
       <div className={styles.field}>
         <label>Корпус</label>
-        <select value={buildingId} onChange={(e) => { setBuildingId(e.target.value); setRoomId(''); }}>
-          <option value="">— выберите корпус —</option>
-          {Object.entries(BUILDINGS).map(([id, b]) => (
-            <option key={id} value={id}>{b.label}</option>
-          ))}
-        </select>
+        {loading ? (
+          <div>Загрузка…</div>
+        ) : (
+          <select value={buildingName} onChange={(e) => handleBuildingChange(e.target.value)}>
+            <option value="">— выберите корпус —</option>
+            {buildings.map((b) => (
+              <option key={b} value={b}>{b}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       <div className={styles.field}>
         <label>Аудитория</label>
-        <select value={roomId} onChange={(e) => setRoomId(e.target.value)} disabled={!buildingId}>
+        <select value={roomId} onChange={(e) => setRoomId(e.target.value)} disabled={!buildingName || loading}>
           <option value="">— выберите аудиторию —</option>
           {rooms.map((r) => (
-            <option key={r} value={r}>{r}</option>
+            <option key={r.id} value={r.id}>{r.name}</option>
           ))}
         </select>
       </div>

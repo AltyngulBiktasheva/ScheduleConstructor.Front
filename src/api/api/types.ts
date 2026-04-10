@@ -186,13 +186,34 @@ export interface SaveLessonRequestDto {
   scheduleId: string;
   academicDisciplineId?: string | null;
   academicDisciplineType?: AcademicDisciplineType | null;
-  studentGroupId: string;
+  studentGroupIds: string[];
   teacherId?: string | null;
   roomId?: string | null;
   dateWithTimeInterval?: DateWithTimeInterval | null;
   flexibilityType: LessonFlexibilityType;
   allowCombining: boolean;
   hoursCost: number;
+}
+
+export interface LessonWeekItemDto {
+  id: string;
+  academicDisciplineId?: string | null;
+  academicDisciplineType?: AcademicDisciplineType | null;
+  name?: string | null;
+  studentGroups: StudentGroupShortViewDto[];
+  teacherId?: string | null;
+  teacherName?: string | null;
+  roomId?: string | null;
+  roomName?: string | null;
+  dateWithTimeInterval: DateWithTimeInterval;
+  flexibilityType: LessonFlexibilityType;
+  allowCombining: boolean;
+  currentErrorsMaxLevel?: LessonValidationErrorType | null;
+}
+
+export interface AcademicDisciplineWeekConflictDto {
+  dayOfWeek: DayOfWeek;
+  timeInterval: TimeInterval;
 }
 
 export interface LessonWeekConflictDto {

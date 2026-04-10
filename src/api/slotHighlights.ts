@@ -1,4 +1,5 @@
-import type { Discipline } from '../types';
+import { academicDisciplineApi } from './api';
+import type { AcademicDisciplineType } from './api';
 
 export interface SlotHighlight {
   dayId: string;
@@ -8,64 +9,28 @@ export interface SlotHighlight {
   message?: string;
 }
 
-const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+// C# DayOfWeek: 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+const DOW_TO_DAY_ID: Record<number, string> = {
+  1: 'mon',
+  2: 'tue',
+  3: 'wed',
+  4: 'thu',
+  5: 'fri',
+  6: 'sat',
+};
 
-const TIME_SLOTS = [
-  { timeStart: '08:00', timeEnd: '09:30' },
-  { timeStart: '09:00', timeEnd: '10:30' },
-  { timeStart: '10:40', timeEnd: '12:10' },
-  { timeStart: '12:50', timeEnd: '14:20' },
-  { timeStart: '14:30', timeEnd: '16:00' },
-  { timeStart: '16:10', timeEnd: '17:40' },
-  { timeStart: '17:50', timeEnd: '19:20' },
-  { timeStart: '19:30', timeEnd: '21:00' },
-];
+export async function fetchSlotHighlights(params: {
+  academicDisciplineId: string;
+  academicDisciplineType: AcademicDisciplineType;
+}): Promise<SlotHighlight[]> {
+  const { data } = await academicDisciplineApi.getWeekConflicts(params);
 
-function generateHighlights(discipline: Discipline): SlotHighlight[] {
-  const highlights: SlotHighlight[] = [];
-
-  DAYS.forEach((dayId) => {
-    TIME_SLOTS.forEach(({ timeStart, timeEnd }) => {
-      const hour = parseInt(timeStart.split(':')[0], 10);
-
-      // Суббота — нежелательна
-      if (dayId === 'sat') {
-        highlights.push({ dayId, timeStart, timeEnd, color: 'yellow', message: 'Нежелательный день' });
-        return;
-      }
-
-      // Вечерние слоты — нежелательны
-      if (hour >= 18) {
-        highlights.push({ dayId, timeStart, timeEnd, color: 'yellow', message: 'Нежелательное время' });
-        return;
-      }
-
-      // Имитация занятых слотов
-      const isBusy =
-        (dayId === 'mon' && timeStart === '10:40') ||
-        (dayId === 'wed' && timeStart === '14:30') ||
-        (dayId === 'fri' && timeStart === '12:50');
-
-      if (isBusy) {
-        highlights.push({ dayId, timeStart, timeEnd, color: 'red', message: 'Слот занят другой дисциплиной' });
-        return;
-      }
-
-      // Для корпуса Куйбышева утренний понедельник — занят
-      if (discipline.building === 'kuybysheva' && dayId === 'mon' && hour < 12) {
-        highlights.push({ dayId, timeStart, timeEnd, color: 'red', message: 'Аудитории корпуса Куйбышева заняты' });
-        return;
-      }
-
-      highlights.push({ dayId, timeStart, timeEnd, color: 'green' });
-    });
-  });
-
-  return highlights;
-}
-
-export async function fetchSlotHighlights(discipline: Discipline): Promise<SlotHighlight[]> {
-  // Имитируем задержку сетевого запроса
-  await new Promise((r) => setTimeout(r, 350));
-  return generateHighlights(discipline);
+  return data
+    .filter((conflict) => conflict.dayOfWeek in DOW_TO_DAY_ID)
+    .map((conflict) => ({
+      dayId: DOW_TO_DAY_ID[conflict.dayOfWeek],
+      timeStart: conflict.timeInterval.timeFrom.slice(0, 5),
+      timeEnd: conflict.timeInterval.timeTo.slice(0, 5),
+      color: 'red' as const,
+    }));
 }

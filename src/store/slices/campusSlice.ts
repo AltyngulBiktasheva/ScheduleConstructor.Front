@@ -26,7 +26,7 @@ export const fetchCampuses = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const { data } = await campusApi.searchCampuses();
-      return data.items;
+      return data;
     } catch (err: unknown) {
       return rejectWithValue((err as Error).message);
     }
@@ -39,6 +39,29 @@ export const saveCampus = createAsyncThunk(
     try {
       await campusApi.saveCampus(dto);
       dispatch(fetchCampuses());
+    } catch (err: unknown) {
+      return rejectWithValue((err as Error).message);
+    }
+  },
+);
+
+const DEFAULT_CAMPUSES = ['Тургенева', 'Куйбышева'] as const;
+
+/** Загружает корпуса. Если каких-то из дефолтных нет — создаёт и перезагружает. */
+export const ensureDefaultCampuses = createAsyncThunk(
+  'campus/ensureDefaults',
+  async (_, { rejectWithValue }) => {
+    try {
+      const { data: existing } = await campusApi.searchCampuses();
+      const missing = DEFAULT_CAMPUSES.filter(
+        (name) => !existing.some((c) => c.name === name),
+      );
+      if (missing.length > 0) {
+        await Promise.allSettled(missing.map((name) => campusApi.saveCampus({ name })));
+        const { data: updated } = await campusApi.searchCampuses();
+        return updated;
+      }
+      return existing;
     } catch (err: unknown) {
       return rejectWithValue((err as Error).message);
     }
@@ -79,6 +102,9 @@ const campusSlice = createSlice({
       .addCase(saveCampus.rejected, (state, action) => {
         state.saving = false;
         state.error = action.payload as string;
+      })
+      .addCase(ensureDefaultCampuses.fulfilled, (state, action) => {
+        state.list = action.payload;
       });
   },
 });

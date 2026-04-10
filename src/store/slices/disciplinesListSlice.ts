@@ -33,7 +33,7 @@ export const fetchDisciplinesAll = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const { data } = await academicDisciplineApi.searchAcademicDisciplines({
-        searchParameters: { page: 1, itemsPerPage: 500 },
+        searchParameters: { page: 1, itemsPerPage: 100 },
       });
       return data.items.map((dto): Discipline => ({
         id: dto.id,

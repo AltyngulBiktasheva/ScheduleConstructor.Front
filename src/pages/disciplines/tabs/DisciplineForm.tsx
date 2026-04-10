@@ -64,7 +64,7 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
 
   const dispatch = useAppDispatch();
   const { teachers: teachersList } = useAppSelector((s) => s.teachersList);
-  const { groups } = useAppSelector((s) => s.groupsList);
+  const { groups, streams } = useAppSelector((s) => s.groupsList);
   const { disciplines: allDisciplines } = useAppSelector((s) => s.disciplinesList);
 
   // Только корневые дисциплины как список для выбора
@@ -250,11 +250,21 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
       {/* Группы */}
       <FormField label="Группы" required error={errors.groups} hint="Можно выбрать несколько">
         <div className={styles.checkList}>
-          {groups.length === 0 && (
+          {streams.length === 0 && groups.length === 0 && (
             <span style={{ padding: '4px 8px', fontSize: 13, color: '#9ca3af' }}>
               Нет доступных групп
             </span>
           )}
+          {streams.map((s) => (
+            <label key={s.id} className={styles.checkLabel}>
+              <input
+                type="checkbox"
+                checked={form.forIds.includes(s.id)}
+                onChange={() => toggleGroup(s.id)}
+              />
+              {s.name}
+            </label>
+          ))}
           {groups.map((g) => (
             <label key={g.id} className={styles.checkLabel}>
               <input

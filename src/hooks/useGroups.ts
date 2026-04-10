@@ -50,6 +50,7 @@ export function useGroups() {
       markCreated(group.id);
       const scheduleId = await getOrCreateScheduleId();
       if (!scheduleId) return;
+      const stream = streams.find((s) => s.id === group.streamId);
       dispatch(
         saveStudentGroupOnServer({
           entity: group,
@@ -57,15 +58,15 @@ export function useGroups() {
           dto: {
             scheduleId,
             name: group.name,
-            semesterNumber: 1,
+            semesterNumber: stream?.semesterNumber ?? 1,
             studentGroupType: 'Group',
-            cypher: group.name,
+            cypher: group.cypher || stream?.cypher || group.name,
             parentId: group.streamId || null,
           },
         }),
       );
     },
-    [dispatch, getOrCreateScheduleId],
+    [dispatch, getOrCreateScheduleId, streams],
   );
 
   const updateGroup = useCallback(
@@ -73,6 +74,7 @@ export function useGroups() {
       dispatch(updateGroupLocally(updated));
       const scheduleId = await getOrCreateScheduleId();
       if (!scheduleId) return;
+      const stream = streams.find((s) => s.id === updated.streamId);
       dispatch(
         saveStudentGroupOnServer({
           entity: updated,
@@ -81,15 +83,15 @@ export function useGroups() {
             id: updated.id,
             scheduleId,
             name: updated.name,
-            semesterNumber: 1,
+            semesterNumber: stream?.semesterNumber ?? 1,
             studentGroupType: 'Group',
-            cypher: updated.name,
+            cypher: updated.cypher || stream?.cypher || updated.name,
             parentId: updated.streamId || null,
           },
         }),
       );
     },
-    [dispatch, getOrCreateScheduleId],
+    [dispatch, getOrCreateScheduleId, streams],
   );
 
   const removeGroup = useCallback(

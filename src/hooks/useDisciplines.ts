@@ -82,9 +82,6 @@ export function useDisciplines() {
             semesterNumber: data.semesterNumber,
             academicDisciplineTargetType: 'General',
             allowedLessonTypes: data.allowedLessonTypes,
-            lecturePayload:  data.allowedLessonTypes.includes('Lecture')  ? { totalHoursCount: 0 } : undefined,
-            practicePayload: data.allowedLessonTypes.includes('Practice') ? { totalHoursCount: 0 } : undefined,
-            labPayload:      data.allowedLessonTypes.includes('Lab')      ? { totalHoursCount: 0 } : undefined,
           },
         }),
       );

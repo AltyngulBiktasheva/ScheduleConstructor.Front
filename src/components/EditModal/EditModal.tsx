@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Discipline, WeeklyOccurrence } from '../../types';
 import { DAYS } from '../../constants/days';
-import { BUILDING_OPTIONS, type BuildingType } from '../../constants/buildings';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { fetchTeachersAll } from '../../store/slices/teachersListSlice';
+import { fetchClassroomsAll } from '../../store/slices/classroomsListSlice';
+import { fetchCampuses } from '../../store/slices/campusSlice';
 import styles from './Styles.module.scss';
 
 interface Props {
@@ -22,20 +25,56 @@ function normalizeToOccurrences(discipline: Discipline): WeeklyOccurrence[] {
   return [];
 }
 
+const ONLINE_VALUE = '__online__';
+const OTHER_VALUE = '__other__';
+
 export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
+  const dispatch = useAppDispatch();
+  const teachers = useAppSelector((s) => s.teachersList.teachers);
+  const campuses = useAppSelector((s) => s.campus.list);
+  const classrooms = useAppSelector((s) => s.classroomsList.classrooms);
+
   const [formData, setFormData] = useState<Discipline>(() => ({
     ...discipline,
-    // Приводим к единому формату occurrences сразу при открытии
     occurrences: normalizeToOccurrences(discipline),
   }));
   const [error, setError] = useState('');
+
+  // Determine initial campus selection from discipline.roomId
+  const initialCampusId = (() => {
+    if (discipline.roomId) {
+      const room = classrooms.find((c) => c.id === discipline.roomId);
+      if (room?.campusId) return room.campusId;
+    }
+    if (!discipline.roomId && !discipline.audience) return ONLINE_VALUE;
+    return OTHER_VALUE;
+  })();
+
+  const [selectedCampusId, setSelectedCampusId] = useState<string>(initialCampusId);
+  const [selectedRoomId, setSelectedRoomId] = useState<string>(discipline.roomId ?? '');
+  const [otherRoomName, setOtherRoomName] = useState<string>(
+    selectedCampusId === OTHER_VALUE ? (discipline.audience ?? '') : '',
+  );
+  const [selectedTeacherId, setSelectedTeacherId] = useState<string>(
+    discipline.teachers?.[0]?.id ?? '',
+  );
+
+  useEffect(() => {
+    if (teachers.length === 0) dispatch(fetchTeachersAll());
+    if (classrooms.length === 0) dispatch(fetchClassroomsAll());
+    if (campuses.length === 0) dispatch(fetchCampuses());
+  }, []);
 
   const isChild = Boolean(discipline.parentId);
   const weeklyCount = discipline.weeklyCount ?? 1;
   const occurrences = formData.occurrences ?? [];
 
-  const handleBuildingChange = (building: BuildingType) => {
-    setFormData({ ...formData, building, buildingName: building === 'other' ? '' : undefined, audience: building === 'online' ? undefined : formData.audience });
+  const roomsForCampus = classrooms.filter((c) => c.campusId === selectedCampusId);
+
+  const handleCampusChange = (campusId: string) => {
+    setSelectedCampusId(campusId);
+    setSelectedRoomId('');
+    setOtherRoomName('');
   };
 
   const handleOccurrenceChange = (index: number, field: keyof WeeklyOccurrence, value: string) => {
@@ -55,19 +94,45 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
 
   const handleSave = () => {
     if (!formData.name.trim()) { setError('Название дисциплины обязательно'); return; }
-    if (!formData.building) { setError('Корпус обязателен'); return; }
-    if (formData.building === 'other' && !formData.buildingName) { setError('Название корпуса обязательно'); return; }
-    // Обновляем dayId/timeStart/timeEnd из первого occurrence для совместимости
+    if (selectedCampusId === OTHER_VALUE && !otherRoomName.trim()) {
+      setError('Укажите название аудитории'); return;
+    }
+
+    const teacher = teachers.find((t) => t.id === selectedTeacherId);
+
+    let roomId: string | undefined;
+    let audience: string | undefined;
+    let building: string | undefined;
+    let buildingName: string | undefined;
+
+    if (selectedCampusId === ONLINE_VALUE) {
+      building = 'online';
+    } else if (selectedCampusId === OTHER_VALUE) {
+      building = 'other';
+      buildingName = otherRoomName.trim();
+      audience = otherRoomName.trim();
+    } else {
+      const campus = campuses.find((c) => c.id === selectedCampusId);
+      building = campus?.name ?? selectedCampusId;
+      roomId = selectedRoomId || undefined;
+      const room = classrooms.find((c) => c.id === selectedRoomId);
+      audience = room?.name;
+    }
+
     const firstOcc = occurrences[0];
     onSave({
       ...formData,
+      teachers: teacher ? [teacher] : formData.teachers,
+      roomId,
+      audience,
+      building: building as any,
+      buildingName,
       dayId: firstOcc?.dayId ?? formData.dayId,
       timeStart: firstOcc?.timeStart ?? formData.timeStart,
       timeEnd: firstOcc?.timeEnd ?? formData.timeEnd,
     });
   };
 
-  const showAudience = formData.building === 'turgeneva' || formData.building === 'kuybysheva' || formData.building === 'other';
   const canAddOccurrence = !isChild && occurrences.length < weeklyCount;
 
   return (
@@ -84,24 +149,56 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
           </Field>
 
           <Field label="Преподаватель">
-            <input type="text" value={formData.teacher || ''} onChange={(e) => setFormData({ ...formData, teacher: e.target.value })} className={styles.input} />
-          </Field>
-
-          <Field label="Корпус *">
-            <select value={formData.building ?? ''} onChange={(e) => handleBuildingChange(e.target.value as BuildingType)} className={styles.select}>
-              {BUILDING_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+            <select
+              value={selectedTeacherId}
+              onChange={(e) => setSelectedTeacherId(e.target.value)}
+              className={styles.select}
+            >
+              <option value="">— не выбран —</option>
+              {teachers.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
             </select>
           </Field>
 
-          {formData.building === 'other' && (
-            <Field label="Название корпуса *">
-              <input type="text" value={formData.buildingName || ''} onChange={(e) => setFormData({ ...formData, buildingName: e.target.value })} className={styles.input} />
+          <Field label="Корпус">
+            <select
+              value={selectedCampusId}
+              onChange={(e) => handleCampusChange(e.target.value)}
+              className={styles.select}
+            >
+              <option value={ONLINE_VALUE}>Онлайн</option>
+              {campuses.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+              <option value={OTHER_VALUE}>Другой корпус</option>
+            </select>
+          </Field>
+
+          {selectedCampusId !== ONLINE_VALUE && selectedCampusId !== OTHER_VALUE && (
+            <Field label="Аудитория">
+              <select
+                value={selectedRoomId}
+                onChange={(e) => setSelectedRoomId(e.target.value)}
+                className={styles.select}
+              >
+                <option value="">— не выбрана —</option>
+                {roomsForCampus.map((r) => (
+                  <option key={r.id} value={r.id}>{r.name}</option>
+                ))}
+              </select>
             </Field>
           )}
 
-          {showAudience && (
-            <Field label="Аудитория">
-              <input type="text" value={formData.audience || ''} onChange={(e) => setFormData({ ...formData, audience: e.target.value })} className={styles.input} placeholder="например, 301" />
+          {selectedCampusId === OTHER_VALUE && (
+            <Field label="Аудитория *">
+              <input
+                type="text"
+                value={otherRoomName}
+                onChange={(e) => setOtherRoomName(e.target.value)}
+                className={styles.input}
+                placeholder="Название аудитории"
+              />
             </Field>
           )}
 

@@ -41,6 +41,10 @@ export interface Discipline {
   lessonType?: AcademicDisciplineType; // тип занятия
   totalHoursCount?: number;        // количество часов
 
+  // ── Связанные сущности ─────────────────────────────────────────────────
+  academicDisciplineId?: string;   // UUID академической дисциплины
+  roomId?: string;                 // UUID аудитории
+
   forType: ForType;
   forIds: string[];                // id групп/потоков
 
@@ -66,8 +70,8 @@ export interface Discipline {
   slotId?: string;
   highlightSlots?: boolean;
 
-  // Дисциплина-ребёнок: знает только своё время и id родителя
-  parentId?: string;
+  // ── Уровень ошибок валидации ───────────────────────────────────────────
+  errorLevel?: 'Warning' | 'Error' | null;
 
   // Устаревшие поля (совместимость с DisciplineCard / EditModal)
   building?: BuildingType;

@@ -1,5 +1,11 @@
 @use '../../../styles/variables' as *;
 
+.loadingText {
+  font-size: $font-size-sm;
+  color: $color-gray-400;
+  padding: $space-2 0;
+}
+
 .form {
   display: flex;
   flex-direction: column;

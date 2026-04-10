@@ -7,8 +7,10 @@ import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchCampuses } from '../../../store/slices/campusSlice';
 import styles from './ClassroomForm.module.scss';
 
-function emptyForm(): Omit<Classroom, 'id'> {
-  return { name: '', building: '', campusId: '', type: 'standard', capacity: 30, boardType: 'chalk', hasProjector: false };
+// ─── Form ─────────────────────────────────────────────────────────────────────
+
+function emptyForm(firstCampusId = '', firstCampusName = ''): Omit<Classroom, 'id'> {
+  return { name: '', building: firstCampusName, campusId: firstCampusId, type: 'standard', capacity: 30, boardType: 'chalk', hasProjector: false };
 }
 
 interface Props {
@@ -19,39 +21,33 @@ interface Props {
 
 export const ClassroomForm: React.FC<Props> = ({ initial, onSave, onCancel }) => {
   const dispatch = useAppDispatch();
-  const { list: campuses, loading: campusesLoading } = useAppSelector((s) => s.campus);
+  const campuses = useAppSelector((s) => s.campus.list);
+  const campusLoading = useAppSelector((s) => s.campus.loading);
 
-  const [form, setForm] = useState<Omit<Classroom, 'id'>>(
-    initial ? { ...initial } : emptyForm()
+  // Если корпуса ещё не загружены (маловероятно после ensureDefaultCampuses на старте) — подгружаем
+  useEffect(() => {
+    if (campuses.length === 0 && !campusLoading) dispatch(fetchCampuses());
+  }, []);
+
+  const [form, setForm] = useState<Omit<Classroom, 'id'>>(() =>
+    initial ? { ...initial } : emptyForm(campuses[0]?.id, campuses[0]?.name)
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
+  // Когда кампусы загрузились — установить первый, если ещё не выбран
   useEffect(() => {
-    if (campuses.length === 0) dispatch(fetchCampuses());
-  }, [dispatch, campuses.length]);
-
-  // При появлении кампусов и если кампус ещё не выбран — выбираем первый
-  useEffect(() => {
-    if (campuses.length > 0 && !form.campusId) {
-      setForm((prev) => ({
-        ...prev,
-        campusId: campuses[0].id,
-        building: campuses[0].name,
-      }));
+    if (!initial && campuses.length > 0 && !form.campusId) {
+      setForm((prev) => ({ ...prev, campusId: campuses[0].id, building: campuses[0].name }));
     }
-  }, [campuses, form.campusId]);
+  }, [campuses, initial]);
 
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
   const handleCampusChange = (campusId: string) => {
     const campus = campuses.find((c) => c.id === campusId);
-    setForm((prev) => ({
-      ...prev,
-      campusId,
-      building: campus?.name ?? campusId,
-    }));
+    setForm((prev) => ({ ...prev, campusId, building: campus?.name ?? '' }));
   };
 
   const validate = (): boolean => {
@@ -69,6 +65,12 @@ export const ClassroomForm: React.FC<Props> = ({ initial, onSave, onCancel }) =>
     onSave({ ...form, id: initial?.id ?? crypto.randomUUID() } as Classroom);
   };
 
+  const handleReset = () => {
+    setForm(emptyForm(campuses[0]?.id, campuses[0]?.name));
+    setErrors({});
+    setShowResetConfirm(false);
+  };
+
   return (
     <div className={styles.form}>
       <FormField label="Название аудитории" required error={errors.name}
@@ -77,16 +79,15 @@ export const ClassroomForm: React.FC<Props> = ({ initial, onSave, onCancel }) =>
       </FormField>
 
       <FormField label="Корпус" required error={errors.campusId}>
-        {campusesLoading ? (
+        {campusLoading && campuses.length === 0 ? (
           <div className={styles.loadingText}>Загрузка корпусов…</div>
-        ) : campuses.length === 0 ? (
-          <div className={styles.emptyText}>Нет доступных корпусов. Сначала создайте корпус.</div>
         ) : (
           <select
             className="field-input"
-            value={form.campusId ?? ''}
+            value={form.campusId}
             onChange={(e) => handleCampusChange(e.target.value)}
           >
+            {campuses.length === 0 && <option value="">— нет доступных корпусов —</option>}
             {campuses.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
@@ -145,7 +146,7 @@ export const ClassroomForm: React.FC<Props> = ({ initial, onSave, onCancel }) =>
         {showResetConfirm ? (
           <div className={styles.resetConfirm}>
             <span>Сбросить все поля?</span>
-            <Button size="sm" variant="danger" onClick={() => { setForm(emptyForm()); setErrors({}); setShowResetConfirm(false); }}>Да, сбросить</Button>
+            <Button size="sm" variant="danger" onClick={handleReset}>Да, сбросить</Button>
             <Button size="sm" variant="secondary" onClick={() => setShowResetConfirm(false)}>Отмена</Button>
           </div>
         ) : (

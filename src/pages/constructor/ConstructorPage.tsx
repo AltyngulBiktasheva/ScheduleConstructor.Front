@@ -62,7 +62,7 @@ export const ConstructorPage: React.FC = () => {
               <span className={styles.selectionLabel}>{selection.label}</span>
             </div>
           </div>
-          <MainContainer />
+          <MainContainer selection={selection} />
         </div>
       )}
     </div>

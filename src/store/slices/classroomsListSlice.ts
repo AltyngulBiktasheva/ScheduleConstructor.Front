@@ -1,7 +1,7 @@
 /**
  * Хранит список аудиторий для страницы ClassroomsPage.
  *
- * Данные загружаются из GET /room/tree.
+ * Данные загружаются из GET /room/search-tree.
  * Маппинг RoomTreeDto → Classroom:
  *   campusName → building (для отображения)
  *   campusId   → campusId (для сохранения на бэкенд)

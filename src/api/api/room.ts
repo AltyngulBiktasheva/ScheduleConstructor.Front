@@ -8,7 +8,7 @@ export const roomApi = {
 
   /** Получить дерево аудиторий (сгруппированы по кампусу) */
   getRoomTree: () =>
-    apiClient.get<RoomTreeDto[]>('/room/tree'),
+    apiClient.get<RoomTreeDto[]>('/room/search-tree'),
 
   /** Добавить / обновить аудиторию */
   saveRoom: (data: SaveRoomDto) =>

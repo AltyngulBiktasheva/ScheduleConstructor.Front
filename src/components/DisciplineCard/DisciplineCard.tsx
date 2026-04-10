@@ -47,6 +47,8 @@ export const DisciplineCard: React.FC<Props> = ({
         isInGrid ? styles.inGrid : '',
         isOnYellowSlot ? styles.onYellowSlot : '',
         discipline.isStatic ? styles.isStatic : '',
+        discipline.errorLevel === 'Warning' ? styles.errorWarning : '',
+        discipline.errorLevel === 'Error' ? styles.errorError : '',
       ].filter(Boolean).join(' ')}
       draggable={isDraggable}
       onDragStart={isDraggable ? onDragStart : undefined}
