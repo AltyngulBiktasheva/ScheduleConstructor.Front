@@ -10,8 +10,8 @@
  */
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { roomApi } from '../../api';
-import type { RoomType } from '../../api';
-import type { Classroom, ClassroomType } from '../../types/classroom';
+import type { RoomType, RoomBoardType } from '../../api';
+import type { Classroom, ClassroomType, BoardType } from '../../types/classroom';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -28,6 +28,11 @@ export const CLASSROOM_TYPE_REVERSE: Record<ClassroomType, RoomType> = {
   computer: 'Multimedia',
   laboratory: 'Laboratory',
   amphitheater: 'Amphitheater',
+};
+
+export const BOARD_TYPE_REVERSE: Record<BoardType, RoomBoardType> = {
+  chalk: 'Chalk',
+  marker: 'Marker',
 };
 
 // ─── State ───────────────────────────────────────────────────────────────────
@@ -88,6 +93,9 @@ export const saveClassroomOnServer = createAsyncThunk(
         name: classroom.name,
         campusId: classroom.campusId,
         roomType: CLASSROOM_TYPE_REVERSE[classroom.type],
+        capacity: classroom.capacity,
+        roomBoardType: BOARD_TYPE_REVERSE[classroom.boardType],
+        hasProjector: classroom.hasProjector,
       });
       if (isNew) dispatch(fetchClassroomsAll());
       return classroom;

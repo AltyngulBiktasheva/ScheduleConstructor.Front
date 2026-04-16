@@ -241,11 +241,16 @@ export interface RoomViewDto {
   roomType: RoomType;
 }
 
+export type RoomBoardType = 'Chalk' | 'Marker';
+
 export interface SaveRoomDto {
   id?: string | null;
   name: string;
   campusId: string;
   roomType: RoomType;
+  capacity: number;
+  roomBoardType: RoomBoardType;
+  hasProjector: boolean;
 }
 
 // ─── Schedule ─────────────────────────────────────────────────────────────────

@@ -13,4 +13,8 @@ export const roomApi = {
   /** Добавить / обновить аудиторию */
   saveRoom: (data: SaveRoomDto) =>
     apiClient.post<void>('/room/save', data),
+
+  /** Удалить аудиторию */
+  deleteRoom: (params: { roomId: string }) =>
+    apiClient.delete<void>('/room/delete', { params }),
 };

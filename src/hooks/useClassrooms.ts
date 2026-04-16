@@ -14,6 +14,7 @@ import {
   removeClassroomLocally,
   saveClassroomOnServer,
 } from '../store/slices/classroomsListSlice';
+import { roomApi } from '../api';
 import type { Classroom } from '../types/classroom';
 
 export function useClassrooms() {
@@ -50,6 +51,7 @@ export function useClassrooms() {
   const remove = useCallback(
     (id: string) => {
       dispatch(removeClassroomLocally(id));
+      void roomApi.deleteRoom({ roomId: id });
     },
     [dispatch],
   );
