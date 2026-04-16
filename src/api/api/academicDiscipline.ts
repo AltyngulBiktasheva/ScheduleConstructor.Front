@@ -25,4 +25,8 @@ export const academicDisciplineApi = {
   /** Получить конфликтные временные слоты дисциплины за неделю */
   getWeekConflicts: (params: { academicDisciplineId: string; academicDisciplineType: AcademicDisciplineType }) =>
     apiClient.get<AcademicDisciplineWeekConflictDto[]>('/academic-discipline/week-conflicts', { params }),
+
+  /** Удалить академическую дисциплину */
+  deleteAcademicDiscipline: (params: { academicDisciplineId: string }) =>
+    apiClient.delete<void>('/academic-discipline/delete', { params }),
 };

@@ -24,30 +24,58 @@ const REPEAT_OPTIONS: { value: RepeatType; label: string }[] = [
   { value: 'odd-weeks', label: 'По нечётным неделям' },
 ];
 
-function emptyForm(): Omit<Discipline, 'id'> {
+// ─── Copy state ───────────────────────────────────────────────────────────────
+
+interface CopyForm {
+  totalHoursCount?: number;
+  groupId: string;
+  isStatic: boolean;
+  canOverlap: boolean;
+  repeat: RepeatType;
+  weeklyCount: number;
+  dateRange?: { from: string; to: string };
+  occurrences: WeeklyOccurrence[];
+  teachers: DisciplineTeacher[];
+  audiences: DisciplineAudience[];
+  comment: string;
+  collapsed: boolean;
+}
+
+function emptyCopy(): CopyForm {
   return {
-    name: '',
-    parentId: undefined,
-    lessonType: undefined,
     totalHoursCount: undefined,
-    cypher: undefined,
-    semesterNumber: undefined,
-    allowedLessonTypes: undefined,
-    isRoot: false,
-    forType: 'group',
-    forIds: [],
-    teachers: [],
-    audiences: [],
+    groupId: '',
     isStatic: false,
     canOverlap: false,
     repeat: 'every-week',
     weeklyCount: 1,
-    occurrences: [],
     dateRange: undefined,
+    occurrences: [],
+    teachers: [],
+    audiences: [],
     comment: '',
-    isInGrid: false,
+    collapsed: false,
   };
 }
+
+function copyFromDiscipline(d: Discipline): CopyForm {
+  return {
+    totalHoursCount: d.totalHoursCount,
+    groupId: d.forIds[0] ?? '',
+    isStatic: d.isStatic,
+    canOverlap: d.canOverlap,
+    repeat: d.repeat ?? 'every-week',
+    weeklyCount: d.weeklyCount ?? 1,
+    dateRange: d.dateRange,
+    occurrences: d.occurrences ?? [],
+    teachers: d.teachers ?? [],
+    audiences: d.audiences ?? [],
+    comment: d.comment ?? '',
+    collapsed: false,
+  };
+}
+
+// ─── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
   initial?: Discipline;
@@ -55,10 +83,14 @@ interface Props {
   onCancel?: () => void;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
+
 export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) => {
-  const [form, setForm] = useState<Omit<Discipline, 'id'>>(
-    initial ? { ...initial, weeklyCount: initial.weeklyCount ?? 1 } : emptyForm(),
-  );
+  const [parentId, setParentId] = useState(initial?.parentId ?? '');
+  const [lessonType, setLessonType] = useState<AcademicDisciplineType | undefined>(initial?.lessonType);
+  const [copies, setCopies] = useState<CopyForm[]>([
+    initial ? copyFromDiscipline(initial) : emptyCopy(),
+  ]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
@@ -67,111 +99,163 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
   const { groups, streams } = useAppSelector((s) => s.groupsList);
   const { disciplines: allDisciplines } = useAppSelector((s) => s.disciplinesList);
 
-  // Только корневые дисциплины как список для выбора
   const rootDisciplines = allDisciplines.filter((d) => d.isRoot);
+  const selectedRoot = rootDisciplines.find((d) => d.id === parentId) ?? null;
+  const availableLessonTypes: AcademicDisciplineType[] = selectedRoot?.allowedLessonTypes ?? [];
 
-  // Текущая корневая дисциплина
-  const selectedRoot = rootDisciplines.find((d) => d.id === form.parentId) ?? null;
-
-  // Допустимые типы занятий — берём из корневой дисциплины
-  const availableLessonTypes: AcademicDisciplineType[] =
-    selectedRoot?.allowedLessonTypes ?? [];
+  // Combined flat list for group select
+  const allGroups = [
+    ...streams.map((s) => ({ id: s.id, label: s.name })),
+    ...groups.map((g) => ({ id: g.id, label: g.name })),
+  ];
 
   useEffect(() => {
     if (teachersList.length === 0) dispatch(fetchTeachersAll());
     dispatch(fetchGroupsAll());
   }, [dispatch]);
 
-  // Если сменилась корневая дисциплина — сбросить тип занятия
   useEffect(() => {
-    if (form.lessonType && !availableLessonTypes.includes(form.lessonType)) {
-      setForm((prev) => ({ ...prev, lessonType: undefined }));
+    if (lessonType && !availableLessonTypes.includes(lessonType)) {
+      setLessonType(undefined);
     }
-  }, [form.parentId]);
+  }, [parentId]);
 
-  const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) =>
-    setForm((prev) => ({ ...prev, [key]: value }));
+  // ─── Copy helpers ───────────────────────────────────────────────────────────
 
-  const occurrences = form.occurrences ?? [];
-  const weeklyCount = form.weeklyCount ?? 1;
-
-  // ─── Группы ─────────────────────────────────────────────────────────────────
-  const toggleGroup = (id: string) => {
-    const has = form.forIds.includes(id);
-    set('forIds', has ? form.forIds.filter((g) => g !== id) : [...form.forIds, id]);
+  const updateCopy = (index: number, patch: Partial<CopyForm>) => {
+    setCopies((prev) => prev.map((c, i) => (i === index ? { ...c, ...patch } : c)));
   };
 
-  // ─── Преподаватели ───────────────────────────────────────────────────────────
-  const toggleTeacher = (teacher: DisciplineTeacher) => {
-    const has = form.teachers.some((t) => t.id === teacher.id);
-    set(
-      'teachers',
-      has ? form.teachers.filter((t) => t.id !== teacher.id) : [...form.teachers, teacher],
+  const addCopy = () => {
+    // Add collapsed copy, cloning last copy's fields (except groupId)
+    const last = copies[copies.length - 1];
+    setCopies((prev) => [
+      ...prev.map((c) => ({ ...c, collapsed: true })),
+      { ...last, groupId: '', collapsed: false },
+    ]);
+  };
+
+  const removeCopy = (index: number) => {
+    setCopies((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const toggleCollapse = (index: number) => {
+    updateCopy(index, { collapsed: !copies[index].collapsed });
+  };
+
+  // ─── Per-copy handlers ──────────────────────────────────────────────────────
+
+  const setWeeklyCount = (index: number, count: number) => {
+    const clamped = Math.max(1, Math.min(6, count));
+    setCopies((prev) =>
+      prev.map((c, i) =>
+        i === index
+          ? { ...c, weeklyCount: clamped, occurrences: c.occurrences.slice(0, clamped) }
+          : c,
+      ),
     );
   };
 
-  // ─── Аудитории ───────────────────────────────────────────────────────────────
-  const addAudience = () =>
-    set('audiences', [...form.audiences, { building: 'turgeneva' as BuildingType }]);
-  const removeAudience = (i: number) =>
-    set('audiences', form.audiences.filter((_, idx) => idx !== i));
-  const updateAudience = (i: number, patch: Partial<DisciplineAudience>) =>
-    set('audiences', form.audiences.map((a, idx) => (idx === i ? { ...a, ...patch } : a)));
-
-  // ─── Времена (только для постоянных) ────────────────────────────────────────
-  const addOccurrence = () => {
-    if (occurrences.length >= weeklyCount) return;
-    set('occurrences', [...occurrences, { dayId: 'mon', timeStart: '09:00', timeEnd: '10:30' }]);
-  };
-  const removeOccurrence = (i: number) =>
-    set('occurrences', occurrences.filter((_, idx) => idx !== i));
-  const updateOccurrence = (i: number, patch: Partial<WeeklyOccurrence>) =>
-    set('occurrences', occurrences.map((o, idx) => (idx === i ? { ...o, ...patch } : o)));
-
-  const handleWeeklyCountChange = (count: number) => {
-    const clamped = Math.max(1, Math.min(6, count));
-    setForm((prev) => ({
-      ...prev,
-      weeklyCount: clamped,
-      occurrences: (prev.occurrences ?? []).slice(0, clamped),
-    }));
+  const addOccurrence = (index: number) => {
+    const copy = copies[index];
+    if (copy.occurrences.length >= copy.weeklyCount) return;
+    updateCopy(index, {
+      occurrences: [...copy.occurrences, { dayId: 'mon', timeStart: '09:00', timeEnd: '10:30' }],
+    });
   };
 
-  // ─── Валидация ───────────────────────────────────────────────────────────────
+  const removeOccurrence = (copyIndex: number, occIndex: number) => {
+    updateCopy(copyIndex, {
+      occurrences: copies[copyIndex].occurrences.filter((_, i) => i !== occIndex),
+    });
+  };
+
+  const updateOccurrence = (
+    copyIndex: number,
+    occIndex: number,
+    patch: Partial<WeeklyOccurrence>,
+  ) => {
+    updateCopy(copyIndex, {
+      occurrences: copies[copyIndex].occurrences.map((o, i) =>
+        i === occIndex ? { ...o, ...patch } : o,
+      ),
+    });
+  };
+
+  const toggleTeacher = (copyIndex: number, teacher: DisciplineTeacher) => {
+    const copy = copies[copyIndex];
+    const has = copy.teachers.some((t) => t.id === teacher.id);
+    updateCopy(copyIndex, {
+      teachers: has ? copy.teachers.filter((t) => t.id !== teacher.id) : [...copy.teachers, teacher],
+    });
+  };
+
+  const addAudience = (copyIndex: number) => {
+    updateCopy(copyIndex, {
+      audiences: [...copies[copyIndex].audiences, { building: 'turgeneva' as BuildingType }],
+    });
+  };
+
+  const removeAudience = (copyIndex: number, audIndex: number) => {
+    updateCopy(copyIndex, {
+      audiences: copies[copyIndex].audiences.filter((_, i) => i !== audIndex),
+    });
+  };
+
+  const updateAudience = (copyIndex: number, audIndex: number, patch: Partial<DisciplineAudience>) => {
+    updateCopy(copyIndex, {
+      audiences: copies[copyIndex].audiences.map((a, i) => (i === audIndex ? { ...a, ...patch } : a)),
+    });
+  };
+
+  // ─── Validation ─────────────────────────────────────────────────────────────
+
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
-    if (!form.parentId) errs.parentId = 'Обязательное поле';
-    if (!form.lessonType) errs.lessonType = 'Обязательное поле';
-    if (form.forIds.length === 0) errs.groups = 'Выберите хотя бы одну группу';
-    if (form.isStatic && occurrences.length === 0)
+    if (!parentId) errs.parentId = 'Обязательное поле';
+    if (!lessonType) errs.lessonType = 'Обязательное поле';
+    const first = copies[0];
+    if (!first.groupId) errs.group = 'Выберите группу';
+    if (first.isStatic && first.occurrences.length === 0)
       errs.occurrences = 'Для постоянной дисциплины необходимо указать время';
-    if (!form.dateRange?.from) errs.dateFrom = 'Обязательное поле';
-    if (!form.dateRange?.to) errs.dateTo = 'Обязательное поле';
+    if (!first.dateRange?.from) errs.dateFrom = 'Обязательное поле';
+    if (!first.dateRange?.to) errs.dateTo = 'Обязательное поле';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
+  // ─── Save ───────────────────────────────────────────────────────────────────
+
   const handleSave = () => {
     if (!validate()) return;
-    const typeLabel = form.lessonType ? LESSON_TYPE_LABELS[form.lessonType] : '';
-    const generatedName = selectedRoot
-      ? `${selectedRoot.name} (${typeLabel})`
-      : typeLabel;
+    const typeLabel = lessonType ? LESSON_TYPE_LABELS[lessonType] : '';
+    const generatedName = selectedRoot ? `${selectedRoot.name} (${typeLabel})` : typeLabel;
+    const first = copies[0];
 
     onSave({
-      ...form,
+      ...first,
       id: initial?.id ?? crypto.randomUUID(),
       name: generatedName,
+      parentId,
+      lessonType,
+      isRoot: false,
+      forType: 'group',
+      forIds: first.groupId ? [first.groupId] : [],
       cypher: selectedRoot?.cypher,
       semesterNumber: selectedRoot?.semesterNumber,
+      allowedLessonTypes: undefined,
     } as Discipline);
   };
 
   const handleReset = () => {
-    setForm(emptyForm());
+    setParentId('');
+    setLessonType(undefined);
+    setCopies([emptyCopy()]);
     setErrors({});
     setShowResetConfirm(false);
   };
+
+  // ─── Time helpers ────────────────────────────────────────────────────────────
 
   const handleTimeInput = (raw: string): string => {
     const digits = raw.replace(/\D/g, '').slice(0, 4);
@@ -191,16 +275,17 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
     return digits;
   };
 
-  const canAddOccurrence = occurrences.length < weeklyCount;
+  // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <div className={styles.form}>
-      {/* Корневая дисциплина */}
+
+      {/* ── Shared fields ── */}
       <FormField label="Корневая дисциплина" required error={errors.parentId}>
         <select
           className="field-input"
-          value={form.parentId ?? ''}
-          onChange={(e) => set('parentId', e.target.value || undefined)}
+          value={parentId}
+          onChange={(e) => setParentId(e.target.value)}
         >
           <option value="">— выберите дисциплину —</option>
           {rootDisciplines.map((d) => (
@@ -214,12 +299,11 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
         )}
       </FormField>
 
-      {/* Тип занятия */}
       <FormField label="Вид занятия" required error={errors.lessonType}>
         <select
           className="field-input"
-          value={form.lessonType ?? ''}
-          onChange={(e) => set('lessonType', (e.target.value as AcademicDisciplineType) || undefined)}
+          value={lessonType ?? ''}
+          onChange={(e) => setLessonType((e.target.value as AcademicDisciplineType) || undefined)}
           disabled={availableLessonTypes.length === 0}
         >
           <option value="">— выберите тип —</option>
@@ -229,278 +313,43 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
         </select>
       </FormField>
 
-      {/* Количество часов */}
-      <FormField label="Количество часов">
-        <div className={styles.weeklyCountRow}>
-          <input
-            className="field-input"
-            type="number"
-            min={1}
-            value={form.totalHoursCount ?? ''}
-            onChange={(e) =>
-              set('totalHoursCount', e.target.value ? parseInt(e.target.value) : undefined)
-            }
-            placeholder="36"
-            style={{ width: 100 }}
-          />
-          <span className={styles.weeklyCountLabel}>ч.</span>
-        </div>
-      </FormField>
-
-      {/* Группы */}
-      <FormField label="Группы" required error={errors.groups} hint="Можно выбрать несколько">
-        <div className={styles.checkList}>
-          {streams.length === 0 && groups.length === 0 && (
-            <span style={{ padding: '4px 8px', fontSize: 13, color: '#9ca3af' }}>
-              Нет доступных групп
-            </span>
-          )}
-          {streams.map((s) => (
-            <label key={s.id} className={styles.checkLabel}>
-              <input
-                type="checkbox"
-                checked={form.forIds.includes(s.id)}
-                onChange={() => toggleGroup(s.id)}
-              />
-              {s.name}
-            </label>
-          ))}
-          {groups.map((g) => (
-            <label key={g.id} className={styles.checkLabel}>
-              <input
-                type="checkbox"
-                checked={form.forIds.includes(g.id)}
-                onChange={() => toggleGroup(g.id)}
-              />
-              {g.name}
-            </label>
-          ))}
-        </div>
-      </FormField>
-
-      {/* Тип + совмещение */}
-      <div className={styles.row2}>
-        <FormField label="Тип дисциплины" required>
-          <div className={styles.radioGroup}>
-            <label className={styles.radioLabel}>
-              <input type="radio" checked={!form.isStatic} onChange={() => set('isStatic', false)} />
-              Непостоянная
-            </label>
-            <label className={styles.radioLabel}>
-              <input type="radio" checked={form.isStatic} onChange={() => set('isStatic', true)} />
-              Постоянная
-            </label>
-          </div>
-        </FormField>
-
-        <FormField label="Совмещение" required>
-          <div className={styles.radioGroup}>
-            <label className={styles.radioLabel}>
-              <input type="radio" checked={!form.canOverlap} onChange={() => set('canOverlap', false)} />
-              Обязательная
-            </label>
-            <label className={styles.radioLabel}>
-              <input type="radio" checked={form.canOverlap} onChange={() => set('canOverlap', true)} />
-              По выбору
-            </label>
-          </div>
-        </FormField>
-      </div>
-
-      {/* Повторение + кол-во раз в неделю */}
-      <div className={styles.row2}>
-        <FormField label="Повторение" required>
-          <select
-            className="field-input"
-            value={form.repeat}
-            onChange={(e) => set('repeat', e.target.value as RepeatType)}
-          >
-            {REPEAT_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
-        </FormField>
-
-        <FormField label="Кол-во раз в неделю" hint="от 1 до 6">
-          <div className={styles.weeklyCountRow}>
-            <input
-              className="field-input"
-              type="number"
-              min={1}
-              max={6}
-              value={weeklyCount}
-              onChange={(e) => handleWeeklyCountChange(parseInt(e.target.value) || 1)}
-              style={{ width: 72 }}
-            />
-            <span className={styles.weeklyCountLabel}>раз в неделю</span>
-          </div>
-        </FormField>
-      </div>
-
-      {/* Дата начала и окончания — для всех дисциплин */}
-      <div className={styles.row2}>
-        <FormField label="Дата начала" required error={errors.dateFrom}>
-          <input
-            className="field-input"
-            value={form.dateRange?.from ?? ''}
-            onChange={(e) =>
-              set('dateRange', { from: handleDateInput(e.target.value), to: form.dateRange?.to ?? '' })
-            }
-            placeholder="01.09.2025"
-            maxLength={10}
-          />
-        </FormField>
-        <FormField label="Дата окончания" required error={errors.dateTo}>
-          <input
-            className="field-input"
-            value={form.dateRange?.to ?? ''}
-            onChange={(e) =>
-              set('dateRange', { from: form.dateRange?.from ?? '', to: handleDateInput(e.target.value) })
-            }
-            placeholder="31.12.2025"
-            maxLength={10}
-          />
-        </FormField>
-      </div>
-
-      {/* Время проведения — только для постоянных */}
-      {form.isStatic && (
-        <FormField
-          label="Время проведения"
-          required
-          error={errors.occurrences}
-          hint={weeklyCount > 1 ? `Можно добавить до ${weeklyCount} промежутков` : undefined}
-        >
-          <div className={styles.occurrences}>
-            {occurrences.map((occ, i) => (
-              <div key={i} className={styles.occurrenceRow}>
-                <select
-                  className={styles.daySelect}
-                  value={occ.dayId}
-                  onChange={(e) => updateOccurrence(i, { dayId: e.target.value })}
-                >
-                  {DAYS.map((d) => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
-                </select>
-                <input
-                  className={styles.timeInput}
-                  value={occ.timeStart}
-                  onChange={(e) => updateOccurrence(i, { timeStart: handleTimeInput(e.target.value) })}
-                  onBlur={(e) => updateOccurrence(i, { timeStart: normalizeTime(e.target.value) })}
-                  placeholder="09:00"
-                  maxLength={5}
-                />
-                <span className={styles.timeSep}>—</span>
-                <input
-                  className={styles.timeInput}
-                  value={occ.timeEnd}
-                  onChange={(e) => updateOccurrence(i, { timeEnd: handleTimeInput(e.target.value) })}
-                  onBlur={(e) => updateOccurrence(i, { timeEnd: normalizeTime(e.target.value) })}
-                  placeholder="10:30"
-                  maxLength={5}
-                />
-                <button className={styles.removeBtn} onClick={() => removeOccurrence(i)} type="button">
-                  ✕
-                </button>
-              </div>
-            ))}
-            {canAddOccurrence && (
-              <button className={styles.addBtn} onClick={addOccurrence} type="button">
-                + Добавить время
-              </button>
-            )}
-          </div>
-        </FormField>
-      )}
-
-      {/* Преподаватели и аудитории — только для постоянных */}
-      {form.isStatic && (
-        <>
-          <FormField label="Преподаватели" hint="Выберите одного или нескольких">
-            <div className={styles.checkList}>
-              {teachersList.map((t) => (
-                <label key={t.id} className={styles.checkLabel}>
-                  <input
-                    type="checkbox"
-                    checked={form.teachers.some((f) => f.id === t.id)}
-                    onChange={() => toggleTeacher({ id: t.id, name: t.name })}
-                  />
-                  {t.name}
-                </label>
-              ))}
-            </div>
-          </FormField>
-
-          <FormField label="Аудитории" hint="Можно добавить несколько">
-            <div className={styles.audienceList}>
-              {form.audiences.map((a, i) => (
-                <div key={i} className={styles.audienceRow}>
-                  <select
-                    className={styles.buildingSelect}
-                    value={a.building}
-                    onChange={(e) => {
-                      const building = e.target.value as BuildingType;
-                      updateAudience(i, {
-                        building,
-                        audience: building === 'online' ? undefined : a.audience,
-                        buildingName: building === 'other' ? '' : undefined,
-                      });
-                    }}
-                  >
-                    {BUILDING_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>{o.label}</option>
-                    ))}
-                  </select>
-                  {a.building === 'other' && (
-                    <input
-                      className={styles.audienceInput}
-                      value={a.buildingName ?? ''}
-                      onChange={(e) => updateAudience(i, { buildingName: e.target.value })}
-                      placeholder="Название корпуса"
-                    />
-                  )}
-                  {a.building !== 'online' && (
-                    <input
-                      className={styles.audienceInput}
-                      value={a.audience ?? ''}
-                      onChange={(e) => updateAudience(i, { audience: e.target.value })}
-                      placeholder="Аудитория"
-                    />
-                  )}
-                  <button className={styles.removeBtn} onClick={() => removeAudience(i)} type="button">
-                    ✕
-                  </button>
-                </div>
-              ))}
-              <button className={styles.addBtn} onClick={addAudience} type="button">
-                + Добавить аудиторию
-              </button>
-            </div>
-          </FormField>
-        </>
-      )}
-
-      {/* Комментарий */}
-      <FormField label="Комментарий">
-        <textarea
-          className="field-input"
-          value={form.comment ?? ''}
-          onChange={(e) => set('comment', e.target.value)}
-          rows={3}
-          placeholder="Дополнительная информация..."
+      {/* ── Copies ── */}
+      {copies.map((copy, idx) => (
+        <CopySection
+          key={idx}
+          index={idx}
+          copy={copy}
+          total={copies.length}
+          errors={idx === 0 ? errors : {}}
+          allGroups={allGroups}
+          teachersList={teachersList}
+          onUpdate={(patch) => updateCopy(idx, patch)}
+          onRemove={() => removeCopy(idx)}
+          onToggleCollapse={() => toggleCollapse(idx)}
+          onAddOccurrence={() => addOccurrence(idx)}
+          onRemoveOccurrence={(i) => removeOccurrence(idx, i)}
+          onUpdateOccurrence={(i, patch) => updateOccurrence(idx, i, patch)}
+          onToggleTeacher={(t) => toggleTeacher(idx, t)}
+          onAddAudience={() => addAudience(idx)}
+          onRemoveAudience={(i) => removeAudience(idx, i)}
+          onUpdateAudience={(i, patch) => updateAudience(idx, i, patch)}
+          handleTimeInput={handleTimeInput}
+          normalizeTime={normalizeTime}
+          handleDateInput={handleDateInput}
         />
-      </FormField>
+      ))}
 
-      {/* Кнопки */}
+      <button className={styles.addBtn} onClick={addCopy} type="button">
+        + Добавить ещё
+      </button>
+
+      {/* ── Actions ── */}
       <div className={styles.actions}>
         {showResetConfirm ? (
           <div className={styles.resetConfirm}>
             <span>Сбросить все поля?</span>
             <Button size="sm" variant="danger" onClick={handleReset}>Да, сбросить</Button>
-            <Button size="sm" variant="secondary" onClick={() => setShowResetConfirm(false)}>
-              Отмена
-            </Button>
+            <Button size="sm" variant="secondary" onClick={() => setShowResetConfirm(false)}>Отмена</Button>
           </div>
         ) : (
           <>
@@ -513,6 +362,329 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
           </>
         )}
       </div>
+    </div>
+  );
+};
+
+// ─── CopySection ─────────────────────────────────────────────────────────────
+
+interface CopySectionProps {
+  index: number;
+  copy: CopyForm;
+  total: number;
+  errors: Record<string, string>;
+  allGroups: { id: string; label: string }[];
+  teachersList: { id: string; name: string }[];
+  onUpdate: (patch: Partial<CopyForm>) => void;
+  onRemove: () => void;
+  onToggleCollapse: () => void;
+  onAddOccurrence: () => void;
+  onRemoveOccurrence: (i: number) => void;
+  onUpdateOccurrence: (i: number, patch: Partial<WeeklyOccurrence>) => void;
+  onToggleTeacher: (t: DisciplineTeacher) => void;
+  onAddAudience: () => void;
+  onRemoveAudience: (i: number) => void;
+  onUpdateAudience: (i: number, patch: Partial<DisciplineAudience>) => void;
+  handleTimeInput: (raw: string) => string;
+  normalizeTime: (val: string) => string;
+  handleDateInput: (raw: string) => string;
+}
+
+const CopySection: React.FC<CopySectionProps> = ({
+  index,
+  copy,
+  total,
+  errors,
+  allGroups,
+  teachersList,
+  onUpdate,
+  onRemove,
+  onToggleCollapse,
+  onAddOccurrence,
+  onRemoveOccurrence,
+  onUpdateOccurrence,
+  onToggleTeacher,
+  onAddAudience,
+  onRemoveAudience,
+  onUpdateAudience,
+  handleTimeInput,
+  normalizeTime,
+  handleDateInput,
+}) => {
+  const groupLabel = allGroups.find((g) => g.id === copy.groupId)?.label ?? '— не выбрана —';
+  const canAddOccurrence = copy.occurrences.length < copy.weeklyCount;
+
+  return (
+    <div className={styles.copySection}>
+      {/* Accordion header */}
+      <div className={styles.copyHeader}>
+        <button
+          type="button"
+          className={styles.copyToggle}
+          onClick={onToggleCollapse}
+          title={copy.collapsed ? 'Развернуть' : 'Свернуть'}
+        >
+          <span className={styles.copyChevron}>{copy.collapsed ? '▶' : '▼'}</span>
+          <span className={styles.copyGroupLabel}>
+            {index === 0 ? 'Занятие' : `Копия ${index + 1}`}
+            {': '}
+            <strong>{groupLabel}</strong>
+          </span>
+        </button>
+        {total > 1 && (
+          <button type="button" className={styles.copyRemoveBtn} onClick={onRemove} title="Удалить копию">
+            ✕
+          </button>
+        )}
+      </div>
+
+      {/* Accordion body */}
+      {!copy.collapsed && (
+        <div className={styles.copyBody}>
+          {/* Группа */}
+          <FormField label="Группа" required error={errors.group}>
+            <select
+              className="field-input"
+              value={copy.groupId}
+              onChange={(e) => onUpdate({ groupId: e.target.value })}
+            >
+              <option value="">— выберите группу —</option>
+              {allGroups.map((g) => (
+                <option key={g.id} value={g.id}>{g.label}</option>
+              ))}
+            </select>
+            {allGroups.length === 0 && (
+              <span style={{ fontSize: 12, color: '#9ca3af' }}>Нет доступных групп</span>
+            )}
+          </FormField>
+
+          {/* Количество часов */}
+          <FormField label="Количество часов">
+            <div className={styles.weeklyCountRow}>
+              <input
+                className="field-input"
+                type="number"
+                min={1}
+                value={copy.totalHoursCount ?? ''}
+                onChange={(e) => onUpdate({ totalHoursCount: e.target.value ? parseInt(e.target.value) : undefined })}
+                placeholder="36"
+                style={{ width: 100 }}
+              />
+              <span className={styles.weeklyCountLabel}>ч.</span>
+            </div>
+          </FormField>
+
+          {/* Тип + совмещение */}
+          <div className={styles.row2}>
+            <FormField label="Тип дисциплины" required>
+              <div className={styles.radioGroup}>
+                <label className={styles.radioLabel}>
+                  <input type="radio" checked={!copy.isStatic} onChange={() => onUpdate({ isStatic: false })} />
+                  Непостоянная
+                </label>
+                <label className={styles.radioLabel}>
+                  <input type="radio" checked={copy.isStatic} onChange={() => onUpdate({ isStatic: true })} />
+                  Постоянная
+                </label>
+              </div>
+            </FormField>
+
+            <FormField label="Совмещение" required>
+              <div className={styles.radioGroup}>
+                <label className={styles.radioLabel}>
+                  <input type="radio" checked={!copy.canOverlap} onChange={() => onUpdate({ canOverlap: false })} />
+                  Обязательная
+                </label>
+                <label className={styles.radioLabel}>
+                  <input type="radio" checked={copy.canOverlap} onChange={() => onUpdate({ canOverlap: true })} />
+                  По выбору
+                </label>
+              </div>
+            </FormField>
+          </div>
+
+          {/* Повторение + кол-во в неделю */}
+          <div className={styles.row2}>
+            <FormField label="Повторение" required>
+              <select
+                className="field-input"
+                value={copy.repeat}
+                onChange={(e) => onUpdate({ repeat: e.target.value as RepeatType })}
+              >
+                {REPEAT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </FormField>
+
+            <FormField label="Кол-во раз в неделю" hint="от 1 до 6">
+              <div className={styles.weeklyCountRow}>
+                <input
+                  className="field-input"
+                  type="number"
+                  min={1}
+                  max={6}
+                  value={copy.weeklyCount}
+                  onChange={(e) => {
+                    const n = Math.max(1, Math.min(6, parseInt(e.target.value) || 1));
+                    onUpdate({ weeklyCount: n, occurrences: copy.occurrences.slice(0, n) });
+                  }}
+                  style={{ width: 72 }}
+                />
+                <span className={styles.weeklyCountLabel}>раз в неделю</span>
+              </div>
+            </FormField>
+          </div>
+
+          {/* Даты */}
+          <div className={styles.row2}>
+            <FormField label="Дата начала" required error={errors.dateFrom}>
+              <input
+                className="field-input"
+                value={copy.dateRange?.from ?? ''}
+                onChange={(e) =>
+                  onUpdate({ dateRange: { from: handleDateInput(e.target.value), to: copy.dateRange?.to ?? '' } })
+                }
+                placeholder="01.09.2025"
+                maxLength={10}
+              />
+            </FormField>
+            <FormField label="Дата окончания" required error={errors.dateTo}>
+              <input
+                className="field-input"
+                value={copy.dateRange?.to ?? ''}
+                onChange={(e) =>
+                  onUpdate({ dateRange: { from: copy.dateRange?.from ?? '', to: handleDateInput(e.target.value) } })
+                }
+                placeholder="31.12.2025"
+                maxLength={10}
+              />
+            </FormField>
+          </div>
+
+          {/* Время + преподаватели + аудитории — только для постоянных */}
+          {copy.isStatic && (
+            <>
+              <FormField
+                label="Время проведения"
+                required
+                error={errors.occurrences}
+                hint={copy.weeklyCount > 1 ? `Можно добавить до ${copy.weeklyCount} промежутков` : undefined}
+              >
+                <div className={styles.occurrences}>
+                  {copy.occurrences.map((occ, i) => (
+                    <div key={i} className={styles.occurrenceRow}>
+                      <select
+                        className={styles.daySelect}
+                        value={occ.dayId}
+                        onChange={(e) => onUpdateOccurrence(i, { dayId: e.target.value })}
+                      >
+                        {DAYS.map((d) => (
+                          <option key={d.id} value={d.id}>{d.name}</option>
+                        ))}
+                      </select>
+                      <input
+                        className={styles.timeInput}
+                        value={occ.timeStart}
+                        onChange={(e) => onUpdateOccurrence(i, { timeStart: handleTimeInput(e.target.value) })}
+                        onBlur={(e) => onUpdateOccurrence(i, { timeStart: normalizeTime(e.target.value) })}
+                        placeholder="09:00"
+                        maxLength={5}
+                      />
+                      <span className={styles.timeSep}>—</span>
+                      <input
+                        className={styles.timeInput}
+                        value={occ.timeEnd}
+                        onChange={(e) => onUpdateOccurrence(i, { timeEnd: handleTimeInput(e.target.value) })}
+                        onBlur={(e) => onUpdateOccurrence(i, { timeEnd: normalizeTime(e.target.value) })}
+                        placeholder="10:30"
+                        maxLength={5}
+                      />
+                      <button className={styles.removeBtn} onClick={() => onRemoveOccurrence(i)} type="button">✕</button>
+                    </div>
+                  ))}
+                  {canAddOccurrence && (
+                    <button className={styles.addBtn} onClick={onAddOccurrence} type="button">
+                      + Добавить время
+                    </button>
+                  )}
+                </div>
+              </FormField>
+
+              <FormField label="Преподаватели" hint="Выберите одного или нескольких">
+                <div className={styles.checkList}>
+                  {teachersList.map((t) => (
+                    <label key={t.id} className={styles.checkLabel}>
+                      <input
+                        type="checkbox"
+                        checked={copy.teachers.some((f) => f.id === t.id)}
+                        onChange={() => onToggleTeacher({ id: t.id, name: t.name })}
+                      />
+                      {t.name}
+                    </label>
+                  ))}
+                </div>
+              </FormField>
+
+              <FormField label="Аудитории" hint="Можно добавить несколько">
+                <div className={styles.audienceList}>
+                  {copy.audiences.map((a, i) => (
+                    <div key={i} className={styles.audienceRow}>
+                      <select
+                        className={styles.buildingSelect}
+                        value={a.building}
+                        onChange={(e) => {
+                          const building = e.target.value as BuildingType;
+                          onUpdateAudience(i, {
+                            building,
+                            audience: building === 'online' ? undefined : a.audience,
+                            buildingName: building === 'other' ? '' : undefined,
+                          });
+                        }}
+                      >
+                        {BUILDING_OPTIONS.map((o) => (
+                          <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
+                      </select>
+                      {a.building === 'other' && (
+                        <input
+                          className={styles.audienceInput}
+                          value={a.buildingName ?? ''}
+                          onChange={(e) => onUpdateAudience(i, { buildingName: e.target.value })}
+                          placeholder="Название корпуса"
+                        />
+                      )}
+                      {a.building !== 'online' && (
+                        <input
+                          className={styles.audienceInput}
+                          value={a.audience ?? ''}
+                          onChange={(e) => onUpdateAudience(i, { audience: e.target.value })}
+                          placeholder="Аудитория"
+                        />
+                      )}
+                      <button className={styles.removeBtn} onClick={() => onRemoveAudience(i)} type="button">✕</button>
+                    </div>
+                  ))}
+                  <button className={styles.addBtn} onClick={onAddAudience} type="button">
+                    + Добавить аудиторию
+                  </button>
+                </div>
+              </FormField>
+            </>
+          )}
+
+          {/* Комментарий */}
+          <FormField label="Комментарий">
+            <textarea
+              className="field-input"
+              value={copy.comment}
+              onChange={(e) => onUpdate({ comment: e.target.value })}
+              rows={2}
+              placeholder="Дополнительная информация..."
+            />
+          </FormField>
+        </div>
+      )}
     </div>
   );
 };

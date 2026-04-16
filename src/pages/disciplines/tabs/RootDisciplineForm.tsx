@@ -34,8 +34,6 @@ interface Props {
 
 export const RootDisciplineForm: React.FC<Props> = ({ onSave, onCancel }) => {
   const [name, setName] = useState('');
-  const [cypher, setCypher] = useState('');
-  const [semesterNumber, setSemesterNumber] = useState(1);
   const [allowedLessonTypes, setAllowedLessonTypes] = useState<AcademicDisciplineType[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -48,7 +46,6 @@ export const RootDisciplineForm: React.FC<Props> = ({ onSave, onCancel }) => {
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
     if (!name.trim()) errs.name = 'Обязательное поле';
-    if (!cypher.trim()) errs.cypher = 'Обязательное поле';
     if (allowedLessonTypes.length === 0) errs.types = 'Выберите хотя бы один тип занятий';
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -58,8 +55,8 @@ export const RootDisciplineForm: React.FC<Props> = ({ onSave, onCancel }) => {
     if (!validate()) return;
     onSave({
       name: name.trim(),
-      cypher: cypher.trim(),
-      semesterNumber,
+      cypher: '00.00.00',
+      semesterNumber: 1,
       allowedLessonTypes,
     });
   };
@@ -81,31 +78,6 @@ export const RootDisciplineForm: React.FC<Props> = ({ onSave, onCancel }) => {
           autoFocus
         />
       </FormField>
-
-      <div className={styles.row2}>
-        {/* Шифр / направление */}
-        <FormField label="Направление обучения (шифр)" required error={errors.cypher}>
-          <input
-            className="field-input"
-            value={cypher}
-            onChange={(e) => setCypher(e.target.value)}
-            placeholder="09.03.03"
-          />
-        </FormField>
-
-        {/* Семестр */}
-        <FormField label="Семестр" required>
-          <input
-            className="field-input"
-            type="number"
-            min={1}
-            max={12}
-            value={semesterNumber}
-            onChange={(e) => setSemesterNumber(Math.max(1, Math.min(12, parseInt(e.target.value) || 1)))}
-            style={{ width: 120 }}
-          />
-        </FormField>
-      </div>
 
       {/* Типы занятий */}
       <FormField

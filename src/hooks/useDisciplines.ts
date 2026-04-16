@@ -14,6 +14,7 @@ import {
   removeDisciplineLocally,
   saveDisciplineOnServer,
 } from '../store/slices/disciplinesListSlice';
+import { academicDisciplineApi } from '../api';
 import { fetchSchedules, saveSchedule } from '../store/slices/scheduleSlice';
 import type { Discipline } from '../types/discipline';
 import type { RootDisciplineFormData } from '../pages/disciplines/tabs/RootDisciplineForm';
@@ -39,7 +40,7 @@ export function useDisciplines() {
     if (selectedScheduleId) return selectedScheduleId;
     if (scheduleList.length > 0) return scheduleList[0].id;
     // Создаём дефолтное расписание
-    await dispatch(saveSchedule({ name: 'Основное расписание', startsWithEvenWeek: true, startDate: '2025-09-01', endDate: '2026-01-31' }));
+    await dispatch(saveSchedule({ name: 'Основное расписание', startsWithEvenWeek: false, startDate: '2025-09-01', endDate: '2026-01-31' }));
     const updated = await dispatch(fetchSchedules());
     const list = (updated.payload as typeof scheduleList) ?? [];
     return list[0]?.id ?? null;
@@ -184,6 +185,7 @@ export function useDisciplines() {
   const remove = useCallback(
     (id: string) => {
       dispatch(removeDisciplineLocally(id));
+      void academicDisciplineApi.deleteAcademicDiscipline({ academicDisciplineId: id });
     },
     [dispatch],
   );

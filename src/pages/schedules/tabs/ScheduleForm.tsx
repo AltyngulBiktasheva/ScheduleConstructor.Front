@@ -33,7 +33,6 @@ export const ScheduleForm: React.FC<Props> = ({ initial, onSave, onCancel }) => 
   const [name, setName] = useState(initial?.name ?? '');
   const [dateFrom, setDateFrom] = useState(initial ? apiToDisplay(initial.startDate) : '');
   const [dateTo, setDateTo] = useState(initial ? apiToDisplay(initial.endDate) : '');
-  const [isEvenStart, setIsEvenStart] = useState(initial?.startsWithEvenWeek ?? true);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
@@ -51,7 +50,7 @@ export const ScheduleForm: React.FC<Props> = ({ initial, onSave, onCancel }) => 
     onSave({
       id: initial?.id ?? undefined,
       name: name.trim(),
-      startsWithEvenWeek: isEvenStart,
+      startsWithEvenWeek: false,
       startDate: displayToApi(dateFrom),
       endDate: displayToApi(dateTo),
     });
@@ -61,7 +60,6 @@ export const ScheduleForm: React.FC<Props> = ({ initial, onSave, onCancel }) => 
     setName('');
     setDateFrom('');
     setDateTo('');
-    setIsEvenStart(true);
     setErrors({});
     setShowResetConfirm(false);
   };
@@ -98,19 +96,6 @@ export const ScheduleForm: React.FC<Props> = ({ initial, onSave, onCancel }) => 
           />
         </FormField>
       </div>
-
-      <FormField label="Первая неделя семестра">
-        <div className={styles.radioGroup}>
-          <label className={styles.radioLabel}>
-            <input type="radio" checked={isEvenStart} onChange={() => setIsEvenStart(true)} />
-            Чётная неделя
-          </label>
-          <label className={styles.radioLabel}>
-            <input type="radio" checked={!isEvenStart} onChange={() => setIsEvenStart(false)} />
-            Нечётная неделя
-          </label>
-        </div>
-      </FormField>
 
       <div className={styles.actions}>
         {showResetConfirm ? (
