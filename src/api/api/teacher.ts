@@ -13,4 +13,8 @@ export const teacherApi = {
   /** Сохранить преподавателя */
   saveTeacher: (data: SaveTeacherDto) =>
     apiClient.post<void>('/teacher/save', data),
+
+  /** Удалить преподавателя */
+  deleteTeacher: (params: { teacherId: string }) =>
+    apiClient.delete<void>('/teacher/delete', { params }),
 };

@@ -15,6 +15,7 @@ import {
   removeTeacherLocally,
   saveTeacherOnServer,
 } from '../store/slices/teachersListSlice';
+import { teacherApi } from '../api';
 import type { Teacher } from '../types/teacher';
 
 export function useTeachers() {
@@ -51,6 +52,7 @@ export function useTeachers() {
   const remove = useCallback(
     (id: string) => {
       dispatch(removeTeacherLocally(id));
+      void teacherApi.deleteTeacher({ teacherId: id });
     },
     [dispatch],
   );
