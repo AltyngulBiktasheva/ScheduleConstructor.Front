@@ -10,15 +10,15 @@ import styles from './Styles.module.scss';
 export const StudentSchedulePage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { groups, streams, loading } = useAppSelector((s) => s.groupsList);
-  const { disciplines } = useAppSelector((s) => s.disciplinesList);
+  const { disciplines: listDisciplines, loading: disciplinesLoading } = useAppSelector((s) => s.disciplinesList);
 
   const [selection, setSelection] = useState<{ ids: string[]; label: string } | null>(null);
   const [weekOffset, setWeekOffset] = useState(0);
 
   useEffect(() => {
     if (groups.length === 0) dispatch(fetchGroupsAll());
-    if (disciplines.length === 0) dispatch(fetchDisciplinesAll());
-  }, [dispatch, groups.length, disciplines.length]);
+    if (listDisciplines.length === 0 && !disciplinesLoading) dispatch(fetchDisciplinesAll());
+  }, [dispatch, groups.length, listDisciplines.length, disciplinesLoading]);
 
   if (!selection) {
     return (

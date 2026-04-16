@@ -26,15 +26,16 @@ export interface RootDisciplineFormData {
 }
 
 interface Props {
+  initial?: RootDisciplineFormData;
   onSave: (data: RootDisciplineFormData) => void;
   onCancel?: () => void;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export const RootDisciplineForm: React.FC<Props> = ({ onSave, onCancel }) => {
-  const [name, setName] = useState('');
-  const [allowedLessonTypes, setAllowedLessonTypes] = useState<AcademicDisciplineType[]>([]);
+export const RootDisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) => {
+  const [name, setName] = useState(initial?.name ?? '');
+  const [allowedLessonTypes, setAllowedLessonTypes] = useState<AcademicDisciplineType[]>(initial?.allowedLessonTypes ?? []);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const toggleType = (type: AcademicDisciplineType) => {
@@ -105,7 +106,9 @@ export const RootDisciplineForm: React.FC<Props> = ({ onSave, onCancel }) => {
         {onCancel && (
           <Button variant="secondary" onClick={onCancel}>Отмена</Button>
         )}
-        <Button variant="primary" onClick={handleSave}>Создать корневую дисциплину</Button>
+        <Button variant="primary" onClick={handleSave}>
+          {initial ? 'Сохранить' : 'Создать корневую дисциплину'}
+        </Button>
       </div>
     </div>
   );

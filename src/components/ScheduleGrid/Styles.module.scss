@@ -247,6 +247,109 @@
   border-left: 3px solid $slot-red-border;
 }
 
+// ─── Transposed grid ─────────────────────────────────────────────────────────
+
+.tGridInner {
+  display: flex;
+  flex-direction: column;
+  min-width: max-content;
+}
+
+// Заголовок: прилипает к верху
+.tHeader {
+  display: flex;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: $color-white;
+  border-bottom: 2px solid $border-color;
+}
+
+// Угловая ячейка — прилипает к верху (через родителя) и к левому краю
+.tCorner {
+  flex-shrink: 0;
+  position: sticky;
+  left: 0;
+  z-index: 2; // выше соседних ячеек заголовка
+  background: $color-gray-50;
+  border-right: 2px solid $border-color;
+}
+
+// Ячейки с названиями групп в заголовке
+.tGroupHeader {
+  flex-shrink: 0;
+  padding: $space-3 $space-2;
+  text-align: center;
+  border-right: 1px solid $border-color;
+  background: $color-gray-50;
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  color: $color-gray-700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &:last-child {
+    border-right: none;
+  }
+}
+
+// Строка одного дня
+.tDayRow {
+  display: flex;
+  border-bottom: 2px solid $border-color;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+// Метка дня — прилипает к левому краю
+.tDayLabel {
+  flex-shrink: 0;
+  position: sticky;
+  left: 0;
+  z-index: 6;
+  background: $color-gray-50;
+  border-right: 1px solid $border-color;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// Текст дня повёрнут на 90° влево
+.tDayText {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-gray-600;
+  white-space: nowrap;
+  user-select: none;
+}
+
+// Временна́я шкала в транспонированном виде — прилипает к левому краю
+.tTimeGutter {
+  flex-shrink: 0;
+  position: sticky;
+  z-index: 5;
+  background: $color-white;
+  border-right: 2px solid $border-color;
+
+  // hourLabel уже определён глобально, просто переиспользуем
+}
+
+// Ячейка (группа × день)
+.tGroupCell {
+  flex-shrink: 0;
+  position: relative;
+  border-right: 1px solid $border-color;
+
+  &:last-child {
+    border-right: none;
+  }
+}
+
 // ─── Discipline cards ─────────────────────────────────────────────────────────
 
 .cardWrapper {

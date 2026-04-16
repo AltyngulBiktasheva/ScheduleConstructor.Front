@@ -1,33 +1,96 @@
 /**
- * Хранит список дисциплин (корневых и дочерних) для страницы DisciplinesPage.
+ * Хранит список дисциплин для страницы DisciplinesPage.
  *
- * Корневая дисциплина (isRoot=true): шаблон с набором допустимых видов занятий.
- * Дочерняя дисциплина (isRoot=false): конкретное занятие, ссылается на корневую через parentId.
+ * Корневые дисциплины (isRoot=true): шаблоны, загружаются напрямую из DTO.
+ * Дочерние дисциплины (isRoot=false): извлекаются из lecturePayload / practicePayload / labPayload.
  *
- * Обе сохраняются на бэке как AcademicDiscipline через /academic-discipline/save.
+ * Корневые сохраняются через /academic-discipline/save.
+ * Дочерние сохраняются через /lesson/save.
  */
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { academicDisciplineApi } from '../../api';
-import type { SaveAcademicDisciplineDto } from '../../api';
+import type { SaveAcademicDisciplineDto, AcademicDisciplineRegistryItemDto, AcademicDisciplineType } from '../../api';
 import type { Discipline } from '../../types/discipline';
+import { LESSON_TYPE_LABELS } from '../../pages/disciplines/tabs/RootDisciplineForm';
 
 // ─── State ───────────────────────────────────────────────────────────────────
 
 interface DisciplinesListState {
-  disciplines: Discipline[];
+  rootDisciplines: Discipline[];
+  disciplines: Discipline[];           // дочерние (не корневые)
   loading: boolean;
   error: string | null;
 }
 
 const initialState: DisciplinesListState = {
+  rootDisciplines: [],
   disciplines: [],
   loading: false,
   error: null,
 };
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const PAYLOAD_TYPES: { key: 'lecturePayload' | 'practicePayload' | 'labPayload'; type: AcademicDisciplineType }[] = [
+  { key: 'lecturePayload',  type: 'Lecture'  },
+  { key: 'practicePayload', type: 'Practice' },
+  { key: 'labPayload',      type: 'Lab'      },
+];
+
+function mapDto(dto: AcademicDisciplineRegistryItemDto): { root: Discipline; children: Discipline[] } {
+  const root: Discipline = {
+    id: dto.id,
+    name: dto.name,
+    isRoot: true,
+    cypher: dto.cypher,
+    semesterNumber: dto.semesterNumber,
+    allowedLessonTypes: dto.allowedLessonTypes,
+    forType: 'group',
+    forIds: [],
+    teachers: [],
+    audiences: [],
+    isStatic: false,
+    canOverlap: false,
+    repeat: 'every-week',
+    weeklyCount: 1,
+    comment: dto.comment ?? undefined,
+  };
+
+  const children: Discipline[] = [];
+
+  for (const { key, type } of PAYLOAD_TYPES) {
+    const payload = dto[key];
+    if (!payload) continue;
+    const batch = payload.lessonBatchInfo;
+    const childName = `${dto.name} (${LESSON_TYPE_LABELS[type] ?? type})`;
+
+    children.push({
+      // Фронтовый ID: если есть lessonBatchInfo.id — используем его, иначе генерируем
+      id: batch?.id ?? `${dto.id}_${type}`,
+      lessonId: batch?.id ?? undefined,
+      name: childName,
+      isRoot: false,
+      parentId: dto.id,
+      academicDisciplineId: dto.id,
+      lessonType: type,
+      totalHoursCount: payload.totalHoursCount,
+      forType: 'group',
+      forIds: batch?.studentGroupIds ?? [],
+      teachers: [],
+      audiences: [],
+      isStatic: false,
+      canOverlap: batch?.allowCombining ?? false,
+      repeat: 'every-week',
+      weeklyCount: 1,
+      comment: dto.comment ?? undefined,
+    });
+  }
+
+  return { root, children };
+}
+
 // ─── Thunks ──────────────────────────────────────────────────────────────────
 
-/** Загружает список дисциплин с бэкенда */
 export const fetchDisciplinesAll = createAsyncThunk(
   'disciplinesList/fetchAll',
   async (_, { rejectWithValue }) => {
@@ -35,40 +98,20 @@ export const fetchDisciplinesAll = createAsyncThunk(
       const { data } = await academicDisciplineApi.searchAcademicDisciplines({
         searchParameters: { page: 1, itemsPerPage: 100 },
       });
-      return data.items.map((dto): Discipline => ({
-        id: dto.id,
-        name: dto.name,
-        // Если у дисциплины больше одного допустимого типа — считаем её корневой
-        isRoot: dto.allowedLessonTypes.length !== 1,
-        cypher: dto.cypher,
-        semesterNumber: dto.semesterNumber,
-        allowedLessonTypes: dto.allowedLessonTypes,
-        lessonType: dto.allowedLessonTypes.length === 1 ? dto.allowedLessonTypes[0] : undefined,
-        totalHoursCount:
-          dto.lecturePayload?.totalHoursCount ??
-          dto.practicePayload?.totalHoursCount ??
-          dto.labPayload?.totalHoursCount ??
-          undefined,
-        forType: 'group',
-        forIds: [],
-        teachers: [],
-        audiences: [],
-        isStatic: false,
-        canOverlap: false,
-        repeat: 'every-week',
-        weeklyCount: 1,
-        comment: dto.comment ?? undefined,
-      }));
+      const rootDisciplines: Discipline[] = [];
+      const disciplines: Discipline[] = [];
+      for (const dto of data.items) {
+        const { root, children } = mapDto(dto);
+        rootDisciplines.push(root);
+        disciplines.push(...children);
+      }
+      return { rootDisciplines, disciplines };
     } catch (err: unknown) {
       return rejectWithValue((err as Error).message);
     }
   },
 );
 
-/**
- * Сохраняет дисциплину (корневую или дочернюю) на сервере.
- * При создании (isNew=true) id не передаётся — генерируется на бэке.
- */
 export const saveDisciplineOnServer = createAsyncThunk(
   'disciplinesList/save',
   async (
@@ -95,13 +138,23 @@ const disciplinesListSlice = createSlice({
   initialState,
   reducers: {
     addDisciplineLocally(state, action: PayloadAction<Discipline>) {
-      state.disciplines.push(action.payload);
+      if (action.payload.isRoot) {
+        state.rootDisciplines.push(action.payload);
+      } else {
+        state.disciplines.push(action.payload);
+      }
     },
     updateDisciplineLocally(state, action: PayloadAction<Discipline>) {
-      const idx = state.disciplines.findIndex((d) => d.id === action.payload.id);
-      if (idx !== -1) state.disciplines[idx] = action.payload;
+      if (action.payload.isRoot) {
+        const idx = state.rootDisciplines.findIndex((d) => d.id === action.payload.id);
+        if (idx !== -1) state.rootDisciplines[idx] = action.payload;
+      } else {
+        const idx = state.disciplines.findIndex((d) => d.id === action.payload.id);
+        if (idx !== -1) state.disciplines[idx] = action.payload;
+      }
     },
     removeDisciplineLocally(state, action: PayloadAction<string>) {
+      state.rootDisciplines = state.rootDisciplines.filter((d) => d.id !== action.payload);
       state.disciplines = state.disciplines.filter((d) => d.id !== action.payload);
     },
   },
@@ -113,7 +166,8 @@ const disciplinesListSlice = createSlice({
       })
       .addCase(fetchDisciplinesAll.fulfilled, (state, action) => {
         state.loading = false;
-        state.disciplines = action.payload;
+        state.rootDisciplines = action.payload.rootDisciplines;
+        state.disciplines = action.payload.disciplines;
       })
       .addCase(fetchDisciplinesAll.rejected, (state, action) => {
         state.loading = false;

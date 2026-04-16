@@ -42,7 +42,8 @@ export interface Discipline {
   totalHoursCount?: number;        // количество часов
 
   // ── Связанные сущности ─────────────────────────────────────────────────
-  academicDisciplineId?: string;   // UUID академической дисциплины
+  academicDisciplineId?: string;   // UUID академической дисциплины (для дочерних = parentId)
+  lessonId?: string;               // UUID урока из lessonBatchInfo (для обновления через /lesson/save)
   roomId?: string;                 // UUID аудитории
 
   forType: ForType;

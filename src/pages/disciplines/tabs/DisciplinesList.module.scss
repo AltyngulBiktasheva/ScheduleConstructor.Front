@@ -74,6 +74,21 @@
   font-size: $font-size-sm;
 }
 
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+  margin-bottom: $space-6;
+}
+
+.sectionTitle {
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  color: $color-gray-600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 .empty {
   padding: $space-10;
   text-align: center;

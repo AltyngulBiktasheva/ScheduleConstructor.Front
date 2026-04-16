@@ -97,7 +97,7 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
   const dispatch = useAppDispatch();
   const { teachers: teachersList } = useAppSelector((s) => s.teachersList);
   const { groups, streams } = useAppSelector((s) => s.groupsList);
-  const { disciplines: allDisciplines } = useAppSelector((s) => s.disciplinesList);
+  const { rootDisciplines: allDisciplines } = useAppSelector((s) => s.disciplinesList);
 
   const rootDisciplines = allDisciplines.filter((d) => d.isRoot);
   const selectedRoot = rootDisciplines.find((d) => d.id === parentId) ?? null;

@@ -18,7 +18,7 @@ const TABS = [
 
 export const DisciplinesPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('list');
-  const { disciplines, newlyCreatedId, add, addRoot, update, remove } = useDisciplines();
+  const { rootDisciplines, disciplines, newlyCreatedId, add, addRoot, update, remove } = useDisciplines();
 
   const handleCreateRoot = (data: RootDisciplineFormData) => {
     void addRoot(data);
@@ -38,6 +38,7 @@ export const DisciplinesPage: React.FC = () => {
       <div className={styles.content}>
         {activeTab === 'list' && (
           <DisciplinesList
+            rootDisciplines={rootDisciplines}
             disciplines={disciplines}
             newlyCreatedId={newlyCreatedId}
             onUpdate={update}

@@ -3,8 +3,10 @@ import { Modal } from '../../../components/Modal/Modal';
 import { Button } from '../../../components/Button/Button';
 import { Badge } from '../../../components/Badge/Badge';
 import { DisciplineForm } from '../tabs/DisciplineForm';
+import { RootDisciplineForm } from '../tabs/RootDisciplineForm';
+import type { RootDisciplineFormData } from '../tabs/RootDisciplineForm';
+import { LESSON_TYPE_LABELS } from '../tabs/RootDisciplineForm';
 import type { Discipline } from '../../../types';
-import { DAYS } from '../../../constants/days';
 import styles from './DisciplineViewModal.module.scss';
 
 interface Props {
@@ -24,22 +26,49 @@ export const DisciplineViewModal: React.FC<Props> = ({
 }) => {
   const [mode, setMode] = useState<Mode>('view');
 
-  const handleSave = (updated: Discipline) => {
-    onUpdate(updated);
-    setMode('view');
-  };
+  // ── Редактирование ─────────────────────────────────────────────────────────
 
   if (mode === 'edit') {
+    if (discipline.isRoot) {
+      const handleRootSave = (data: RootDisciplineFormData) => {
+        onUpdate({
+          ...discipline,
+          name: data.name,
+          allowedLessonTypes: data.allowedLessonTypes,
+          cypher: data.cypher,
+          semesterNumber: data.semesterNumber,
+        });
+        setMode('view');
+      };
+
+      return (
+        <Modal title="Редактирование корневой дисциплины" onClose={onClose} width={560}>
+          <RootDisciplineForm
+            initial={{
+              name: discipline.name,
+              cypher: discipline.cypher ?? '00.00.00',
+              semesterNumber: discipline.semesterNumber ?? 1,
+              allowedLessonTypes: discipline.allowedLessonTypes ?? [],
+            }}
+            onSave={handleRootSave}
+            onCancel={() => setMode('view')}
+          />
+        </Modal>
+      );
+    }
+
     return (
       <Modal title="Редактирование дисциплины" onClose={onClose} width={640}>
         <DisciplineForm
           initial={discipline}
-          onSave={handleSave}
+          onSave={(updated) => { onUpdate(updated); setMode('view'); }}
           onCancel={() => setMode('view')}
         />
       </Modal>
     );
   }
+
+  // ── Подтверждение удаления ─────────────────────────────────────────────────
 
   if (mode === 'confirm-delete') {
     return (
@@ -63,11 +92,13 @@ export const DisciplineViewModal: React.FC<Props> = ({
     );
   }
 
+  // ── Просмотр ──────────────────────────────────────────────────────────────
+
   return (
     <Modal
       title={discipline.name}
       onClose={onClose}
-      width={600}
+      width={560}
       actions={
         <>
           <Button variant="danger" size="sm" onClick={() => setMode('confirm-delete')}>
@@ -79,72 +110,80 @@ export const DisciplineViewModal: React.FC<Props> = ({
         </>
       }
     >
-      <div className={styles.view}>
-        <Section title="Основное">
-          <Row label="Для кого">
-            <Badge variant={discipline.forType === 'stream' ? 'green' : 'gray'}>
-              {discipline.forType === 'stream' ? 'Поток' : 'Группа'}
-            </Badge>
-          </Row>
-          <Row label="Тип">
-            <div className={styles.badgeRow}>
-              <Badge variant={discipline.isStatic ? 'blue' : 'gray'}>
-                {discipline.isStatic ? 'Постоянная' : 'Непостоянная'}
-              </Badge>
-              <Badge variant={discipline.canOverlap ? 'purple' : 'gray'}>
-                {discipline.canOverlap ? 'По выбору' : 'Обязательная'}
-              </Badge>
-            </div>
-          </Row>
-          <Row label="Повторение">{formatRepeat(discipline.repeat)}</Row>
-          <Row label="Раз в неделю">{discipline.weeklyCount ?? 1}</Row>
-          {discipline.dateRange && (
-            <Row label="Период">
-              {discipline.dateRange.from} — {discipline.dateRange.to}
-            </Row>
-          )}
-        </Section>
-
-        {discipline.teachers.length > 0 && (
-          <Section title="Преподаватели">
-            <ul className={styles.list}>
-              {discipline.teachers.map((t) => (
-                <li key={t.id}>{t.name}</li>
-              ))}
-            </ul>
-          </Section>
-        )}
-
-        {discipline.audiences.length > 0 && (
-          <Section title="Аудитории">
-            <ul className={styles.list}>
-              {discipline.audiences.map((a, i) => (
-                <li key={i}>{formatAudience(a)}</li>
-              ))}
-            </ul>
-          </Section>
-        )}
-
-        {discipline.occurrences?.length && discipline.occurrences?.length > 0 && (
-          <Section title="Время проведения">
-            <ul className={styles.list}>
-              {discipline.occurrences.map((o, i) => {
-                const day = DAYS.find((d) => d.id === o.dayId)?.name ?? o.dayId;
-                return <li key={i}>{day}, {o.timeStart}–{o.timeEnd}</li>;
-              })}
-            </ul>
-          </Section>
-        )}
-
-        {discipline.comment && (
-          <Section title="Комментарий">
-            <p className={styles.comment}>{discipline.comment}</p>
-          </Section>
-        )}
-      </div>
+      {discipline.isRoot ? (
+        <RootView discipline={discipline} />
+      ) : (
+        <ChildView discipline={discipline} />
+      )}
     </Modal>
   );
 };
+
+// ─── Root view ────────────────────────────────────────────────────────────────
+
+const RootView: React.FC<{ discipline: Discipline }> = ({ discipline }) => (
+  <div className={styles.view}>
+    <Section title="Основное">
+      <Row label="Название">{discipline.name}</Row>
+      <Row label="Допустимые виды занятий">
+        <div className={styles.badgeRow}>
+          {(discipline.allowedLessonTypes ?? []).length === 0 ? (
+            <span>—</span>
+          ) : (
+            (discipline.allowedLessonTypes ?? []).map((t) => (
+              <Badge key={t} variant="blue">{LESSON_TYPE_LABELS[t] ?? t}</Badge>
+            ))
+          )}
+        </div>
+      </Row>
+    </Section>
+    {discipline.comment && (
+      <Section title="Комментарий">
+        <p className={styles.comment}>{discipline.comment}</p>
+      </Section>
+    )}
+  </div>
+);
+
+// ─── Child view ───────────────────────────────────────────────────────────────
+
+const ChildView: React.FC<{ discipline: Discipline }> = ({ discipline }) => (
+  <div className={styles.view}>
+    <Section title="Основное">
+      {discipline.lessonType && (
+        <Row label="Вид занятия">
+          <Badge variant="purple">{LESSON_TYPE_LABELS[discipline.lessonType] ?? discipline.lessonType}</Badge>
+        </Row>
+      )}
+      {discipline.totalHoursCount != null && (
+        <Row label="Количество часов">{discipline.totalHoursCount} ч.</Row>
+      )}
+      <Row label="Тип">
+        <div className={styles.badgeRow}>
+          <Badge variant={discipline.isStatic ? 'blue' : 'gray'}>
+            {discipline.isStatic ? 'Постоянная' : 'Непостоянная'}
+          </Badge>
+          <Badge variant={discipline.canOverlap ? 'purple' : 'gray'}>
+            {discipline.canOverlap ? 'По выбору' : 'Обязательная'}
+          </Badge>
+        </div>
+      </Row>
+      {discipline.forIds.length > 0 && (
+        <Row label="Группа">{discipline.forIds.join(', ')}</Row>
+      )}
+      {discipline.dateRange && (
+        <Row label="Период">
+          {discipline.dateRange.from} — {discipline.dateRange.to}
+        </Row>
+      )}
+    </Section>
+    {discipline.comment && (
+      <Section title="Комментарий">
+        <p className={styles.comment}>{discipline.comment}</p>
+      </Section>
+    )}
+  </div>
+);
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -161,23 +200,3 @@ const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, ch
     <span className={styles.rowValue}>{children}</span>
   </div>
 );
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function formatRepeat(repeat: string) {
-  const map: Record<string, string> = {
-    'every-week': 'Каждую неделю',
-    'once': 'Единожды',
-    'even-weeks': 'По чётным неделям',
-    'odd-weeks': 'По нечётным неделям',
-  };
-  return map[repeat] ?? repeat;
-}
-
-function formatAudience(a: { building: string; buildingName?: string; audience?: string }) {
-  if (a.building === 'online') return 'Онлайн';
-  const b = a.building === 'turgeneva' ? 'Тургенева'
-    : a.building === 'kuybysheva' ? 'Куйбышева'
-    : a.buildingName ?? 'Другой';
-  return a.audience ? `${b}, ауд. ${a.audience}` : b;
-}

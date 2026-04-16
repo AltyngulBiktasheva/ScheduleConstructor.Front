@@ -1,5 +1,7 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { ScheduleGrid } from '../ScheduleGrid/ScheduleGrid';
+import { TransposedScheduleGrid } from '../ScheduleGrid/TransposedScheduleGrid';
+import type { GridColumn } from '../ScheduleGrid/TransposedScheduleGrid';
 import { DisciplineList } from '../DisciplineList/DisciplineList';
 import { EditModal } from '../EditModal/EditModal';
 import type { Discipline } from '../../types';
@@ -8,6 +10,7 @@ import { fetchSlotHighlights } from '../../api/slotHighlights';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { fetchWeekLessons, saveLesson, deleteWeekLesson } from '../../store/slices/lessonSlice';
 import { fetchDisciplinesAll } from '../../store/slices/disciplinesListSlice';
+import { fetchGroupsAll } from '../../store/slices/groupsListSlice';
 import type { LessonWeekItemDto, AcademicDisciplineType } from '../../api';
 import styles from './Styles.module.scss';
 
@@ -100,8 +103,20 @@ function padTime(t: string): string {
 export const MainContainer: React.FC<Props> = ({ selection }) => {
   const dispatch = useAppDispatch();
   const { weekLessons, weekLessonsLoading } = useAppSelector((s) => s.lesson);
-  const { disciplines: listDisciplines } = useAppSelector((s) => s.disciplinesList);
+  const rootDisciplineList = useAppSelector((s) => s.disciplinesList.rootDisciplines);
+  const childDisciplineList = useAppSelector((s) => s.disciplinesList.disciplines);
+  const listDisciplines = useMemo(
+    () => [...rootDisciplineList, ...childDisciplineList],
+    [rootDisciplineList, childDisciplineList],
+  );
   const selectedScheduleId = useAppSelector((s) => s.schedule.selectedScheduleId);
+  const { groups, streams } = useAppSelector((s) => s.groupsList);
+
+  // Транспонированный режим: несколько групп выбрано
+  const isTransposed =
+    selection.type === 'groups' &&
+    Array.isArray(selection.entityId) &&
+    selection.entityId.length > 1;
 
   const [weekOffset, setWeekOffset] = useState(0);
   const [editingDiscipline, setEditingDiscipline] = useState<Discipline | null>(null);
@@ -125,6 +140,11 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
     if (listDisciplines.length === 0) dispatch(fetchDisciplinesAll());
   }, [dispatch, listDisciplines.length]);
 
+  // ── Загрузка групп для транспонированного режима ──────────────────────────
+  useEffect(() => {
+    if (isTransposed && groups.length === 0) dispatch(fetchGroupsAll());
+  }, [dispatch, isTransposed, groups.length]);
+
   // ── Фильтрация занятий по сущности ───────────────────────────────────────
   const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
   const entityLessons = filterLessonsByEntity(weekLessons, selection);
@@ -132,6 +152,42 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
 
   // Дисциплины для списка — только не-корневые (листовые)
   const listItems = listDisciplines.filter((d) => !d.isRoot);
+
+  // ── Столбцы для транспонированной сетки ──────────────────────────────────
+  const gridColumns = useMemo((): GridColumn[] => {
+    if (!isTransposed) return [];
+    const ids = selection.entityId as string[];
+
+    return ids.map((entityId) => {
+      // Поток → filterIds = все группы и подгруппы потока
+      const stream = streams.find((s) => s.id === entityId);
+      if (stream) {
+        const filterIds = stream.groupIds.flatMap((gid) => {
+          const g = groups.find((g) => g.id === gid);
+          return g ? [gid, ...g.subgroups.map((s) => s.id)] : [gid];
+        });
+        return { id: entityId, label: stream.name, filterIds };
+      }
+
+      // Группа → filterIds = группа + подгруппы
+      const group = groups.find((g) => g.id === entityId);
+      if (group) {
+        return {
+          id: entityId,
+          label: group.name,
+          filterIds: [entityId, ...group.subgroups.map((s) => s.id)],
+        };
+      }
+
+      // Подгруппа → ищем в дочерних списках
+      for (const g of groups) {
+        const sub = g.subgroups.find((s) => s.id === entityId);
+        if (sub) return { id: entityId, label: sub.name, filterIds: [entityId] };
+      }
+
+      return { id: entityId, label: entityId, filterIds: [entityId] };
+    });
+  }, [isTransposed, selection.entityId, streams, groups]);
 
   // ── Перезагрузка после сохранения / удаления ─────────────────────────────
   const refetchWeek = useCallback(() => {
@@ -292,20 +348,27 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
     }
   }, [highlightedId, gridDisciplines]);
 
+  // Общие пропы для обоих вариантов сетки
+  const gridProps = {
+    disciplines: gridDisciplines,
+    highlights,
+    onMove: handleDisciplineMove,
+    onDisciplineClick: handleDisciplineClick,
+    onToggleHighlight: handleToggleHighlight,
+    highlightedDisciplineId: highlightedId,
+    loadingHighlightId: loadingHighlightId,
+    weekOffset,
+    onWeekOffsetChange: setWeekOffset,
+  };
+
   return (
     <div className={styles.container}>
       {weekLessonsLoading && <div className={styles.loading}>Загрузка...</div>}
-      <ScheduleGrid
-        disciplines={gridDisciplines}
-        highlights={highlights}
-        onMove={handleDisciplineMove}
-        onDisciplineClick={handleDisciplineClick}
-        onToggleHighlight={handleToggleHighlight}
-        highlightedDisciplineId={highlightedId}
-        loadingHighlightId={loadingHighlightId}
-        weekOffset={weekOffset}
-        onWeekOffsetChange={setWeekOffset}
-      />
+      {isTransposed ? (
+        <TransposedScheduleGrid {...gridProps} columns={gridColumns} />
+      ) : (
+        <ScheduleGrid {...gridProps} />
+      )}
       <DisciplineList
         disciplines={listItems}
         onReturn={handleDisciplineReturn}

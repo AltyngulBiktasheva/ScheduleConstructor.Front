@@ -11,7 +11,10 @@ import styles from './Styles.module.scss';
 export const TeacherSchedulePage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { teachers, loading: teachersLoading } = useAppSelector((s) => s.teachersList);
-  const { disciplines } = useAppSelector((s) => s.disciplinesList);
+  const disciplines = useAppSelector((s) => [
+    ...s.disciplinesList.rootDisciplines,
+    ...s.disciplinesList.disciplines,
+  ]);
 
   const [teacher, setTeacher] = useState<Teacher | null>(null);
   const [weekOffset, setWeekOffset] = useState(0);
