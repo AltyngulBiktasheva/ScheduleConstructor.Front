@@ -9,12 +9,6 @@ interface Props {
   onEdit: () => void;
 }
 
-const BUILDING_LABELS: Record<string, string> = {
-  turgeneva: 'Тургенева',
-  kuybysheva: 'Куйбышева',
-  online: 'Онлайн',
-  other: 'Другой',
-};
 
 export const WishesViewer: React.FC<Props> = ({ wishes, onEdit }) => {
   const hasStaticWishes =
@@ -144,16 +138,9 @@ const AudienceWishSection: React.FC<{
     <div className={styles.wishSection}>
       <span className={`${styles.wishLabel} ${styles[variant]}`}>{label}</span>
       <ul className={styles.wishItems}>
-        {items.map((item) => {
-          const building = item.building === 'other'
-            ? (item.buildingName ?? 'Другой')
-            : (BUILDING_LABELS[item.building] ?? item.building);
-          return (
-            <li key={item.id}>
-              {building}{item.audience ? `, ауд. ${item.audience}` : ''}
-            </li>
-          );
-        })}
+        {items.map((item) => (
+          <li key={item.id}>{item.roomName || item.roomId}</li>
+        ))}
       </ul>
     </div>
   );

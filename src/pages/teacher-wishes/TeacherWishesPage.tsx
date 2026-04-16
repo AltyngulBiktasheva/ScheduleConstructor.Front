@@ -3,19 +3,96 @@ import { PageHeader } from '../../components/PageHeader/PageHeader';
 import { TeacherPicker } from '../../components/TeacherPicker/TeacherPicker';
 import { WishesViewer } from './WishesViewer';
 import { WishesEditor } from './WishesEditor';
-import type { Teacher, TeacherWishes } from '../../types/teacher';
+import type { Teacher, TeacherWishes, TimeWish, AudienceWish } from '../../types/teacher';
+import { emptyWishes } from '../../types/teacher';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { fetchTeachersAll, updateTeacherLocally } from '../../store/slices/teachersListSlice';
+import { teacherPreferenceApi } from '../../api';
+import type { TeacherPreferencesViewDto } from '../../api';
 import { useEffect } from 'react';
 import styles from './Styles.module.scss';
+import type {DayOfWeek} from "../../api/types.ts";
+
+// ─── Mapping helpers ──────────────────────────────────────────────────────────
+
+const DOW_TO_DAY_ID: Record<number, string> = {
+  0: 'sun', 1: 'mon', 2: 'tue', 3: 'wed', 4: 'thu', 5: 'fri', 6: 'sat',
+};
+
+const DAY_ID_TO_DOW: Record<string, DayOfWeek> = {
+  sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6,
+};
+
+function mapPreferencesToWishes(dto: TeacherPreferencesViewDto): TeacherWishes {
+  const wishes = emptyWishes();
+  wishes.comment = dto.comment ?? '';
+
+  for (const ta of dto.teacherTimeAvailabilities ?? []) {
+    const dayId = DOW_TO_DAY_ID[ta.dayOfWeekTimeInterval.dayOfWeek] ?? 'mon';
+    const timeStart = ta.dayOfWeekTimeInterval.timeInterval.timeFrom.slice(0, 5);
+    const timeEnd = ta.dayOfWeekTimeInterval.timeInterval.timeTo.slice(0, 5);
+    const wish: TimeWish = { id: crypto.randomUUID(), dayId, timeStart, timeEnd };
+
+    if (ta.teacherPreferenceType === 'Preferred') wishes.preferredTimes.push(wish);
+    else if (ta.teacherPreferenceType === 'Restricted') wishes.forbiddenTimes.push(wish);
+    else wishes.undesirableTimes.push(wish); // Flexible
+  }
+
+  for (const rp of dto.teacherRoomPreferences ?? []) {
+    const wish: AudienceWish = {
+      id: crypto.randomUUID(),
+      roomId: rp.roomId,
+      roomName: rp.roomId,
+    };
+    if (rp.teacherPreferenceType === 'Preferred') wishes.preferredAudiences.push(wish);
+    else if (rp.teacherPreferenceType === 'Restricted') wishes.forbiddenAudiences.push(wish);
+    else wishes.undesirableAudiences.push(wish);
+  }
+
+  return wishes;
+}
+
+type PreferenceType = 'Preferred' | 'Flexible' | 'Restricted';
+
+function mapWishesToDto(teacherId: string, scheduleId: string, wishes: TeacherWishes) {
+  const timeEntries: { teacherPreferenceType: PreferenceType; dayOfWeekTimeInterval: { dayOfWeek: DayOfWeek; timeInterval: { timeFrom: string; timeTo: string } } }[] = [];
+
+  const pushTimes = (items: TimeWish[], type: PreferenceType) => {
+    for (const w of items) {
+      timeEntries.push({
+        teacherPreferenceType: type,
+        dayOfWeekTimeInterval: {
+          dayOfWeek: DAY_ID_TO_DOW[w.dayId] ?? 1,
+          timeInterval: { timeFrom: w.timeStart, timeTo: w.timeEnd },
+        },
+      });
+    }
+  };
+
+  pushTimes(wishes.preferredTimes, 'Preferred');
+  pushTimes(wishes.undesirableTimes, 'Flexible');
+  pushTimes(wishes.forbiddenTimes, 'Restricted');
+
+  return {
+    teacherId,
+    scheduleId,
+    teacherTimeAvailabilities: timeEntries,
+    teacherRoomPreferences: [] as never[],
+    comment: wishes.comment,
+  };
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export const TeacherWishesPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { teachers, loading } = useAppSelector((s) => s.teachersList);
+  const selectedScheduleId = useAppSelector((s) => s.schedule.selectedScheduleId);
 
   const [teacher, setTeacher] = useState<Teacher | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [wishes, setWishes] = useState<TeacherWishes | null>(null);
+  const [wishesLoading, setWishesLoading] = useState(false);
 
   useEffect(() => {
     if (teachers.length === 0) {
@@ -25,16 +102,31 @@ export const TeacherWishesPage: React.FC = () => {
 
   const handleSelectTeacher = (t: Teacher) => {
     setTeacher(t);
-    setWishes(t.wishes);
+    setWishes(emptyWishes());
     setIsEditing(false);
+
+    if (!selectedScheduleId) return;
+
+    setWishesLoading(true);
+    teacherPreferenceApi
+      .getTeacherPreferences({ teacherId: t.id, scheduleId: selectedScheduleId })
+      .then(({ data }) => setWishes(mapPreferencesToWishes(data)))
+      .catch(() => setWishes(emptyWishes()))
+      .finally(() => setWishesLoading(false));
   };
 
   const handleSave = (updated: TeacherWishes) => {
     setWishes(updated);
     setIsEditing(false);
-    if (teacher) {
-      dispatch(updateTeacherLocally({ ...teacher, wishes: updated }));
-    }
+    if (!teacher) return;
+
+    dispatch(updateTeacherLocally({ ...teacher, wishes: updated }));
+
+    if (!selectedScheduleId) return;
+
+    void teacherPreferenceApi.saveTeacherPreference(
+      mapWishesToDto(teacher.id, selectedScheduleId, updated),
+    );
   };
 
   if (!teacher || !wishes) {
@@ -73,7 +165,9 @@ export const TeacherWishesPage: React.FC = () => {
       </PageHeader>
 
       <div className={styles.content}>
-        {isEditing ? (
+        {wishesLoading ? (
+          <div className={styles.loading}>Загрузка пожеланий…</div>
+        ) : isEditing ? (
           <WishesEditor
             wishes={wishes}
             onSave={handleSave}

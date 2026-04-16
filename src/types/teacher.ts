@@ -1,4 +1,3 @@
-import type { BuildingType } from '../constants/buildings';
 import type { BoardType } from './classroom';
 
 export type WishPriority = 'preferred' | 'undesirable' | 'forbidden';
@@ -12,9 +11,8 @@ export interface TimeWish {
 
 export interface AudienceWish {
   id: string;
-  building: BuildingType;
-  buildingName?: string;
-  audience?: string;
+  roomId: string;
+  roomName: string;
 }
 
 export interface TeacherWishes {

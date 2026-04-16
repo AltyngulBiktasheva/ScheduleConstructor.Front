@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '../../components/Button/Button';
 import { FormField } from '../../components/FormField/FormField';
 import type { TeacherWishes, TimeWish, AudienceWish } from '../../types';
 import { BOARD_TYPE_LABELS, type BoardType } from '../../types';
 import { DAYS } from '../../constants/days';
-import { BUILDING_OPTIONS, type BuildingType } from '../../constants/buildings';
+import { roomApi } from '../../api';
+import type { RoomTreeDto } from '../../api';
 import styles from './WishesEditor.module.scss';
 import equipStyles from './EquipmentWishes.module.scss';
 
@@ -29,6 +30,11 @@ const AUDIENCE_SECTIONS: { key: AudienceCategory; label: string; variant: string
   { key: 'forbiddenAudiences',   label: 'Запрещённые аудитории',    variant: 'forbidden' },
 ];
 
+interface RoomOption {
+  id: string;
+  label: string;
+}
+
 export const WishesEditor: React.FC<Props> = ({ wishes, onSave, onCancel }) => {
   const [form, setForm] = useState<TeacherWishes>({ ...wishes,
     preferredTimes:      [...wishes.preferredTimes],
@@ -38,6 +44,20 @@ export const WishesEditor: React.FC<Props> = ({ wishes, onSave, onCancel }) => {
     undesirableAudiences:[...wishes.undesirableAudiences],
     forbiddenAudiences:  [...wishes.forbiddenAudiences],
   });
+
+  const [roomOptions, setRoomOptions] = useState<RoomOption[]>([]);
+
+  useEffect(() => {
+    roomApi.getRoomTree().then(({ data }) => {
+      const opts: RoomOption[] = [];
+      for (const campus of data as RoomTreeDto[]) {
+        for (const room of campus.childRooms) {
+          opts.push({ id: room.id, label: `${campus.campusName} ${room.name}` });
+        }
+      }
+      setRoomOptions(opts);
+    }).catch(() => {});
+  }, []);
 
   // ─── Time wish helpers ───────────────────────────────────────────────────
 
@@ -62,9 +82,10 @@ export const WishesEditor: React.FC<Props> = ({ wishes, onSave, onCancel }) => {
   // ─── Audience wish helpers ────────────────────────────────────────────────
 
   const addAudienceWish = (key: AudienceCategory) => {
+    const first = roomOptions[0];
     setForm((prev) => ({
       ...prev,
-      [key]: [...prev[key], { id: crypto.randomUUID(), building: 'turgeneva' as BuildingType }],
+      [key]: [...prev[key], { id: crypto.randomUUID(), roomId: first?.id ?? '', roomName: first?.label ?? '' }],
     }));
   };
 
@@ -72,10 +93,13 @@ export const WishesEditor: React.FC<Props> = ({ wishes, onSave, onCancel }) => {
     setForm((prev) => ({ ...prev, [key]: prev[key].filter((w) => w.id !== id) }));
   };
 
-  const updateAudienceWish = (key: AudienceCategory, id: string, patch: Partial<AudienceWish>) => {
+  const updateAudienceWishRoom = (key: AudienceCategory, id: string, roomId: string) => {
+    const opt = roomOptions.find((o) => o.id === roomId);
     setForm((prev) => ({
       ...prev,
-      [key]: prev[key].map((w) => (w.id === id ? { ...w, ...patch } : w)),
+      [key]: prev[key].map((w) =>
+        w.id === id ? { ...w, roomId, roomName: opt?.label ?? '' } : w
+      ),
     }));
   };
 
@@ -98,7 +122,7 @@ export const WishesEditor: React.FC<Props> = ({ wishes, onSave, onCancel }) => {
         <h2 className={styles.editorTitle}>Редактирование пожеланий</h2>
       </div>
 
-      {/* ─── Статичные пожелания по времени ─────────────────────────────── */}
+      {/* ─── Пожелания по времени ─────────────────────────────── */}
       <div className={styles.card}>
         <h3 className={styles.cardTitle}>Пожелания по времени</h3>
         <p className={styles.cardHint}>Учитываются автоматически при составлении расписания</p>
@@ -148,7 +172,7 @@ export const WishesEditor: React.FC<Props> = ({ wishes, onSave, onCancel }) => {
         </div>
       </div>
 
-      {/* ─── Статичные пожелания по аудиториям ──────────────────────────── */}
+      {/* ─── Пожелания по аудиториям ──────────────────────────── */}
       <div className={styles.card}>
         <h3 className={styles.cardTitle}>Пожелания по аудиториям</h3>
         <p className={styles.cardHint}>Учитываются автоматически при составлении расписания</p>
@@ -158,40 +182,20 @@ export const WishesEditor: React.FC<Props> = ({ wishes, onSave, onCancel }) => {
             <div key={key} className={styles.wishSection}>
               <span className={`${styles.sectionLabel} ${styles[variant]}`}>{label}</span>
 
-              {form[key].map((w) => (
+              {form[key].map((w: AudienceWish) => (
                 <div key={w.id} className={styles.audienceRow}>
                   <select
                     className={styles.buildingSelect}
-                    value={w.building}
-                    onChange={(e) => {
-                      const building = e.target.value as BuildingType;
-                      updateAudienceWish(key, w.id, {
-                        building,
-                        audience: building === 'online' ? undefined : w.audience,
-                        buildingName: building === 'other' ? '' : undefined,
-                      });
-                    }}
+                    value={w.roomId}
+                    onChange={(e) => updateAudienceWishRoom(key, w.id, e.target.value)}
                   >
-                    {BUILDING_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>{o.label}</option>
+                    {roomOptions.length === 0 && (
+                      <option value="">Загрузка аудиторий…</option>
+                    )}
+                    {roomOptions.map((o) => (
+                      <option key={o.id} value={o.id}>{o.label}</option>
                     ))}
                   </select>
-                  {w.building === 'other' && (
-                    <input
-                      className={styles.audienceInput}
-                      value={w.buildingName ?? ''}
-                      onChange={(e) => updateAudienceWish(key, w.id, { buildingName: e.target.value })}
-                      placeholder="Название корпуса"
-                    />
-                  )}
-                  {w.building !== 'online' && (
-                    <input
-                      className={styles.audienceInput}
-                      value={w.audience ?? ''}
-                      onChange={(e) => updateAudienceWish(key, w.id, { audience: e.target.value })}
-                      placeholder="Аудитория (необязательно)"
-                    />
-                  )}
                   <button className={styles.removeBtn} onClick={() => removeAudienceWish(key, w.id)}>✕</button>
                 </div>
               ))}
@@ -269,7 +273,7 @@ export const WishesEditor: React.FC<Props> = ({ wishes, onSave, onCancel }) => {
         </FormField>
       </div>
 
-      {/* ─── Нестатичные пожелания ───────────────────────────────────────── */}
+      {/* ─── Дополнительные пожелания ───────────────────────────────────────── */}
       <div className={styles.card}>
         <h3 className={styles.cardTitle}>Дополнительные пожелания</h3>
         <p className={styles.cardHint}>Рассматриваются составителями расписания вручную</p>
