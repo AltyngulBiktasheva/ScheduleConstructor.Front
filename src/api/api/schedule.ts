@@ -16,5 +16,5 @@ export const scheduleApi = {
 
   /** Удалить проект расписания */
   deleteSchedule: (scheduleId: string) =>
-    apiClient.delete<void>('/schedule', { params: { scheduleId } }),
+    apiClient.delete<void>('/schedule/delete', { params: { scheduleId } }),
 };

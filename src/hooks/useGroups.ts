@@ -17,6 +17,7 @@ import {
   saveStudentGroupOnServer,
 } from '../store/slices/groupsListSlice';
 import { fetchSchedules, saveSchedule } from '../store/slices/scheduleSlice';
+import { studentGroupApi } from '../api';
 import type { Group, Stream } from '../types/group';
 
 export function useGroups() {
@@ -95,7 +96,10 @@ export function useGroups() {
   );
 
   const removeGroup = useCallback(
-    (id: string) => dispatch(removeGroupLocally(id)),
+    (id: string) => {
+      dispatch(removeGroupLocally(id));
+      void studentGroupApi.deleteStudentGroup({ studentGroupId: id });
+    },
     [dispatch],
   );
 
@@ -148,7 +152,10 @@ export function useGroups() {
   );
 
   const removeStream = useCallback(
-    (id: string) => dispatch(removeStreamLocally(id)),
+    (id: string) => {
+      dispatch(removeStreamLocally(id));
+      void studentGroupApi.deleteStudentGroup({ studentGroupId: id });
+    },
     [dispatch],
   );
 

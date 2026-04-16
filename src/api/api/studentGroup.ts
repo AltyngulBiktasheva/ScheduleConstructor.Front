@@ -19,4 +19,8 @@ export const studentGroupApi = {
   /** Создать / обновить академическую группу */
   saveStudentGroup: (data: SaveStudentGroupDto) =>
     apiClient.post<void>('/student-group/save', data),
+
+  /** Удалить академическую группу / поток */
+  deleteStudentGroup: (params: { studentGroupId: string }) =>
+    apiClient.delete<void>('/student-group/delete', { params }),
 };
