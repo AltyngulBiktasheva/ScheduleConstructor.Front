@@ -73,11 +73,23 @@ function mapWishesToDto(teacherId: string, scheduleId: string, wishes: TeacherWi
   pushTimes(wishes.undesirableTimes, 'Flexible');
   pushTimes(wishes.forbiddenTimes, 'Restricted');
 
+  const roomEntries: { teacherPreferenceType: PreferenceType; roomId: string }[] = [];
+
+  const pushRooms = (items: AudienceWish[], type: PreferenceType) => {
+    for (const w of items) {
+      if (w.roomId) roomEntries.push({ teacherPreferenceType: type, roomId: w.roomId });
+    }
+  };
+
+  pushRooms(wishes.preferredAudiences, 'Preferred');
+  pushRooms(wishes.undesirableAudiences, 'Flexible');
+  pushRooms(wishes.forbiddenAudiences, 'Restricted');
+
   return {
     teacherId,
     scheduleId,
     teacherTimeAvailabilities: timeEntries,
-    teacherRoomPreferences: [] as never[],
+    teacherRoomPreferences: roomEntries,
     comment: wishes.comment,
   };
 }
