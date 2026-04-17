@@ -28,7 +28,7 @@ const REPEAT_OPTIONS: { value: RepeatType; label: string }[] = [
 
 interface CopyForm {
   totalHoursCount?: number;
-  groupId: string;
+  groupIds: string[];
   isStatic: boolean;
   canOverlap: boolean;
   repeat: RepeatType;
@@ -44,7 +44,7 @@ interface CopyForm {
 function emptyCopy(): CopyForm {
   return {
     totalHoursCount: undefined,
-    groupId: '',
+    groupIds: [],
     isStatic: false,
     canOverlap: false,
     repeat: 'every-week',
@@ -61,7 +61,7 @@ function emptyCopy(): CopyForm {
 function copyFromDiscipline(d: Discipline): CopyForm {
   return {
     totalHoursCount: d.totalHoursCount,
-    groupId: d.forIds[0] ?? '',
+    groupIds: d.forIds ?? [],
     isStatic: d.isStatic,
     canOverlap: d.canOverlap,
     repeat: d.repeat ?? 'every-week',
@@ -103,10 +103,13 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
   const selectedRoot = rootDisciplines.find((d) => d.id === parentId) ?? null;
   const availableLessonTypes: AcademicDisciplineType[] = selectedRoot?.allowedLessonTypes ?? [];
 
-  // Combined flat list for group select
+  // Combined flat list for group multiselect (streams, groups, subgroups)
   const allGroups = [
     ...streams.map((s) => ({ id: s.id, label: s.name })),
-    ...groups.map((g) => ({ id: g.id, label: g.name })),
+    ...groups.flatMap((g) => [
+      { id: g.id, label: g.name },
+      ...g.subgroups.map((sg) => ({ id: sg.id, label: `${g.name} / ${sg.name}` })),
+    ]),
   ];
 
   useEffect(() => {
@@ -127,11 +130,10 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
   };
 
   const addCopy = () => {
-    // Add collapsed copy, cloning last copy's fields (except groupId)
     const last = copies[copies.length - 1];
     setCopies((prev) => [
       ...prev.map((c) => ({ ...c, collapsed: true })),
-      { ...last, groupId: '', collapsed: false },
+      { ...last, groupIds: [], collapsed: false },
     ]);
   };
 
@@ -215,7 +217,7 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
     if (!parentId) errs.parentId = 'Обязательное поле';
     if (!lessonType) errs.lessonType = 'Обязательное поле';
     const first = copies[0];
-    if (!first.groupId) errs.group = 'Выберите группу';
+    if (first.groupIds.length === 0) errs.group = 'Выберите хотя бы одну группу';
     if (first.isStatic && first.occurrences.length === 0)
       errs.occurrences = 'Для постоянной дисциплины необходимо указать время';
     if (!first.dateRange?.from) errs.dateFrom = 'Обязательное поле';
@@ -240,7 +242,7 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
       lessonType,
       isRoot: false,
       forType: 'group',
-      forIds: first.groupId ? [first.groupId] : [],
+      forIds: first.groupIds,
       cypher: selectedRoot?.cypher,
       semesterNumber: selectedRoot?.semesterNumber,
       allowedLessonTypes: undefined,
@@ -411,8 +413,20 @@ const CopySection: React.FC<CopySectionProps> = ({
   normalizeTime,
   handleDateInput,
 }) => {
-  const groupLabel = allGroups.find((g) => g.id === copy.groupId)?.label ?? '— не выбрана —';
+  const selectedGroupLabels = copy.groupIds
+    .map((id) => allGroups.find((g) => g.id === id)?.label ?? id);
+  const groupSummary = selectedGroupLabels.length === 0
+    ? '— не выбраны —'
+    : selectedGroupLabels.length <= 2
+      ? selectedGroupLabels.join(', ')
+      : `${selectedGroupLabels.slice(0, 2).join(', ')}…`;
+
   const canAddOccurrence = copy.occurrences.length < copy.weeklyCount;
+
+  const toggleGroup = (id: string) => {
+    const has = copy.groupIds.includes(id);
+    onUpdate({ groupIds: has ? copy.groupIds.filter((g) => g !== id) : [...copy.groupIds, id] });
+  };
 
   return (
     <div className={styles.copySection}>
@@ -428,7 +442,7 @@ const CopySection: React.FC<CopySectionProps> = ({
           <span className={styles.copyGroupLabel}>
             {index === 0 ? 'Занятие' : `Копия ${index + 1}`}
             {': '}
-            <strong>{groupLabel}</strong>
+            <strong>{groupSummary}</strong>
           </span>
         </button>
         {total > 1 && (
@@ -441,20 +455,23 @@ const CopySection: React.FC<CopySectionProps> = ({
       {/* Accordion body */}
       {!copy.collapsed && (
         <div className={styles.copyBody}>
-          {/* Группа */}
-          <FormField label="Группа" required error={errors.group}>
-            <select
-              className="field-input"
-              value={copy.groupId}
-              onChange={(e) => onUpdate({ groupId: e.target.value })}
-            >
-              <option value="">— выберите группу —</option>
-              {allGroups.map((g) => (
-                <option key={g.id} value={g.id}>{g.label}</option>
-              ))}
-            </select>
-            {allGroups.length === 0 && (
+          {/* Группы (мультиселект) */}
+          <FormField label="Группы" required error={errors.group}>
+            {allGroups.length === 0 ? (
               <span style={{ fontSize: 12, color: '#9ca3af' }}>Нет доступных групп</span>
+            ) : (
+              <div className={styles.checkList}>
+                {allGroups.map((g) => (
+                  <label key={g.id} className={styles.checkLabel}>
+                    <input
+                      type="checkbox"
+                      checked={copy.groupIds.includes(g.id)}
+                      onChange={() => toggleGroup(g.id)}
+                    />
+                    {g.label}
+                  </label>
+                ))}
+              </div>
             )}
           </FormField>
 
