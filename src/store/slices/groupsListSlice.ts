@@ -39,25 +39,45 @@ export const fetchGroupsAll = createAsyncThunk(
         searchParameters: { page: 1, itemsPerPage: 100 },
       });
 
-      const streams: Stream[] = data.items
-        .filter((dto) => dto.studentGroupType === 'Thread')
-        .map((dto) => ({
-          id: dto.id,
-          name: dto.name,
-          groupIds: [],
-          disciplineIds: [],
-        }));
+      const streams: Stream[] = [];
+      const groups: Group[] = [];
 
-      const groups: Group[] = data.items
-        .filter((dto) => dto.studentGroupType !== 'Thread')
-        .map((dto) => ({
-          id: dto.id,
-          name: dto.name,
-          streamId: '',
-          subgroups: [],
-          studentCount: 0,
-          disciplineIds: [],
-        }));
+      await Promise.all(
+        data.items
+          .filter((dto) => dto.studentGroupType === 'Thread')
+          .map(async (dto) => {
+            const childIds = dto.children ?? [];
+
+            streams.push({
+              id: dto.id,
+              name: dto.name,
+              cypher: dto.cypher,
+              semesterNumber: dto.semesterNumber,
+              groupIds: childIds,
+              disciplineIds: [],
+            });
+
+            await Promise.all(
+              childIds.map(async (groupId) => {
+                const { data: groupDto } = await studentGroupApi.getStudentGroup({
+                  studentGroupId: groupId,
+                });
+                groups.push({
+                  id: groupDto.id,
+                  name: groupDto.name ?? groupId,
+                  streamId: dto.id,
+                  cypher: groupDto.cypher ?? undefined,
+                  subgroups: (groupDto.children ?? []).map((sg) => ({
+                    id: sg.id,
+                    name: sg.name ?? sg.id,
+                  })),
+                  studentCount: 0,
+                  disciplineIds: [],
+                });
+              }),
+            );
+          }),
+      );
 
       return { groups, streams };
     } catch (err: unknown) {

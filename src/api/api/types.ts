@@ -298,6 +298,7 @@ export interface StudentGroupRegistryItemDto {
   semesterNumber: number;
   studentGroupType: StudentGroupType;
   cypher: string;
+  children?: string[] | null;
 }
 
 export interface SaveStudentGroupDto {
