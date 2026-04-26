@@ -30,42 +30,49 @@ const initialState: GroupsListState = {
 
 // ─── Thunks ──────────────────────────────────────────────────────────────────
 
-/** Загружает все группы и потоки с бэкенда */
+/** Загружает дерево групп и потоков с бэкенда */
 export const fetchGroupsAll = createAsyncThunk(
   'groupsList/fetchAll',
-  async (_, { rejectWithValue }) => {
+  async (_: undefined, { rejectWithValue, getState }) => {
     try {
-      const { data } = await studentGroupApi.searchStudentGroups({
-        searchParameters: { page: 1, itemsPerPage: 100 },
-      });
+      const state = getState() as { schedule: { selectedScheduleId: string | null } };
+      const scheduleId = state.schedule.selectedScheduleId;
+      if (!scheduleId) return { groups: [], streams: [] };
+
+      // Шаг 1: получаем дерево (список корневых элементов с дочерними id)
+      const { data: treeItems } = await studentGroupApi.searchStudentGroupTree({ scheduleId });
 
       const streams: Stream[] = [];
       const groups: Group[] = [];
 
+      // Шаг 2: для каждого корневого элемента запрашиваем /view чтобы узнать тип
       await Promise.all(
-        data.items
-          .filter((dto) => dto.studentGroupType === 'Thread')
-          .map(async (dto) => {
-            const childIds = dto.children ?? [];
+        treeItems.map(async (treeItem) => {
+          const { data: rootDto } = await studentGroupApi.getStudentGroup({
+            studentGroupId: treeItem.id,
+          });
 
+          if (rootDto.studentGroupType === 'Thread') {
+            // Это поток — его дети (из treeItem.children) суть группы
             streams.push({
-              id: dto.id,
-              name: dto.name,
-              cypher: dto.cypher,
-              semesterNumber: dto.semesterNumber,
-              groupIds: childIds,
+              id: rootDto.id,
+              name: rootDto.name ?? treeItem.name,
+              cypher: rootDto.cypher ?? undefined,
+              semesterNumber: rootDto.semesterNumber,
+              groupIds: treeItem.children,
               disciplineIds: [],
             });
 
+            // Шаг 3: загружаем каждую дочернюю группу
             await Promise.all(
-              childIds.map(async (groupId) => {
+              treeItem.children.map(async (groupId) => {
                 const { data: groupDto } = await studentGroupApi.getStudentGroup({
                   studentGroupId: groupId,
                 });
                 groups.push({
                   id: groupDto.id,
                   name: groupDto.name ?? groupId,
-                  streamId: dto.id,
+                  streamId: rootDto.id,
                   cypher: groupDto.cypher ?? undefined,
                   subgroups: (groupDto.children ?? []).map((sg) => ({
                     id: sg.id,
@@ -76,7 +83,22 @@ export const fetchGroupsAll = createAsyncThunk(
                 });
               }),
             );
-          }),
+          } else if (rootDto.studentGroupType === 'Group') {
+            // Группа верхнего уровня (без потока)
+            groups.push({
+              id: rootDto.id,
+              name: rootDto.name ?? treeItem.name,
+              streamId: '',
+              cypher: rootDto.cypher ?? undefined,
+              subgroups: (rootDto.children ?? []).map((sg) => ({
+                id: sg.id,
+                name: sg.name ?? sg.id,
+              })),
+              studentCount: 0,
+              disciplineIds: [],
+            });
+          }
+        }),
       );
 
       return { groups, streams };

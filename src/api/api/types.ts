@@ -301,6 +301,12 @@ export interface StudentGroupRegistryItemDto {
   children?: string[] | null;
 }
 
+export interface StudentGroupTreeItemDto {
+  id: string;
+  name: string;
+  children: string[];
+}
+
 export interface SaveStudentGroupDto {
   id?: string | null;
   scheduleId: string;

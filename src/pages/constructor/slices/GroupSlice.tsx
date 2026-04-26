@@ -14,13 +14,14 @@ interface Props {
 export const GroupSlice: React.FC<Props> = ({ onSelect }) => {
   const dispatch = useAppDispatch();
   const { groups, streams, loading } = useAppSelector((s) => s.groupsList);
+  const selectedScheduleId = useAppSelector((s) => s.schedule.selectedScheduleId);
   const [selected, setSelected] = useState<SelectionMap>({});
   const [expandedStreams, setExpandedStreams] = useState<Set<string>>(new Set());
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (groups.length === 0) dispatch(fetchGroupsAll());
-  }, [dispatch, groups.length]);
+    if (selectedScheduleId && groups.length === 0) dispatch(fetchGroupsAll());
+  }, [dispatch, selectedScheduleId, groups.length]);
 
   // Авто-раскрываем первый поток при загрузке
   useEffect(() => {

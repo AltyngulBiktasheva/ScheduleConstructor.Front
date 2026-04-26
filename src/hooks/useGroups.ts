@@ -26,10 +26,15 @@ export function useGroups() {
   const { list: scheduleList, selectedScheduleId } = useAppSelector((s) => s.schedule);
   const [newlyCreatedId, setNewlyCreatedId] = useState<string | null>(null);
 
+  // Сначала загружаем список расписаний (чтобы получить selectedScheduleId)
   useEffect(() => {
-    dispatch(fetchGroupsAll());
     dispatch(fetchSchedules());
   }, [dispatch]);
+
+  // Загружаем группы только после того, как известен selectedScheduleId
+  useEffect(() => {
+    if (selectedScheduleId) dispatch(fetchGroupsAll());
+  }, [dispatch, selectedScheduleId]);
 
   const markCreated = (id: string) => {
     setNewlyCreatedId(id);
