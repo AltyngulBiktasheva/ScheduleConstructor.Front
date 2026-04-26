@@ -37,6 +37,7 @@ interface Props {
   loadingHighlightId?: string | null;
   weekOffset?: number;
   onWeekOffsetChange?: (offset: number) => void;
+  scheduleStartDate?: string | null;
 }
 
 // ─── Pure helpers ─────────────────────────────────────────────────────────────
@@ -84,6 +85,7 @@ export const TransposedScheduleGrid: React.FC<Props> = ({
   loadingHighlightId,
   weekOffset = 0,
   onWeekOffsetChange,
+  scheduleStartDate,
 }) => {
   const [zoomIndex, setZoomIndex] = useState(DEFAULT_ZOOM_INDEX);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -121,7 +123,23 @@ export const TransposedScheduleGrid: React.FC<Props> = ({
     sat.setDate(mon.getDate() + 5);
     const fmt = (d: Date) =>
       String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0');
-    return fmt(mon) + ' – ' + fmt(sat);
+    const dateRange = fmt(mon) + ' – ' + fmt(sat);
+
+    if (!scheduleStartDate) return dateRange;
+
+    const start = new Date(scheduleStartDate);
+    const startDow = start.getDay();
+    const startDiffToMonday = startDow === 0 ? -6 : 1 - startDow;
+    const scheduleMonday = new Date(start);
+    scheduleMonday.setDate(start.getDate() + startDiffToMonday);
+    scheduleMonday.setHours(0, 0, 0, 0);
+    mon.setHours(0, 0, 0, 0);
+
+    const weeksDiff = Math.round((mon.getTime() - scheduleMonday.getTime()) / (7 * 24 * 60 * 60 * 1000));
+    const isOdd = weeksDiff % 2 === 0;
+    const parity = isOdd ? 'нечётная' : 'чётная';
+
+    return `${dateRange} (${parity})`;
   };
 
   // ─── DnD ─────────────────────────────────────────────────────────────────

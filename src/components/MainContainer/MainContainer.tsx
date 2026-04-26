@@ -94,8 +94,8 @@ function filterLessonsByEntity(
 }
 
 function padTime(t: string): string {
-  // HH:MM → HH:MM:00
-  return t.length === 5 ? `${t}:00` : t;
+  // Оставляем только HH:MM, отрезая секунды если они есть
+  return t.slice(0, 5);
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -110,6 +110,9 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
     [rootDisciplineList, childDisciplineList],
   );
   const selectedScheduleId = useAppSelector((s) => s.schedule.selectedScheduleId);
+  const scheduleStartDate = useAppSelector((s) =>
+    s.schedule.list.find((sc) => sc.id === s.schedule.selectedScheduleId)?.startDate ?? null
+  );
   const { groups, streams } = useAppSelector((s) => s.groupsList);
 
   // Транспонированный режим: несколько групп выбрано
@@ -359,6 +362,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
     loadingHighlightId: loadingHighlightId,
     weekOffset,
     onWeekOffsetChange: setWeekOffset,
+    scheduleStartDate,
   };
 
   return (

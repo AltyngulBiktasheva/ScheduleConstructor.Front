@@ -23,6 +23,7 @@ interface Props {
   loadingHighlightId?: string | null;
   weekOffset?: number;
   onWeekOffsetChange?: (offset: number) => void;
+  scheduleStartDate?: string | null;
 }
 
 export const ScheduleGrid: React.FC<Props> = ({
@@ -35,6 +36,7 @@ export const ScheduleGrid: React.FC<Props> = ({
   loadingHighlightId,
   weekOffset = 0,
   onWeekOffsetChange,
+  scheduleStartDate,
 }) => {
   const [zoomIndex, setZoomIndex] = useState(DEFAULT_ZOOM_INDEX);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -93,7 +95,25 @@ export const ScheduleGrid: React.FC<Props> = ({
     saturday.setDate(monday.getDate() + 5);
     const fmt = (d: Date) =>
       String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0');
-    return fmt(monday) + ' – ' + fmt(saturday);
+    const dateRange = fmt(monday) + ' – ' + fmt(saturday);
+
+    if (!scheduleStartDate) return dateRange;
+
+    // Понедельник недели начала расписания
+    const start = new Date(scheduleStartDate);
+    const startDow = start.getDay();
+    const startDiffToMonday = startDow === 0 ? -6 : 1 - startDow;
+    const scheduleMonday = new Date(start);
+    scheduleMonday.setDate(start.getDate() + startDiffToMonday);
+    scheduleMonday.setHours(0, 0, 0, 0);
+    monday.setHours(0, 0, 0, 0);
+
+    const weeksDiff = Math.round((monday.getTime() - scheduleMonday.getTime()) / (7 * 24 * 60 * 60 * 1000));
+    // Первая неделя расписания = нечётная (индекс 0 → нечётная)
+    const isOdd = weeksDiff % 2 === 0;
+    const parity = isOdd ? 'нечётная' : 'чётная';
+
+    return `${dateRange} (${parity})`;
   };
 
   return (
