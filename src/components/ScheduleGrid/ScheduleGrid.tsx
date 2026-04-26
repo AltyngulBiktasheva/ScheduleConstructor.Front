@@ -4,7 +4,10 @@ import { DisciplineCard } from '../DisciplineCard/DisciplineCard';
 import type { Discipline } from '../../types';
 import type { SlotHighlight } from '../../api/slotHighlights';
 import { useGridMetrics } from '../../hooks/useGridMetrics';
+import { useBellMetrics, BREAK_GAP_PX } from '../../hooks/useBellMetrics';
+import type { BellSlotMetric } from '../../hooks/useBellMetrics';
 import { useOverlapLayout } from '../../hooks/useOverlapLayout';
+import { BELL_SCHEDULES } from '../../constants/bellSchedules';
 import styles from './Styles.module.scss';
 
 // Базовая ширина одного столбца дня (в px)
@@ -39,12 +42,22 @@ export const ScheduleGrid: React.FC<Props> = ({
   scheduleStartDate,
 }) => {
   const [zoomIndex, setZoomIndex] = useState(DEFAULT_ZOOM_INDEX);
+  const [bellScheduleId, setBellScheduleId] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
   const dragInfo = useRef<{ disciplineId: string; offsetY: number } | null>(null);
 
   const hourHeight = ZOOM_LEVELS[zoomIndex];
-  const { totalHeight, timeToPixels, durationToPixels, pixelsToTime, hours } =
-    useGridMetrics(hourHeight);
+  const continuousMetrics = useGridMetrics(hourHeight);
+  const selectedBell = BELL_SCHEDULES.find((s) => s.id === bellScheduleId) ?? null;
+  const bellMetrics = useBellMetrics(selectedBell, hourHeight);
+  const isBell = selectedBell !== null;
+
+  const totalHeight = isBell ? bellMetrics.totalHeight : continuousMetrics.totalHeight;
+  const timeToPixels = isBell ? bellMetrics.timeToPixels : continuousMetrics.timeToPixels;
+  const durationToPixels = isBell ? bellMetrics.durationToPixels : continuousMetrics.durationToPixels;
+  const pixelsToTime = isBell ? bellMetrics.pixelsToTime : continuousMetrics.pixelsToTime;
+  const { hours } = continuousMetrics;
+  const slotMetrics = isBell ? bellMetrics.slotMetrics : null;
 
   const handleDragStart = useCallback(
     (e: React.DragEvent, discipline: Discipline, occ?: { timeStart: string; timeEnd: string }) => {
@@ -142,6 +155,19 @@ export const ScheduleGrid: React.FC<Props> = ({
           )}
         </div>
         <div className={styles.zoomControls}>
+          {/* Расписание звонков */}
+          <select
+            className={styles.bellSelect}
+            value={bellScheduleId}
+            onChange={(e) => setBellScheduleId(e.target.value)}
+            title="Расписание звонков"
+          >
+            <option value="">Часы</option>
+            {BELL_SCHEDULES.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+
           <button className={styles.zoomBtn} onClick={() => setZoomIndex((i) => Math.max(i - 1, 0))} disabled={zoomIndex === 0} title="Уменьшить">
             <MinusIcon />
           </button>
@@ -155,7 +181,7 @@ export const ScheduleGrid: React.FC<Props> = ({
       <div className={styles.gridOuter} ref={scrollRef}>
         <div className={styles.gridInner}>
           <div className={styles.header}>
-            <div className={styles.timeGutter} />
+            <div className={styles.timeGutter} style={{ width: isBell ? 88 : undefined, minWidth: isBell ? 88 : undefined }} />
             {DAYS.map((day) => (
               <DayHeaderCell
                 key={day.id}
@@ -168,16 +194,27 @@ export const ScheduleGrid: React.FC<Props> = ({
           </div>
 
           <div className={styles.body}>
-            <div className={styles.timeGutter} style={{ height: totalHeight }}>
-              {hours.map((h) => (
-                <div
-                  key={h}
-                  className={styles.hourLabel}
-                  style={{ top: timeToPixels(`${String(h).padStart(2, '0')}:00`) }}
-                >
-                  {String(h).padStart(2, '0')}:00
-                </div>
-              ))}
+            {/* Time gutter */}
+            <div className={styles.timeGutter} style={{ height: totalHeight, width: isBell ? 88 : undefined, minWidth: isBell ? 88 : undefined }}>
+              {slotMetrics ? (
+                slotMetrics.map((s) => (
+                  <div key={s.pairNumber} className={styles.pairLabel} style={{ top: s.top, height: s.height }}>
+                    <span className={styles.pairNum}>{s.pairNumber}</span>
+                    <span className={styles.pairTimeStart}>{s.timeStart}</span>
+                    <span className={styles.pairTimeEnd}>{s.timeEnd}</span>
+                  </div>
+                ))
+              ) : (
+                hours.map((h) => (
+                  <div
+                    key={h}
+                    className={styles.hourLabel}
+                    style={{ top: timeToPixels(`${String(h).padStart(2, '0')}:00`) }}
+                  >
+                    {String(h).padStart(2, '0')}:00
+                  </div>
+                ))
+              )}
             </div>
 
             {DAYS.map((day) => (
@@ -190,6 +227,7 @@ export const ScheduleGrid: React.FC<Props> = ({
                 loadingHighlightId={loadingHighlightId}
                 totalHeight={totalHeight}
                 hours={hours}
+                slotMetrics={slotMetrics}
                 timeToPixels={timeToPixels}
                 durationToPixels={durationToPixels}
                 onDrop={handleDrop}
@@ -237,6 +275,7 @@ interface DayColumnProps {
   loadingHighlightId?: string | null;
   totalHeight: number;
   hours: number[];
+  slotMetrics?: BellSlotMetric[] | null;
   timeToPixels: (t: string) => number;
   durationToPixels: (s: string, e: string) => number;
   onDrop: (e: React.DragEvent, dayId: string) => void;
@@ -254,6 +293,7 @@ const DayColumn: React.FC<DayColumnProps> = ({
   loadingHighlightId,
   totalHeight,
   hours,
+  slotMetrics,
   timeToPixels,
   durationToPixels,
   onDrop,
@@ -275,13 +315,28 @@ const DayColumn: React.FC<DayColumnProps> = ({
       onDrop={(e) => onDrop(e, dayId)}
       onDragOver={onDragOver}
     >
-      {hours.map((h) => (
-        <div
-          key={h}
-          className={styles.hourLine}
-          style={{ top: timeToPixels(`${String(h).padStart(2, '0')}:00`) }}
-        />
-      ))}
+      {slotMetrics ? (
+        <>
+          {slotMetrics.map((s) => (
+            <div key={s.pairNumber} className={styles.pairLine} style={{ top: s.top }} />
+          ))}
+          {slotMetrics.slice(0, -1).map((s) => (
+            <div
+              key={`gap-${s.pairNumber}`}
+              className={styles.pairBreakGap}
+              style={{ top: s.top + s.height, height: BREAK_GAP_PX }}
+            />
+          ))}
+        </>
+      ) : (
+        hours.map((h) => (
+          <div
+            key={h}
+            className={styles.hourLine}
+            style={{ top: timeToPixels(`${String(h).padStart(2, '0')}:00`) }}
+          />
+        ))
+      )}
 
       {dayHighlights.map((hl, i) => {
         const top = timeToPixels(hl.timeStart);

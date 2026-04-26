@@ -1,5 +1,5 @@
-import type { BuildingType } from '../constants/buildings';
 import type { AcademicDisciplineType } from '../api';
+import type { BuildingType } from '../constants/buildings';
 
 export type RepeatType = 'every-week' | 'once' | 'even-weeks' | 'odd-weeks';
 export type ForType = 'group' | 'stream';
@@ -11,9 +11,8 @@ export interface WeeklyOccurrence {
 }
 
 export interface DisciplineAudience {
-  building: BuildingType;
-  buildingName?: string;
-  audience?: string;
+  roomId: string;
+  roomName?: string;
 }
 
 export interface DisciplineTeacher {

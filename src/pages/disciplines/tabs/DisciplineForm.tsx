@@ -9,13 +9,19 @@ import type {
   RepeatType,
 } from '../../../types';
 import { DAYS } from '../../../constants/days';
-import { BUILDING_OPTIONS, type BuildingType } from '../../../constants/buildings';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchTeachersAll } from '../../../store/slices/teachersListSlice';
 import { fetchGroupsAll } from '../../../store/slices/groupsListSlice';
 import { LESSON_TYPE_LABELS } from './RootDisciplineForm';
 import type { AcademicDisciplineType } from '../../../api';
+import { roomApi } from '../../../api';
+import type { RoomTreeDto } from '../../../api';
 import styles from './DisciplineForm.module.scss';
+
+interface RoomOption {
+  id: string;
+  label: string;
+}
 
 const REPEAT_OPTIONS: { value: RepeatType; label: string }[] = [
   { value: 'every-week', label: 'Каждую неделю' },
@@ -98,6 +104,7 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
   const { teachers: teachersList } = useAppSelector((s) => s.teachersList);
   const { groups, streams } = useAppSelector((s) => s.groupsList);
   const { rootDisciplines: allDisciplines } = useAppSelector((s) => s.disciplinesList);
+  const [roomOptions, setRoomOptions] = useState<RoomOption[]>([]);
 
   const rootDisciplines = allDisciplines.filter((d) => d.isRoot);
   const selectedRoot = rootDisciplines.find((d) => d.id === parentId) ?? null;
@@ -115,6 +122,15 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
   useEffect(() => {
     if (teachersList.length === 0) dispatch(fetchTeachersAll());
     dispatch(fetchGroupsAll());
+    roomApi.getRoomTree().then(({ data }) => {
+      const opts: RoomOption[] = [];
+      for (const campus of data as RoomTreeDto[]) {
+        for (const room of campus.childRooms) {
+          opts.push({ id: room.id, label: `${campus.campusName} — ${room.name}` });
+        }
+      }
+      setRoomOptions(opts);
+    }).catch(() => {});
   }, [dispatch]);
 
   useEffect(() => {
@@ -194,7 +210,7 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
 
   const addAudience = (copyIndex: number) => {
     updateCopy(copyIndex, {
-      audiences: [...copies[copyIndex].audiences, { building: 'turgeneva' as BuildingType }],
+      audiences: [...copies[copyIndex].audiences, { roomId: '', roomName: '' }],
     });
   };
 
@@ -246,6 +262,7 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
       cypher: selectedRoot?.cypher,
       semesterNumber: selectedRoot?.semesterNumber,
       allowedLessonTypes: undefined,
+      roomId: first.audiences[0]?.roomId || undefined,
     } as Discipline);
   };
 
@@ -325,6 +342,7 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
           errors={idx === 0 ? errors : {}}
           allGroups={allGroups}
           teachersList={teachersList}
+          roomOptions={roomOptions}
           onUpdate={(patch) => updateCopy(idx, patch)}
           onRemove={() => removeCopy(idx)}
           onToggleCollapse={() => toggleCollapse(idx)}
@@ -377,6 +395,7 @@ interface CopySectionProps {
   errors: Record<string, string>;
   allGroups: { id: string; label: string }[];
   teachersList: { id: string; name: string }[];
+  roomOptions: RoomOption[];
   onUpdate: (patch: Partial<CopyForm>) => void;
   onRemove: () => void;
   onToggleCollapse: () => void;
@@ -399,6 +418,7 @@ const CopySection: React.FC<CopySectionProps> = ({
   errors,
   allGroups,
   teachersList,
+  roomOptions,
   onUpdate,
   onRemove,
   onToggleCollapse,
@@ -648,37 +668,19 @@ const CopySection: React.FC<CopySectionProps> = ({
                   {copy.audiences.map((a, i) => (
                     <div key={i} className={styles.audienceRow}>
                       <select
-                        className={styles.buildingSelect}
-                        value={a.building}
+                        className={styles.roomSelect}
+                        value={a.roomId}
                         onChange={(e) => {
-                          const building = e.target.value as BuildingType;
-                          onUpdateAudience(i, {
-                            building,
-                            audience: building === 'online' ? undefined : a.audience,
-                            buildingName: building === 'other' ? '' : undefined,
-                          });
+                          const roomId = e.target.value;
+                          const roomName = roomOptions.find((r) => r.id === roomId)?.label ?? '';
+                          onUpdateAudience(i, { roomId, roomName });
                         }}
                       >
-                        {BUILDING_OPTIONS.map((o) => (
-                          <option key={o.value} value={o.value}>{o.label}</option>
+                        <option value="">— выберите аудиторию —</option>
+                        {roomOptions.map((r) => (
+                          <option key={r.id} value={r.id}>{r.label}</option>
                         ))}
                       </select>
-                      {a.building === 'other' && (
-                        <input
-                          className={styles.audienceInput}
-                          value={a.buildingName ?? ''}
-                          onChange={(e) => onUpdateAudience(i, { buildingName: e.target.value })}
-                          placeholder="Название корпуса"
-                        />
-                      )}
-                      {a.building !== 'online' && (
-                        <input
-                          className={styles.audienceInput}
-                          value={a.audience ?? ''}
-                          onChange={(e) => onUpdateAudience(i, { audience: e.target.value })}
-                          placeholder="Аудитория"
-                        />
-                      )}
                       <button className={styles.removeBtn} onClick={() => onRemoveAudience(i)} type="button">✕</button>
                     </div>
                   ))}

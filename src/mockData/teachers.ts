@@ -15,7 +15,7 @@ export const MOCK_TEACHERS: Teacher[] = [
         { id: 'fw1', dayId: 'sat', timeStart: '08:00', timeEnd: '22:00' },
       ],
       preferredAudiences: [
-        { id: 'pa1', building: 'turgeneva', audience: '301' },
+        { id: 'pa1', roomId: '', roomName: 'Тургенева, 301' },
       ],
       comment: 'Прошу не ставить занятия позже 18:00.',
       preferredBoardType: 'marker',
@@ -46,7 +46,7 @@ export const MOCK_TEACHERS: Teacher[] = [
         { id: 'fw2', dayId: 'fri', timeStart: '16:00', timeEnd: '22:00' },
       ],
       undesirableAudiences: [
-        { id: 'ua1', building: 'kuybysheva' },
+        { id: 'ua1', roomId: '', roomName: 'Куйбышева' },
       ],
     },
   },

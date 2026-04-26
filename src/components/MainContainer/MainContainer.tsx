@@ -60,8 +60,8 @@ function lessonToDiscipline(lesson: LessonWeekItemDto, weekDates: string[]): Dis
     teachers: lesson.teacherId
       ? [{ id: lesson.teacherId, name: lesson.teacherName || '' }]
       : [],
-    audiences: lesson.roomName
-      ? [{ building: 'other', buildingName: lesson.roomName }]
+    audiences: lesson.roomId
+      ? [{ roomId: lesson.roomId, roomName: lesson.roomName ?? undefined }]
       : [],
     isStatic: lesson.flexibilityType === 'Fixed',
     canOverlap: lesson.allowCombining,
@@ -244,7 +244,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
 
         await dispatch(saveLesson({
           scheduleId: selectedScheduleId,
-          academicDisciplineId: disciplineId,
+          academicDisciplineId: listDiscipline.academicDisciplineId ?? listDiscipline.parentId,
           academicDisciplineType: listDiscipline.lessonType,
           studentGroupIds: groupIds,
           teacherId: listDiscipline.teachers[0]?.id ?? undefined,

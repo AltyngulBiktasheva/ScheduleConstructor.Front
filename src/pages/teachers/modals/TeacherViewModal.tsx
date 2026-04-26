@@ -43,8 +43,8 @@ function mapPreferencesToWishes(dto: TeacherPreferencesViewDto): TeacherWishes {
   for (const rp of dto.teacherRoomPreferences ?? []) {
     const wish: AudienceWish = {
       id: crypto.randomUUID(),
-      building: 'other',
-      buildingName: rp.roomId, // roomId как fallback — нет доступа к деталям аудитории здесь
+      roomId: rp.roomId,
+      roomName: rp.roomId, // roomId как fallback — нет доступа к деталям аудитории здесь
     };
     if (rp.teacherPreferenceType === 'Preferred') wishes.preferredAudiences.push(wish);
     else if (rp.teacherPreferenceType === 'Restricted') wishes.forbiddenAudiences.push(wish);

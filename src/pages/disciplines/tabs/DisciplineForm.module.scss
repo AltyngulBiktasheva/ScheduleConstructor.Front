@@ -147,8 +147,9 @@
   flex-wrap: wrap;
 }
 
-.buildingSelect {
-  min-width: 140px;
+.roomSelect {
+  flex: 1;
+  min-width: 200px;
   padding: $space-2 $space-2;
   border: 1px solid $border-color;
   border-radius: $border-radius;
@@ -159,23 +160,6 @@
   cursor: pointer;
 
   &:focus { outline: none; border-color: $color-primary; }
-}
-
-.audienceInput {
-  width: 120px;
-  padding: $space-2 $space-2;
-  border: 1px solid $border-color;
-  border-radius: $border-radius;
-  font-size: $font-size-base;
-  color: $color-gray-800;
-  background: $color-white;
-  font-family: $font-family;
-
-  &:focus {
-    outline: none;
-    border-color: $color-primary;
-    box-shadow: 0 0 0 3px rgba($color-primary, 0.1);
-  }
 }
 
 // ─── Shared small controls ────────────────────────────────────────────────────
