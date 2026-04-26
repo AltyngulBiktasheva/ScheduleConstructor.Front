@@ -7,11 +7,12 @@ import type { Teacher, TeacherWishes, TimeWish, AudienceWish } from '../../types
 import { emptyWishes } from '../../types/teacher';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { fetchTeachersAll, updateTeacherLocally } from '../../store/slices/teachersListSlice';
+import { fetchSchedules } from '../../store/slices/scheduleSlice';
 import { teacherPreferenceApi } from '../../api';
 import type { TeacherPreferencesViewDto } from '../../api';
 import { useEffect } from 'react';
 import styles from './Styles.module.scss';
-import type {DayOfWeek} from "../../api/types.ts";
+import type { DayOfWeek } from '../../api/api/types';
 
 // ─── Mapping helpers ──────────────────────────────────────────────────────────
 
@@ -35,7 +36,7 @@ function mapPreferencesToWishes(dto: TeacherPreferencesViewDto): TeacherWishes {
 
     if (ta.teacherPreferenceType === 'Preferred') wishes.preferredTimes.push(wish);
     else if (ta.teacherPreferenceType === 'Restricted') wishes.forbiddenTimes.push(wish);
-    else wishes.undesirableTimes.push(wish); // Flexible
+    else wishes.undesirableTimes.push(wish); // Undesirable
   }
 
   for (const rp of dto.teacherRoomPreferences ?? []) {
@@ -52,7 +53,7 @@ function mapPreferencesToWishes(dto: TeacherPreferencesViewDto): TeacherWishes {
   return wishes;
 }
 
-type PreferenceType = 'Preferred' | 'Flexible' | 'Restricted';
+type PreferenceType = 'Preferred' | 'Undesirable' | 'Restricted';
 
 function mapWishesToDto(teacherId: string, scheduleId: string, wishes: TeacherWishes) {
   const timeEntries: { teacherPreferenceType: PreferenceType; dayOfWeekTimeInterval: { dayOfWeek: DayOfWeek; timeInterval: { timeFrom: string; timeTo: string } } }[] = [];
@@ -70,7 +71,7 @@ function mapWishesToDto(teacherId: string, scheduleId: string, wishes: TeacherWi
   };
 
   pushTimes(wishes.preferredTimes, 'Preferred');
-  pushTimes(wishes.undesirableTimes, 'Flexible');
+  pushTimes(wishes.undesirableTimes, 'Undesirable');
   pushTimes(wishes.forbiddenTimes, 'Restricted');
 
   const roomEntries: { teacherPreferenceType: PreferenceType; roomId: string }[] = [];
@@ -82,7 +83,7 @@ function mapWishesToDto(teacherId: string, scheduleId: string, wishes: TeacherWi
   };
 
   pushRooms(wishes.preferredAudiences, 'Preferred');
-  pushRooms(wishes.undesirableAudiences, 'Flexible');
+  pushRooms(wishes.undesirableAudiences, 'Undesirable');
   pushRooms(wishes.forbiddenAudiences, 'Restricted');
 
   return {
@@ -107,6 +108,7 @@ export const TeacherWishesPage: React.FC = () => {
   const [wishesLoading, setWishesLoading] = useState(false);
 
   useEffect(() => {
+    dispatch(fetchSchedules());
     if (teachers.length === 0) {
       dispatch(fetchTeachersAll());
     }

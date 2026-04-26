@@ -21,7 +21,7 @@ export type LessonValidationCode =
   | 'MismatchedAcademicDisciplineTypeStudyWeeksCount';
 export type RoomType = 'Standard' | 'Multimedia' | 'Laboratory' | 'Amphitheater';
 export type StudentGroupType = 'Thread' | 'Group' | 'SemiGroup';
-export type TeacherPreferenceType = 'Restricted' | 'Flexible' | 'Preferred';
+export type TeacherPreferenceType = 'Restricted' | 'Undesirable' | 'Preferred';
 
 // ─── Common ───────────────────────────────────────────────────────────────────
 
