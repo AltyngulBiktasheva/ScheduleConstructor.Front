@@ -14,13 +14,10 @@ interface Props {
 export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel }) => {
   const [name, setName] = useState(initial?.name ?? '');
   const [streamId, setStreamId] = useState(initial?.streamId ?? (streams[0]?.id ?? ''));
-  const [cypher, setCypher] = useState('');
   const [subgroups, setSubgroups] = useState<Subgroup[]>(initial?.subgroups ?? []);
   const [studentCount, setStudentCount] = useState(initial?.studentCount ?? 25);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-
-  const selectedStream = streams.find((s) => s.id === streamId);
 
   const addSubgroup = () => {
     const newName = `${name}/${subgroups.length + 1}`;
@@ -48,7 +45,7 @@ export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel 
       id: initial?.id ?? crypto.randomUUID(),
       name: name.trim(),
       streamId,
-      cypher: cypher.trim() || undefined,
+      cypher: '00.00.00',
       subgroups,
       studentCount,
       disciplineIds: initial?.disciplineIds ?? [],
@@ -57,7 +54,7 @@ export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel 
 
   const handleReset = () => {
     setName(''); setStreamId(streams[0]?.id ?? '');
-    setCypher(''); setSubgroups([]); setStudentCount(25);
+    setSubgroups([]); setStudentCount(25);
     setErrors({}); setShowResetConfirm(false);
   };
 
@@ -85,20 +82,6 @@ export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel 
             : streams.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)
           }
         </select>
-      </FormField>
-
-      <FormField
-        label="Шифр"
-        hint={selectedStream?.cypher
-          ? `Оставьте пустым, чтобы использовать шифр потока: ${selectedStream.cypher}`
-          : 'Оставьте пустым, чтобы использовать шифр потока'}
-      >
-        <input
-          className="field-input"
-          value={cypher}
-          onChange={(e) => setCypher(e.target.value)}
-          placeholder={selectedStream?.cypher ?? 'Шифр группы'}
-        />
       </FormField>
 
       <FormField label="Количество студентов" required error={errors.studentCount}>

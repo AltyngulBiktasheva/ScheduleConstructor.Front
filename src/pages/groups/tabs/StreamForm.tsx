@@ -12,14 +12,12 @@ interface Props {
 
 export const StreamForm: React.FC<Props> = ({ initial, onSave, onCancel }) => {
   const [name, setName] = useState(initial?.name ?? '');
-  const [cypher, setCypher] = useState(initial?.cypher ?? '');
   const [semesterNumber, setSemesterNumber] = useState(initial?.semesterNumber ?? 1);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
     if (!name.trim()) errs.name = 'Обязательное поле';
-    if (!cypher.trim()) errs.cypher = 'Обязательное поле';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -29,7 +27,7 @@ export const StreamForm: React.FC<Props> = ({ initial, onSave, onCancel }) => {
     onSave({
       id: initial?.id ?? crypto.randomUUID(),
       name: name.trim(),
-      cypher: cypher.trim(),
+      cypher: '00.00.00',
       semesterNumber,
       groupIds: initial?.groupIds ?? [],
       disciplineIds: initial?.disciplineIds ?? [],
@@ -51,20 +49,6 @@ export const StreamForm: React.FC<Props> = ({ initial, onSave, onCancel }) => {
           placeholder="Поток РИ-2023"
           autoFocus
           onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-        />
-      </FormField>
-
-      <FormField
-        label="Направление обучения (шифр)"
-        required
-        error={errors.cypher}
-        hint="Например: 09.03.03"
-      >
-        <input
-          className="field-input"
-          value={cypher}
-          onChange={(e) => { setCypher(e.target.value); setErrors((p) => ({ ...p, cypher: '' })); }}
-          placeholder="09.03.03"
         />
       </FormField>
 

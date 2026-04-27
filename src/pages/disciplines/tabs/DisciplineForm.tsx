@@ -598,99 +598,93 @@ const CopySection: React.FC<CopySectionProps> = ({
               />
             </FormField>
           </div>
-
-          {/* Время + преподаватели + аудитории — только для постоянных */}
-          {copy.isStatic && (
-            <>
-              <FormField
-                label="Время проведения"
-                required
-                error={errors.occurrences}
-                hint={copy.weeklyCount > 1 ? `Можно добавить до ${copy.weeklyCount} промежутков` : undefined}
-              >
-                <div className={styles.occurrences}>
-                  {copy.occurrences.map((occ, i) => (
-                    <div key={i} className={styles.occurrenceRow}>
-                      <select
-                        className={styles.daySelect}
-                        value={occ.dayId}
-                        onChange={(e) => onUpdateOccurrence(i, { dayId: e.target.value })}
-                      >
-                        {DAYS.map((d) => (
-                          <option key={d.id} value={d.id}>{d.name}</option>
-                        ))}
-                      </select>
-                      <input
-                        className={styles.timeInput}
-                        value={occ.timeStart}
-                        onChange={(e) => onUpdateOccurrence(i, { timeStart: handleTimeInput(e.target.value) })}
-                        onBlur={(e) => onUpdateOccurrence(i, { timeStart: normalizeTime(e.target.value) })}
-                        placeholder="09:00"
-                        maxLength={5}
-                      />
-                      <span className={styles.timeSep}>—</span>
-                      <input
-                        className={styles.timeInput}
-                        value={occ.timeEnd}
-                        onChange={(e) => onUpdateOccurrence(i, { timeEnd: handleTimeInput(e.target.value) })}
-                        onBlur={(e) => onUpdateOccurrence(i, { timeEnd: normalizeTime(e.target.value) })}
-                        placeholder="10:30"
-                        maxLength={5}
-                      />
-                      <button className={styles.removeBtn} onClick={() => onRemoveOccurrence(i)} type="button">✕</button>
-                    </div>
-                  ))}
-                  {canAddOccurrence && (
-                    <button className={styles.addBtn} onClick={onAddOccurrence} type="button">
-                      + Добавить время
-                    </button>
-                  )}
+          <FormField
+            label="Время проведения"
+            required
+            error={errors.occurrences}
+            hint={copy.weeklyCount > 1 ? `Можно добавить до ${copy.weeklyCount} промежутков` : undefined}
+          >
+            <div className={styles.occurrences}>
+              {copy.occurrences.map((occ, i) => (
+                <div key={i} className={styles.occurrenceRow}>
+                  <select
+                    className={styles.daySelect}
+                    value={occ.dayId}
+                    onChange={(e) => onUpdateOccurrence(i, { dayId: e.target.value })}
+                  >
+                    {DAYS.map((d) => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                  <input
+                    className={styles.timeInput}
+                    value={occ.timeStart}
+                    onChange={(e) => onUpdateOccurrence(i, { timeStart: handleTimeInput(e.target.value) })}
+                    onBlur={(e) => onUpdateOccurrence(i, { timeStart: normalizeTime(e.target.value) })}
+                    placeholder="09:00"
+                    maxLength={5}
+                  />
+                  <span className={styles.timeSep}>—</span>
+                  <input
+                    className={styles.timeInput}
+                    value={occ.timeEnd}
+                    onChange={(e) => onUpdateOccurrence(i, { timeEnd: handleTimeInput(e.target.value) })}
+                    onBlur={(e) => onUpdateOccurrence(i, { timeEnd: normalizeTime(e.target.value) })}
+                    placeholder="10:30"
+                    maxLength={5}
+                  />
+                  <button className={styles.removeBtn} onClick={() => onRemoveOccurrence(i)} type="button">✕</button>
                 </div>
-              </FormField>
+              ))}
+              {canAddOccurrence && (
+                <button className={styles.addBtn} onClick={onAddOccurrence} type="button">
+                  + Добавить время
+                </button>
+              )}
+            </div>
+          </FormField>
 
-              <FormField label="Преподаватели" hint="Выберите одного или нескольких">
-                <div className={styles.checkList}>
-                  {teachersList.map((t) => (
-                    <label key={t.id} className={styles.checkLabel}>
-                      <input
-                        type="checkbox"
-                        checked={copy.teachers.some((f) => f.id === t.id)}
-                        onChange={() => onToggleTeacher({ id: t.id, name: t.name })}
-                      />
-                      {t.name}
-                    </label>
-                  ))}
-                </div>
-              </FormField>
+          <FormField label="Преподаватели" hint="Выберите одного или нескольких">
+            <div className={styles.checkList}>
+              {teachersList.map((t) => (
+                <label key={t.id} className={styles.checkLabel}>
+                  <input
+                    type="checkbox"
+                    checked={copy.teachers.some((f) => f.id === t.id)}
+                    onChange={() => onToggleTeacher({ id: t.id, name: t.name })}
+                  />
+                  {t.name}
+                </label>
+              ))}
+            </div>
+          </FormField>
 
-              <FormField label="Аудитории" hint="Можно добавить несколько">
-                <div className={styles.audienceList}>
-                  {copy.audiences.map((a, i) => (
-                    <div key={i} className={styles.audienceRow}>
-                      <select
-                        className={styles.roomSelect}
-                        value={a.roomId}
-                        onChange={(e) => {
-                          const roomId = e.target.value;
-                          const roomName = roomOptions.find((r) => r.id === roomId)?.label ?? '';
-                          onUpdateAudience(i, { roomId, roomName });
-                        }}
-                      >
-                        <option value="">— выберите аудиторию —</option>
-                        {roomOptions.map((r) => (
-                          <option key={r.id} value={r.id}>{r.label}</option>
-                        ))}
-                      </select>
-                      <button className={styles.removeBtn} onClick={() => onRemoveAudience(i)} type="button">✕</button>
-                    </div>
-                  ))}
-                  <button className={styles.addBtn} onClick={onAddAudience} type="button">
-                    + Добавить аудиторию
-                  </button>
+          <FormField label="Аудитории" hint="Можно добавить несколько">
+            <div className={styles.audienceList}>
+              {copy.audiences.map((a, i) => (
+                <div key={i} className={styles.audienceRow}>
+                  <select
+                    className={styles.roomSelect}
+                    value={a.roomId}
+                    onChange={(e) => {
+                      const roomId = e.target.value;
+                      const roomName = roomOptions.find((r) => r.id === roomId)?.label ?? '';
+                      onUpdateAudience(i, { roomId, roomName });
+                    }}
+                  >
+                    <option value="">— выберите аудиторию —</option>
+                    {roomOptions.map((r) => (
+                      <option key={r.id} value={r.id}>{r.label}</option>
+                    ))}
+                  </select>
+                  <button className={styles.removeBtn} onClick={() => onRemoveAudience(i)} type="button">✕</button>
                 </div>
-              </FormField>
-            </>
-          )}
+              ))}
+              <button className={styles.addBtn} onClick={onAddAudience} type="button">
+                + Добавить аудиторию
+              </button>
+            </div>
+          </FormField>
 
           {/* Комментарий */}
           <FormField label="Комментарий">
