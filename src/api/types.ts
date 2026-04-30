@@ -47,7 +47,7 @@ export interface DateWithTimeInterval {
 
 // ─── AcademicDiscipline ───────────────────────────────────────────────────────
 
-export interface AcademicDisciplineLessonBatchInfoDto {
+export interface LessonBatchInfoDto {
   studentGroupId: string;
   teacherId?: string | null;
   roomId?: string | null;
@@ -62,7 +62,7 @@ export interface AcademicDisciplinePayloadDto {
   totalHoursCount: number;
   studyWeeksCount: number;
   lessonsPerWeekCount: number;
-  lessonBatchInfoDto: AcademicDisciplineLessonBatchInfoDto;
+  lessonBatchInfoDto: LessonBatchInfoDto;
 }
 
 export interface AcademicDisciplineViewDto {

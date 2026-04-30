@@ -63,7 +63,7 @@ export interface RegistryDto<T> {
 
 // ─── AcademicDiscipline ───────────────────────────────────────────────────────
 
-export interface AcademicDisciplineLessonBatchInfoDto {
+export interface LessonBatchInfoDto {
   id?: string | null;
   studentGroupIds: string[];
   teacherId?: string | null;
@@ -77,7 +77,7 @@ export interface AcademicDisciplineLessonBatchInfoDto {
 
 export interface AcademicDisciplinePayloadDto {
   totalHoursCount: number;
-  lessonBatchInfo?: AcademicDisciplineLessonBatchInfoDto | null;
+  lessonBatchInfo?: LessonBatchInfoDto | null;
 }
 
 export interface AcademicDisciplineViewDto {
@@ -155,9 +155,9 @@ export interface LessonViewDto {
   id?: string | null;
   academicDisciplineId?: string | null;
   academicDisciplineType?: AcademicDisciplineType | null;
-  studentGroupId: string;
-  teacherId?: string | null;
-  roomId?: string | null;
+  studentGroupIds: string[];
+  teacherIds: string[];
+  roomIds: string[];
   dateWithTimeInterval?: DateWithTimeInterval | null;
   flexibilityType: LessonFlexibilityType;
   allowCombining: boolean;
@@ -263,17 +263,13 @@ export interface ScheduleDto {
 export interface ScheduleRegistryItemDto {
   id: string;
   name: string;
-  startsWithEvenWeek: boolean;
-  startDate: string; // YYYY-MM-DD
-  endDate: string;   // YYYY-MM-DD
+  dateInterval: DateInterval;
 }
 
 export interface SaveScheduleDto {
   id?: string | null;
   name: string;
-  startsWithEvenWeek: boolean;
-  startDate: string; // YYYY-MM-DD
-  endDate: string;   // YYYY-MM-DD
+  dateInterval: DateInterval;
 }
 
 // ─── StudentGroup ─────────────────────────────────────────────────────────────
