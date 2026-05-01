@@ -35,7 +35,6 @@ export const DisciplineViewModal: React.FC<Props> = ({
           ...discipline,
           name: data.name,
           allowedLessonTypes: data.allowedLessonTypes,
-          cypher: data.cypher,
           semesterNumber: data.semesterNumber,
         });
         setMode('view');
@@ -46,7 +45,6 @@ export const DisciplineViewModal: React.FC<Props> = ({
           <RootDisciplineForm
             initial={{
               name: discipline.name,
-              cypher: discipline.cypher ?? '00.00.00',
               semesterNumber: discipline.semesterNumber ?? 1,
               allowedLessonTypes: discipline.allowedLessonTypes ?? [],
             }}

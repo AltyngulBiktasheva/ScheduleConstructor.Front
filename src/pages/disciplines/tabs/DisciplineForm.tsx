@@ -259,7 +259,6 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
       isRoot: false,
       forType: 'group',
       forIds: first.groupIds,
-      cypher: selectedRoot?.cypher,
       semesterNumber: selectedRoot?.semesterNumber,
       allowedLessonTypes: undefined,
       roomId: first.audiences[0]?.roomId || undefined,

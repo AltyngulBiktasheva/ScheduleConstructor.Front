@@ -42,7 +42,6 @@ function mapDto(dto: AcademicDisciplineRegistryItemDto): { root: Discipline; chi
     id: dto.id,
     name: dto.name,
     isRoot: true,
-    cypher: dto.cypher,
     semesterNumber: dto.semesterNumber,
     allowedLessonTypes: dto.allowedLessonTypes,
     forType: 'group',

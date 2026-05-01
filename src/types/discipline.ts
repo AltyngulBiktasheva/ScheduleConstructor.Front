@@ -31,7 +31,6 @@ export interface Discipline {
 
   // ── Корневая дисциплина (шаблон) ──────────────────────────────────────
   isRoot?: boolean;
-  cypher?: string;
   semesterNumber?: number;
   allowedLessonTypes?: AcademicDisciplineType[];
 

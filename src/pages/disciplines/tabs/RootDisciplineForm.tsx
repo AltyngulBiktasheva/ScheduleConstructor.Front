@@ -20,7 +20,6 @@ const ALL_TYPES: AcademicDisciplineType[] = ['Lecture', 'Practice', 'Lab', 'Exam
 
 export interface RootDisciplineFormData {
   name: string;
-  cypher: string;
   semesterNumber: number;
   allowedLessonTypes: AcademicDisciplineType[];
 }
@@ -56,7 +55,6 @@ export const RootDisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel 
     if (!validate()) return;
     onSave({
       name: name.trim(),
-      cypher: '00.00.00',
       semesterNumber: 1,
       allowedLessonTypes,
     });

@@ -7,7 +7,6 @@ export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 export type LessonFlexibilityType = 'Fixed' | 'Flexible';
 export type LessonValidationErrorType = 'Warning' | 'Error';
 export type LessonValidationCode =
-  | 'MismatchedCyphers'
   | 'MismatchedSemesterNumber'
   | 'MismatchedAcademicDisciplineType'
   | 'FixedLessonTypeConflictByGroup'
@@ -68,7 +67,6 @@ export interface AcademicDisciplinePayloadDto {
 export interface AcademicDisciplineViewDto {
   id?: string | null;
   name?: string | null;
-  cypher?: string | null;
   semester: number;
   academicDisciplineTargetType: AcademicDisciplineTargetType;
   lecturePayload?: AcademicDisciplinePayloadDto;
@@ -83,7 +81,6 @@ export interface SaveAcademicDisciplineDto {
   id?: string | null;
   scheduleId: string;
   name?: string | null;
-  cypher?: string | null;
   semester: number;
   academicDisciplineTargetType: AcademicDisciplineTargetType;
   lecturePayload?: AcademicDisciplinePayloadDto;
@@ -198,7 +195,6 @@ export interface StudentGroupViewDto {
   name?: string | null;
   semesterNumber: number;
   studentGroupType: StudentGroupType;
-  cypher?: string | null;
   children?: StudentGroupShortViewDto[] | null;
 }
 
@@ -208,7 +204,6 @@ export interface SaveStudentGroupDto {
   name?: string | null;
   semesterNumber: number;
   studentGroupType: StudentGroupType;
-  cypher?: string | null;
   parentId?: string | null;
   childIds?: string[] | null;
 }

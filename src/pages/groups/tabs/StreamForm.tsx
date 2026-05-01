@@ -27,7 +27,6 @@ export const StreamForm: React.FC<Props> = ({ initial, onSave, onCancel }) => {
     onSave({
       id: initial?.id ?? crypto.randomUUID(),
       name: name.trim(),
-      cypher: '00.00.00',
       semesterNumber,
       groupIds: initial?.groupIds ?? [],
       disciplineIds: initial?.disciplineIds ?? [],

@@ -73,7 +73,6 @@ export function useDisciplines() {
         id: crypto.randomUUID(),
         name: data.name,
         isRoot: true,
-        cypher: data.cypher,
         semesterNumber: data.semesterNumber,
         allowedLessonTypes: data.allowedLessonTypes,
         forType: 'group',
@@ -96,7 +95,6 @@ export function useDisciplines() {
           dto: {
             scheduleId,
             name: data.name,
-            cypher: data.cypher,
             semesterNumber: data.semesterNumber,
             academicDisciplineTargetType: 'General',
             allowedLessonTypes: data.allowedLessonTypes,
@@ -173,7 +171,6 @@ export function useDisciplines() {
               id: updated.id,
               scheduleId,
               name: updated.name,
-              cypher: updated.cypher ?? '00.00.00',
               semesterNumber: updated.semesterNumber ?? 1,
               academicDisciplineTargetType: 'General',
               allowedLessonTypes: updated.allowedLessonTypes ?? [],
