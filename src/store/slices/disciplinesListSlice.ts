@@ -31,11 +31,12 @@ const initialState: DisciplinesListState = {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const PAYLOAD_TYPES: { key: 'lecturePayload' | 'practicePayload' | 'labPayload'; type: AcademicDisciplineType }[] = [
-  { key: 'lecturePayload',  type: 'Lecture'  },
-  { key: 'practicePayload', type: 'Practice' },
-  { key: 'labPayload',      type: 'Lab'      },
-];
+/** Маппинг типов с payload-полем (Lecture/Practice/Lab) */
+const PAYLOAD_KEY_MAP: Partial<Record<AcademicDisciplineType, 'lecturePayload' | 'practicePayload' | 'labPayload'>> = {
+  Lecture:  'lecturePayload',
+  Practice: 'practicePayload',
+  Lab:      'labPayload',
+};
 
 function mapDto(dto: AcademicDisciplineRegistryItemDto): { root: Discipline; children: Discipline[] } {
   const root: Discipline = {
@@ -57,32 +58,56 @@ function mapDto(dto: AcademicDisciplineRegistryItemDto): { root: Discipline; chi
 
   const children: Discipline[] = [];
 
-  for (const { key, type } of PAYLOAD_TYPES) {
-    const payload = dto[key];
-    if (!payload) continue;
-    const batch = payload.lessonBatchInfo;
+  for (const type of dto.allowedLessonTypes) {
     const childName = `${dto.name} (${LESSON_TYPE_LABELS[type] ?? type})`;
+    const payloadKey = PAYLOAD_KEY_MAP[type];
 
-    children.push({
-      // Фронтовый ID: если есть lessonBatchInfo.id — используем его, иначе генерируем
-      id: batch?.id ?? `${dto.id}_${type}`,
-      lessonId: batch?.id ?? undefined,
-      name: childName,
-      isRoot: false,
-      parentId: dto.id,
-      academicDisciplineId: dto.id,
-      lessonType: type,
-      totalHoursCount: payload.totalHoursCount,
-      forType: 'group',
-      forIds: batch?.studentGroupIds ?? [],
-      teachers: [],
-      audiences: [],
-      isStatic: false,
-      canOverlap: batch?.allowCombining ?? false,
-      repeat: 'every-week',
-      weeklyCount: 1,
-      comment: dto.comment ?? undefined,
-    });
+    if (payloadKey) {
+      // Lecture / Practice / Lab — показываем только если есть lessonBatchInfo (есть копии занятий)
+      const payload = dto[payloadKey];
+      if (!payload?.lessonBatchInfo) continue;
+      const batch = payload.lessonBatchInfo;
+
+      children.push({
+        id: batch.id ?? `${dto.id}_${type}`,
+        lessonId: batch.id ?? undefined,
+        name: childName,
+        isRoot: false,
+        parentId: dto.id,
+        academicDisciplineId: dto.id,
+        lessonType: type,
+        totalHoursCount: payload.totalHoursCount,
+        forType: 'group',
+        forIds: batch.studentGroupIds ?? [],
+        teachers: [],
+        audiences: [],
+        isStatic: false,
+        canOverlap: batch.allowCombining ?? false,
+        repeat: 'every-week',
+        weeklyCount: 1,
+        comment: dto.comment ?? undefined,
+      });
+    } else {
+      // Exam / Test — показываем всегда, если тип есть в allowedLessonTypes
+      children.push({
+        id: `${dto.id}_${type}`,
+        name: childName,
+        isRoot: false,
+        parentId: dto.id,
+        academicDisciplineId: dto.id,
+        lessonType: type,
+        totalHoursCount: undefined,
+        forType: 'group',
+        forIds: [],
+        teachers: [],
+        audiences: [],
+        isStatic: false,
+        canOverlap: false,
+        repeat: 'every-week',
+        weeklyCount: 1,
+        comment: dto.comment ?? undefined,
+      });
+    }
   }
 
   return { root, children };
