@@ -19,6 +19,12 @@ import {
 import { saveLesson } from '../store/slices/lessonSlice';
 import { academicDisciplineApi } from '../api';
 import { fetchSchedules, saveSchedule } from '../store/slices/scheduleSlice';
+import type {
+  AcademicDisciplinePayloadDto,
+  DayOfWeek,
+  DisciplineLessonRepeatType,
+  LessonBatchInfoDto,
+} from '../api';
 import type { Discipline } from '../types/discipline';
 import type { RootDisciplineFormData } from '../pages/disciplines/tabs/RootDisciplineForm';
 
@@ -33,6 +39,96 @@ function displayToApiDate(display: string): string {
 /** HH:MM → HH:MM (уже правильный формат для бэка) */
 function padTime(t: string): string {
   return t.length === 5 ? t : '09:00';
+}
+
+// ─── Helpers для /academic-discipline/save ────────────────────────────────────
+
+const DAY_ID_TO_DOW: Record<string, DayOfWeek> = {
+  mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6, sun: 0,
+};
+
+function mapRepeatType(repeat: string | undefined): DisciplineLessonRepeatType {
+  switch (repeat) {
+    case 'even-weeks': return 2; // EvenWeeks
+    case 'odd-weeks':  return 3; // OddWeeks
+    case 'once':       return 4; // Once
+    default:           return 1; // Weekly
+  }
+}
+
+function buildLessonBatchInfo(
+  discipline: Discipline,
+  dateInterval: { dateFrom: string; dateTo: string },
+): LessonBatchInfoDto {
+  return {
+    id: discipline.lessonId ?? null,
+    studentGroupIds: discipline.forIds,
+    teacherId: discipline.teachers[0]?.id ?? null,
+    roomId: discipline.roomId ?? null,
+    dayOfWeekTimeIntervals: discipline.occurrences?.length
+      ? discipline.occurrences.map((occ) => ({
+          dayOfWeek: DAY_ID_TO_DOW[occ.dayId] ?? 1,
+          timeInterval: { timeFrom: padTime(occ.timeStart), timeTo: padTime(occ.timeEnd) },
+        }))
+      : null,
+    repeatType: mapRepeatType(discipline.repeat),
+    dateInterval,
+    allowCombining: discipline.canOverlap,
+    hoursCost: discipline.totalHoursCount ?? 0,
+  };
+}
+
+/** Резолвит даты: пользовательские значения имеют приоритет, недостающие берутся из расписания */
+function resolveDateInterval(
+  dateRange: { from?: string; to?: string } | undefined,
+  scheduleDateInterval: { dateFrom: string; dateTo: string } | undefined,
+): { dateFrom: string; dateTo: string } {
+  const userFrom = dateRange?.from ? displayToApiDate(dateRange.from) : '';
+  const userTo   = dateRange?.to   ? displayToApiDate(dateRange.to)   : '';
+  return {
+    dateFrom: userFrom || scheduleDateInterval?.dateFrom || '',
+    dateTo:   userTo   || scheduleDateInterval?.dateTo   || '',
+  };
+}
+
+/** Если payload null — возвращает дефолтный объект с пустым массивом */
+function payloadOrDefault(payload: AcademicDisciplinePayloadDto | null | undefined): AcademicDisciplinePayloadDto {
+  return payload ?? { totalHoursCount: 0, lessonBatchInfos: [] };
+}
+
+/** Собирает и отправляет /academic-discipline/save для Lecture/Practice/Lab */
+async function saveAsPayload(
+  discipline: Discipline,
+  scheduleId: string,
+  rootDisciplines: Discipline[],
+  dateInterval: { dateFrom: string; dateTo: string },
+): Promise<void> {
+  const parentId = (discipline.parentId ?? discipline.academicDisciplineId)!;
+  const lessonType = discipline.lessonType!;
+
+  const { data: viewDto } = await academicDisciplineApi.getAcademicDiscipline({
+    academicDisciplineId: parentId,
+  });
+  const root = rootDisciplines.find((r) => r.id === parentId);
+
+  const updatedPayload: AcademicDisciplinePayloadDto = {
+    totalHoursCount: discipline.totalHoursCount ?? 0,
+    lessonBatchInfos: [buildLessonBatchInfo(discipline, dateInterval)],
+  };
+
+  await academicDisciplineApi.saveAcademicDiscipline({
+    id: parentId,
+    scheduleId,
+    name: viewDto.name ?? root?.name,
+    cypher: viewDto.cypher ?? undefined,
+    semesterNumber: viewDto.semester,
+    academicDisciplineTargetType: viewDto.academicDisciplineTargetType,
+    allowedLessonTypes: root?.allowedLessonTypes,
+    lecturePayload:  lessonType === 'Lecture'  ? updatedPayload : payloadOrDefault(viewDto.lecturePayload),
+    practicePayload: lessonType === 'Practice' ? updatedPayload : payloadOrDefault(viewDto.practicePayload),
+    labPayload:      lessonType === 'Lab'      ? updatedPayload : payloadOrDefault(viewDto.labPayload),
+    comment: viewDto.comment ?? undefined,
+  });
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -105,53 +201,55 @@ export function useDisciplines() {
     [dispatch, getOrCreateScheduleId],
   );
 
-  // ── Обычная дисциплина (занятие) — /lesson/save ────────────────────────────
+  // ── Обычная дисциплина ────────────────────────────────────────────────────
 
   const add = useCallback(
     async (discipline: Discipline) => {
       const scheduleId = await getOrCreateScheduleId();
       if (!scheduleId) return;
 
-      // Определяем дату начала и время из первого occurrence (если статичная)
-      const occ = discipline.occurrences?.[0];
-      const dateFrom = discipline.dateRange?.from
-        ? displayToApiDate(discipline.dateRange.from)
-        : new Date().toISOString().split('T')[0];
+      const lessonType = discipline.lessonType;
 
-      const dateWithTimeInterval = occ
-        ? {
-            date: dateFrom,
-            timeInterval: {
-              timeFrom: padTime(occ.timeStart),
-              timeTo: padTime(occ.timeEnd),
-            },
-          }
-        : null;
+      if (lessonType === 'Lecture' || lessonType === 'Practice' || lessonType === 'Lab') {
+        // → /academic-discipline/save: обновляем нужный payload корневой дисциплины
+        const selectedSchedule = scheduleList.find((sc) => sc.id === selectedScheduleId);
+        const dateInterval = resolveDateInterval(discipline.dateRange, selectedSchedule?.dateInterval);
+        await saveAsPayload(discipline, scheduleId, rootDisciplines, dateInterval);
+        dispatch(fetchDisciplinesAll());
+      } else {
+        // Exam / Test → /lesson/save (текущее поведение)
+        const occ = discipline.occurrences?.[0];
+        const dateFrom = discipline.dateRange?.from
+          ? displayToApiDate(discipline.dateRange.from)
+          : new Date().toISOString().split('T')[0];
 
-      const tempId = crypto.randomUUID();
-      const tempDiscipline: Discipline = { ...discipline, id: tempId };
-      dispatch(addDisciplineLocally(tempDiscipline));
-      markCreated(tempId);
+        const dateWithTimeInterval = occ
+          ? { date: dateFrom, timeInterval: { timeFrom: padTime(occ.timeStart), timeTo: padTime(occ.timeEnd) } }
+          : null;
 
-      await dispatch(
-        saveLesson({
-          scheduleId,
-          academicDisciplineId: discipline.parentId,
-          academicDisciplineType: discipline.lessonType,
-          studentGroupIds: discipline.forIds,
-          teacherId: discipline.teachers[0]?.id ?? undefined,
-          roomId: discipline.roomId ?? undefined,
-          dateWithTimeInterval: dateWithTimeInterval ?? undefined,
-          flexibilityType: discipline.isStatic ? 'Fixed' : 'Flexible',
-          allowCombining: discipline.canOverlap,
-          hoursCost: discipline.totalHoursCount ?? 0,
-        }),
-      );
+        const tempId = crypto.randomUUID();
+        dispatch(addDisciplineLocally({ ...discipline, id: tempId }));
+        markCreated(tempId);
 
-      // Перезагружаем список, чтобы получить реальный ID с бэка
-      dispatch(fetchDisciplinesAll());
+        await dispatch(
+          saveLesson({
+            scheduleId,
+            academicDisciplineId: discipline.parentId,
+            academicDisciplineType: discipline.lessonType,
+            studentGroupIds: discipline.forIds,
+            teacherId: discipline.teachers[0]?.id ?? undefined,
+            roomId: discipline.roomId ?? undefined,
+            dateWithTimeInterval: dateWithTimeInterval ?? undefined,
+            flexibilityType: discipline.isStatic ? 'Fixed' : 'Flexible',
+            allowCombining: discipline.canOverlap,
+            hoursCost: discipline.totalHoursCount ?? 0,
+          }),
+        );
+
+        dispatch(fetchDisciplinesAll());
+      }
     },
-    [dispatch, getOrCreateScheduleId],
+    [dispatch, getOrCreateScheduleId, rootDisciplines],
   );
 
   // ── Обновление ─────────────────────────────────────────────────────────────
@@ -182,42 +280,46 @@ export function useDisciplines() {
           }),
         );
       } else {
-        const occ = updated.occurrences?.[0];
-        const dateFrom = updated.dateRange?.from
-          ? displayToApiDate(updated.dateRange.from)
-          : new Date().toISOString().split('T')[0];
+        const lessonType = updated.lessonType;
 
-        const dateWithTimeInterval = occ
-          ? {
-              date: dateFrom,
-              timeInterval: {
-                timeFrom: padTime(occ.timeStart),
-                timeTo: padTime(occ.timeEnd),
-              },
-            }
-          : null;
+        if (lessonType === 'Lecture' || lessonType === 'Practice' || lessonType === 'Lab') {
+          // → /academic-discipline/save
+          const selectedSchedule = scheduleList.find((sc) => sc.id === selectedScheduleId);
+          const dateInterval = resolveDateInterval(updated.dateRange, selectedSchedule?.dateInterval);
+          await saveAsPayload(updated, scheduleId, rootDisciplines, dateInterval);
+          dispatch(fetchDisciplinesAll());
+        } else {
+          // Exam / Test → /lesson/save
+          const occ = updated.occurrences?.[0];
+          const dateFrom = updated.dateRange?.from
+            ? displayToApiDate(updated.dateRange.from)
+            : new Date().toISOString().split('T')[0];
 
-        await dispatch(
-          saveLesson({
-            // lessonId = реальный ID занятия из lessonBatchInfo
-            id: updated.lessonId ?? undefined,
-            scheduleId,
-            academicDisciplineId: updated.parentId ?? updated.academicDisciplineId,
-            academicDisciplineType: updated.lessonType,
-            studentGroupIds: updated.forIds,
-            teacherId: updated.teachers[0]?.id ?? undefined,
-            roomId: updated.roomId ?? undefined,
-            dateWithTimeInterval: dateWithTimeInterval ?? undefined,
-            flexibilityType: updated.isStatic ? 'Fixed' : 'Flexible',
-            allowCombining: updated.canOverlap,
-            hoursCost: updated.totalHoursCount ?? 0,
-          }),
-        );
+          const dateWithTimeInterval = occ
+            ? { date: dateFrom, timeInterval: { timeFrom: padTime(occ.timeStart), timeTo: padTime(occ.timeEnd) } }
+            : null;
 
-        dispatch(fetchDisciplinesAll());
+          await dispatch(
+            saveLesson({
+              id: updated.lessonId ?? undefined,
+              scheduleId,
+              academicDisciplineId: updated.parentId ?? updated.academicDisciplineId,
+              academicDisciplineType: updated.lessonType,
+              studentGroupIds: updated.forIds,
+              teacherId: updated.teachers[0]?.id ?? undefined,
+              roomId: updated.roomId ?? undefined,
+              dateWithTimeInterval: dateWithTimeInterval ?? undefined,
+              flexibilityType: updated.isStatic ? 'Fixed' : 'Flexible',
+              allowCombining: updated.canOverlap,
+              hoursCost: updated.totalHoursCount ?? 0,
+            }),
+          );
+
+          dispatch(fetchDisciplinesAll());
+        }
       }
     },
-    [dispatch, getOrCreateScheduleId],
+    [dispatch, getOrCreateScheduleId, rootDisciplines],
   );
 
   // ── Удаление ───────────────────────────────────────────────────────────────

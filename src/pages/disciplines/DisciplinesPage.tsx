@@ -6,6 +6,7 @@ import { DisciplinesList } from './tabs/DisciplinesList';
 import { DisciplineForm } from './tabs/DisciplineForm';
 import { RootDisciplineForm } from './tabs/RootDisciplineForm';
 import { useDisciplines } from '../../hooks/useDisciplines';
+import { useAppSelector } from '../../store/hooks';
 import type { Discipline } from '../../types/discipline';
 import type { RootDisciplineFormData } from './tabs/RootDisciplineForm';
 import styles from './Styles.module.scss';
@@ -19,6 +20,7 @@ const TABS = [
 export const DisciplinesPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('list');
   const { rootDisciplines, disciplines, newlyCreatedId, add, addRoot, update, remove } = useDisciplines();
+  const selectedScheduleId = useAppSelector((s) => s.schedule.selectedScheduleId);
 
   const handleCreateRoot = (data: RootDisciplineFormData) => {
     void addRoot(data);
@@ -34,24 +36,32 @@ export const DisciplinesPage: React.FC = () => {
     <div className={styles.page}>
       <PageHeader title="Дисциплины" subtitle="Управление учебными дисциплинами" />
       <ScheduleSelector />
-      <Tabs tabs={TABS} activeId={activeTab} onChange={setActiveTab} />
-      <div className={styles.content}>
-        {activeTab === 'list' && (
-          <DisciplinesList
-            rootDisciplines={rootDisciplines}
-            disciplines={disciplines}
-            newlyCreatedId={newlyCreatedId}
-            onUpdate={update}
-            onDelete={remove}
-          />
-        )}
-        {activeTab === 'create-root' && (
-          <RootDisciplineForm onSave={handleCreateRoot} />
-        )}
-        {activeTab === 'create' && (
-          <DisciplineForm onSave={handleCreate} />
-        )}
-      </div>
+      {!selectedScheduleId ? (
+        <div className={styles.noSchedule}>
+          Для работы с дисциплинами необходимо выбрать проект расписания
+        </div>
+      ) : (
+        <>
+          <Tabs tabs={TABS} activeId={activeTab} onChange={setActiveTab} />
+          <div className={styles.content}>
+            {activeTab === 'list' && (
+              <DisciplinesList
+                rootDisciplines={rootDisciplines}
+                disciplines={disciplines}
+                newlyCreatedId={newlyCreatedId}
+                onUpdate={update}
+                onDelete={remove}
+              />
+            )}
+            {activeTab === 'create-root' && (
+              <RootDisciplineForm onSave={handleCreateRoot} />
+            )}
+            {activeTab === 'create' && (
+              <DisciplineForm onSave={handleCreate} />
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 };

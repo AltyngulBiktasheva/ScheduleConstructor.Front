@@ -236,8 +236,6 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
     if (first.groupIds.length === 0) errs.group = 'Выберите хотя бы одну группу';
     if (first.isStatic && first.occurrences.length === 0)
       errs.occurrences = 'Для постоянной дисциплины необходимо указать время';
-    if (!first.dateRange?.from) errs.dateFrom = 'Обязательное поле';
-    if (!first.dateRange?.to) errs.dateTo = 'Обязательное поле';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -574,7 +572,7 @@ const CopySection: React.FC<CopySectionProps> = ({
 
           {/* Даты */}
           <div className={styles.row2}>
-            <FormField label="Дата начала" required error={errors.dateFrom}>
+            <FormField label="Дата начала" hint="Если не указана — берётся из проекта расписания">
               <input
                 className="field-input"
                 value={copy.dateRange?.from ?? ''}
@@ -585,7 +583,7 @@ const CopySection: React.FC<CopySectionProps> = ({
                 maxLength={10}
               />
             </FormField>
-            <FormField label="Дата окончания" required error={errors.dateTo}>
+            <FormField label="Дата окончания" hint="Если не указана — берётся из проекта расписания">
               <input
                 className="field-input"
                 value={copy.dateRange?.to ?? ''}

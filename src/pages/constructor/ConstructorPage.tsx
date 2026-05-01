@@ -9,9 +9,9 @@ import { GroupSlice } from './slices/GroupSlice';
 import styles from './Styles.module.scss';
 
 const TABS = [
-  { id: 'classrooms', label: 'Аудитории' },
-  { id: 'teachers', label: 'Преподаватели' },
   { id: 'groups', label: 'Группы' },
+  { id: 'teachers', label: 'Преподаватели' },
+  { id: 'classrooms', label: 'Аудитории' },
 ];
 
 type SliceType = 'classrooms' | 'teachers' | 'groups';
@@ -23,7 +23,7 @@ interface SliceSelection {
 }
 
 export const ConstructorPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<SliceType>('classrooms');
+  const [activeTab, setActiveTab] = useState<SliceType>('groups');
   const [selection, setSelection] = useState<SliceSelection | null>(null);
 
   const handleSelect = (entityId: string | string[], label: string) => {

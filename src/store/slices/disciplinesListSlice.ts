@@ -63,10 +63,10 @@ function mapDto(dto: AcademicDisciplineRegistryItemDto): { root: Discipline; chi
     const payloadKey = PAYLOAD_KEY_MAP[type];
 
     if (payloadKey) {
-      // Lecture / Practice / Lab — показываем только если есть lessonBatchInfo (есть копии занятий)
+      // Lecture / Practice / Lab — показываем только если есть хотя бы одна копия занятия
       const payload = dto[payloadKey];
-      if (!payload?.lessonBatchInfo) continue;
-      const batch = payload.lessonBatchInfo;
+      if (!payload?.lessonBatchInfos?.length) continue;
+      const batch = payload.lessonBatchInfos[0];
 
       children.push({
         id: batch.id ?? `${dto.id}_${type}`,

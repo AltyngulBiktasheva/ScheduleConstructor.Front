@@ -2,7 +2,7 @@
 
 export type AcademicDisciplineTargetType = 'General' | 'Specialized' | 'ByChoice' | 'Optional';
 export type AcademicDisciplineType = 'Lecture' | 'Practice' | 'Lab' | 'Exam' | 'Test';
-export type DisciplineLessonRepeatType = 'Weekly' | 'EveryOtherWeek' | 'Once' | 'Custom';
+export type DisciplineLessonRepeatType = 1 | 2 | 3 | 4; // 1=Weekly, 2=EvenWeeks, 3=OddWeeks, 4=Once
 export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 export type LessonFlexibilityType = 'Fixed' | 'Flexible';
 export type LessonValidationErrorType = 'Warning' | 'Error';
@@ -76,7 +76,7 @@ export interface LessonBatchInfoDto {
 
 export interface AcademicDisciplinePayloadDto {
   totalHoursCount: number;
-  lessonBatchInfo?: LessonBatchInfoDto | null;
+  lessonBatchInfos: LessonBatchInfoDto[];
 }
 
 export interface AcademicDisciplineViewDto {
