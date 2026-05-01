@@ -31,8 +31,8 @@ function apiToDisplay(apiDate: string): string {
 
 export const ScheduleForm: React.FC<Props> = ({ initial, onSave, onCancel }) => {
   const [name, setName] = useState(initial?.name ?? '');
-  const [dateFrom, setDateFrom] = useState(initial ? apiToDisplay(initial.startDate) : '');
-  const [dateTo, setDateTo] = useState(initial ? apiToDisplay(initial.endDate) : '');
+  const [dateFrom, setDateFrom] = useState(initial ? apiToDisplay(initial.dateInterval.dateFrom) : '');
+  const [dateTo, setDateTo] = useState(initial ? apiToDisplay(initial.dateInterval.dateTo) : '');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
@@ -50,9 +50,7 @@ export const ScheduleForm: React.FC<Props> = ({ initial, onSave, onCancel }) => 
     onSave({
       id: initial?.id ?? undefined,
       name: name.trim(),
-      startsWithEvenWeek: false,
-      startDate: displayToApi(dateFrom),
-      endDate: displayToApi(dateTo),
+      dateInterval: { dateFrom: displayToApi(dateFrom), dateTo: displayToApi(dateTo) },
     });
   };
 

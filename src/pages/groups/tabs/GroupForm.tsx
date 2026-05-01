@@ -89,10 +89,10 @@ export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel 
           <input
             className="field-input"
             type="number"
-            min={1}
+            min={0}
             max={999}
             value={studentCount}
-            onChange={(e) => setStudentCount(Math.max(1, parseInt(e.target.value) || 1))}
+            onChange={(e) => setStudentCount(parseInt(e.target.value) || 0)}
             style={{ width: 120 }}
           />
           <span className={styles.unit}>чел.</span>

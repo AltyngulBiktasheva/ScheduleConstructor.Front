@@ -109,8 +109,8 @@ export const ClassroomForm: React.FC<Props> = ({ initial, onSave, onCancel }) =>
 
       <FormField label="Вместимость" required error={errors.capacity} hint="Максимальное количество человек">
         <div className={styles.capacityRow}>
-          <input className="field-input" type="number" min={1} max={999} value={form.capacity}
-            onChange={(e) => set('capacity', Math.max(1, parseInt(e.target.value) || 1))} style={{ width: 120 }} />
+          <input className="field-input" type="number" min={0} max={999} value={form.capacity}
+            onChange={(e) => set('capacity', parseInt(e.target.value) || 0)} style={{ width: 120 }} />
           <span className={styles.capacityUnit}>чел.</span>
         </div>
       </FormField>

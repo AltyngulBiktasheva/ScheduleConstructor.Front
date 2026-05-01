@@ -501,7 +501,7 @@ const CopySection: React.FC<CopySectionProps> = ({
               <input
                 className="field-input"
                 type="number"
-                min={1}
+                min={0}
                 value={copy.totalHoursCount ?? ''}
                 onChange={(e) => onUpdate({ totalHoursCount: e.target.value ? parseInt(e.target.value) : undefined })}
                 placeholder="36"
@@ -559,11 +559,11 @@ const CopySection: React.FC<CopySectionProps> = ({
                 <input
                   className="field-input"
                   type="number"
-                  min={1}
+                  min={0}
                   max={6}
                   value={copy.weeklyCount}
                   onChange={(e) => {
-                    const n = Math.max(1, Math.min(6, parseInt(e.target.value) || 1));
+                    const n = Math.min(6, parseInt(e.target.value) || 0);
                     onUpdate({ weeklyCount: n, occurrences: copy.occurrences.slice(0, n) });
                   }}
                   style={{ width: 72 }}

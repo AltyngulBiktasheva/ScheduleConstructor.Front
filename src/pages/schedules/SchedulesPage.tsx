@@ -54,9 +54,7 @@ export const SchedulesPage: React.FC = () => {
     handleUpdate({
       id: updated.id,
       name: updated.name,
-      startsWithEvenWeek: updated.startsWithEvenWeek,
-      startDate: updated.startDate,
-      endDate: updated.endDate,
+      dateInterval: updated.dateInterval,
     });
   };
 
