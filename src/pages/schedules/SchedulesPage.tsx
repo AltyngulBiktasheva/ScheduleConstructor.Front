@@ -17,7 +17,7 @@ export const SchedulesPage: React.FC = () => {
   const location = useLocation();
   const initialTab = (location.state as { tab?: string } | null)?.tab ?? 'list';
   const [activeTab, setActiveTab] = useState(initialTab);
-  const { list, saving, fetchAll, save, delete: deleteSchedule } = useSchedule();
+  const { list, fetchAll, save, delete: deleteSchedule } = useSchedule();
   const [newlyCreatedId, setNewlyCreatedId] = useState<string | null>(null);
   const prevListRef = useRef<ScheduleRegistryItemDto[]>([]);
 
@@ -54,9 +54,7 @@ export const SchedulesPage: React.FC = () => {
     handleUpdate({
       id: updated.id,
       name: updated.name,
-      startsWithEvenWeek: updated.startsWithEvenWeek,
-      startDate: updated.startDate,
-      endDate: updated.endDate,
+      dateInterval: updated.dateInterval,
     });
   };
 

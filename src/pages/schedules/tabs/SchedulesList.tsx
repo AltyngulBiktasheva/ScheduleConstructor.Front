@@ -53,10 +53,10 @@ export const SchedulesList: React.FC<Props> = ({ schedules, newlyCreatedId, onDe
                   onClick={() => setSelected(s)}
                 >
                   <td className={styles.name}>{s.name}</td>
-                  <td className={styles.secondary}>{formatDate(s.startDate)}</td>
-                  <td className={styles.secondary}>{formatDate(s.endDate)}</td>
+                  <td className={styles.secondary}>{formatDate(s.dateInterval.dateFrom)}</td>
+                  <td className={styles.secondary}>{formatDate(s.dateInterval.dateTo)}</td>
                   <td className={styles.secondary}>
-                    {s.startsWithEvenWeek ? 'Чётная' : 'Нечётная'}
+                    {'Нечётная'}
                   </td>
                 </tr>
               ))}

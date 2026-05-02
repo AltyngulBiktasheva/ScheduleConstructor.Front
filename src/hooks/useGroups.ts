@@ -44,7 +44,7 @@ export function useGroups() {
   const getOrCreateScheduleId = useCallback(async (): Promise<string | null> => {
     if (selectedScheduleId) return selectedScheduleId;
     if (scheduleList.length > 0) return scheduleList[0].id;
-    await dispatch(saveSchedule({ name: 'Основное расписание' }));
+    await dispatch(saveSchedule({ name: 'Основное расписание', dateInterval: { dateFrom: '2026-01-01', dateTo: '2026-12-12' } }));
     const updated = await dispatch(fetchSchedules());
     const list = (updated.payload as typeof scheduleList) ?? [];
     return list[0]?.id ?? null;

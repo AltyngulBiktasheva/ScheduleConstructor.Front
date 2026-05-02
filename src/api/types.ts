@@ -183,7 +183,9 @@ export interface ScheduleDto {
 }
 
 export interface SaveScheduleDto {
-  name?: string | null;
+  id?: string | null;
+  name: string;
+  dateInterval: DateInterval;
 }
 
 // ─── StudentGroup ─────────────────────────────────────────────────────────────

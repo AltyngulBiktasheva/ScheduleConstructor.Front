@@ -31,9 +31,7 @@ export const ScheduleViewModal: React.FC<Props> = ({ schedule, onClose, onUpdate
             onUpdate({
               ...schedule,
               name: dto.name,
-              startsWithEvenWeek: dto.startsWithEvenWeek,
-              startDate: dto.startDate,
-              endDate: dto.endDate,
+              dateInterval: dto.dateInterval,
             });
             setMode('view');
           }}
@@ -76,9 +74,9 @@ export const ScheduleViewModal: React.FC<Props> = ({ schedule, onClose, onUpdate
       }
     >
       <div className={styles.view}>
-        <Row label="Начало семестра">{formatDate(schedule.startDate)}</Row>
-        <Row label="Конец семестра">{formatDate(schedule.endDate)}</Row>
-        <Row label="Первая неделя">{schedule.startsWithEvenWeek ? 'Чётная' : 'Нечётная'}</Row>
+        <Row label="Начало семестра">{formatDate(schedule.dateInterval.dateFrom)}</Row>
+        <Row label="Конец семестра">{formatDate(schedule.dateInterval.dateTo)}</Row>
+        <Row label="Первая неделя">{'Нечётная'}</Row>
       </div>
     </Modal>
   );
