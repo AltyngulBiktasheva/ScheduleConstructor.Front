@@ -111,7 +111,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
   );
   const selectedScheduleId = useAppSelector((s) => s.schedule.selectedScheduleId);
   const scheduleStartDate = useAppSelector((s) =>
-    s.schedule.list.find((sc) => sc.id === s.schedule.selectedScheduleId)?.startDate ?? null
+    s.schedule.list.find((sc) => sc.id === s.schedule.selectedScheduleId)?.dateInterval.dateFrom ?? null
   );
   const { groups, streams } = useAppSelector((s) => s.groupsList);
 

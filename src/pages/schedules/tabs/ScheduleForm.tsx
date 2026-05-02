@@ -50,7 +50,7 @@ export const ScheduleForm: React.FC<Props> = ({ initial, onSave, onCancel }) => 
     onSave({
       id: initial?.id ?? undefined,
       name: name.trim(),
-      dateInterval: {dateFrom: displayToApi(dateFrom), dateTo: displayToApi(dateTo)},
+      dateInterval: { dateFrom: displayToApi(dateFrom), dateTo: displayToApi(dateTo) },
     });
   };
 

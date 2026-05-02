@@ -76,7 +76,6 @@ export const ScheduleViewModal: React.FC<Props> = ({ schedule, onClose, onUpdate
       <div className={styles.view}>
         <Row label="Начало семестра">{formatDate(schedule.dateInterval.dateFrom)}</Row>
         <Row label="Конец семестра">{formatDate(schedule.dateInterval.dateTo)}</Row>
-        <Row label="Первая неделя">{'Нечётная'}</Row>
       </div>
     </Modal>
   );

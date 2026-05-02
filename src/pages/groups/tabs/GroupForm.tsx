@@ -13,7 +13,7 @@ interface Props {
 
 export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel }) => {
   const [name, setName] = useState(initial?.name ?? '');
-  const [streamId, setStreamId] = useState(initial?.streamId ?? (streams[0]?.id ?? ''));
+  const [streamId, setStreamId] = useState(initial?.streamId ?? '');
   const [subgroups, setSubgroups] = useState<Subgroup[]>(initial?.subgroups ?? []);
   const [studentCount, setStudentCount] = useState(initial?.studentCount ?? 25);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -33,7 +33,6 @@ export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel 
   const validate = () => {
     const errs: Record<string, string> = {};
     if (!name.trim()) errs.name = 'Обязательное поле';
-    if (!streamId) errs.streamId = 'Обязательное поле';
     if (!studentCount || studentCount < 1) errs.studentCount = 'Укажите корректное количество';
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -44,8 +43,7 @@ export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel 
     onSave({
       id: initial?.id ?? crypto.randomUUID(),
       name: name.trim(),
-      streamId,
-      cypher: '00.00.00',
+      streamId: streamId || undefined,
       subgroups,
       studentCount,
       disciplineIds: initial?.disciplineIds ?? [],
@@ -71,16 +69,14 @@ export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel 
         />
       </FormField>
 
-      <FormField label="Поток" required error={errors.streamId}>
+      <FormField label="Поток">
         <select
           className="field-input"
           value={streamId}
           onChange={(e) => setStreamId(e.target.value)}
         >
-          {streams.length === 0
-            ? <option value="">Нет потоков</option>
-            : streams.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)
-          }
+          <option value="">— не указан —</option>
+          {streams.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
       </FormField>
 
@@ -89,10 +85,10 @@ export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel 
           <input
             className="field-input"
             type="number"
-            min={1}
+            min={0}
             max={999}
             value={studentCount}
-            onChange={(e) => setStudentCount(Math.max(1, parseInt(e.target.value) || 1))}
+            onChange={(e) => setStudentCount(parseInt(e.target.value) || 0)}
             style={{ width: 120 }}
           />
           <span className={styles.unit}>чел.</span>

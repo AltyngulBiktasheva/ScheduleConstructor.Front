@@ -2,12 +2,11 @@
 
 export type AcademicDisciplineTargetType = 'General' | 'Specialized' | 'ByChoice' | 'Optional';
 export type AcademicDisciplineType = 'Lecture' | 'Practice' | 'Lab' | 'Exam' | 'Test';
-export type DisciplineLessonRepeatType = 'Weekly' | 'EveryOtherWeek' | 'Once' | 'Custom';
+export type DisciplineLessonRepeatType = 1 | 2 | 3 | 4; // 1=Weekly, 2=EvenWeeks, 3=OddWeeks, 4=Once
 export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 export type LessonFlexibilityType = 'Fixed' | 'Flexible';
 export type LessonValidationErrorType = 'Warning' | 'Error';
 export type LessonValidationCode =
-  | 'MismatchedCyphers'
   | 'MismatchedSemesterNumber'
   | 'MismatchedAcademicDisciplineType'
   | 'FixedLessonTypeConflictByGroup'
@@ -77,13 +76,12 @@ export interface LessonBatchInfoDto {
 
 export interface AcademicDisciplinePayloadDto {
   totalHoursCount: number;
-  lessonBatchInfo?: LessonBatchInfoDto | null;
+  lessonBatchInfos: LessonBatchInfoDto[];
 }
 
 export interface AcademicDisciplineViewDto {
   id?: string | null;
   name?: string | null;
-  cypher?: string | null;
   semester: number;
   academicDisciplineTargetType: AcademicDisciplineTargetType;
   lecturePayload?: AcademicDisciplinePayloadDto;
@@ -97,7 +95,6 @@ export interface AcademicDisciplineViewDto {
 export interface AcademicDisciplineRegistryItemDto {
   id: string;
   name: string;
-  cypher: string;
   semesterNumber: number;
   academicDisciplineTargetType: AcademicDisciplineTargetType;
   allowedLessonTypes: AcademicDisciplineType[];
@@ -111,7 +108,6 @@ export interface SaveAcademicDisciplineDto {
   id?: string | null;
   scheduleId: string;
   name?: string | null;
-  cypher?: string | null;
   semesterNumber: number;
   academicDisciplineTargetType: AcademicDisciplineTargetType;
   allowedLessonTypes?: AcademicDisciplineType[] | null;
@@ -284,7 +280,6 @@ export interface StudentGroupViewDto {
   name?: string | null;
   semesterNumber: number;
   studentGroupType: StudentGroupType;
-  cypher?: string | null;
   children?: StudentGroupShortViewDto[] | null;
 }
 
@@ -293,7 +288,6 @@ export interface StudentGroupRegistryItemDto {
   name: string;
   semesterNumber: number;
   studentGroupType: StudentGroupType;
-  cypher: string;
   children?: string[] | null;
 }
 
@@ -309,7 +303,6 @@ export interface SaveStudentGroupDto {
   name: string;
   semesterNumber: number;
   studentGroupType: StudentGroupType;
-  cypher: string;
   parentId?: string | null;
   childIds?: string[] | null;
 }

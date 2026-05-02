@@ -6,8 +6,7 @@ export interface Subgroup {
 export interface Group {
   id: string;
   name: string;
-  streamId: string;
-  cypher?: string;
+  streamId?: string;
   subgroups: Subgroup[];
   studentCount: number;
   disciplineIds: string[];
@@ -16,7 +15,6 @@ export interface Group {
 export interface Stream {
   id: string;
   name: string;
-  cypher?: string;
   semesterNumber?: number;
   groupIds: string[];
   disciplineIds: string[];

@@ -236,8 +236,6 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
     if (first.groupIds.length === 0) errs.group = 'Выберите хотя бы одну группу';
     if (first.isStatic && first.occurrences.length === 0)
       errs.occurrences = 'Для постоянной дисциплины необходимо указать время';
-    if (!first.dateRange?.from) errs.dateFrom = 'Обязательное поле';
-    if (!first.dateRange?.to) errs.dateTo = 'Обязательное поле';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -259,7 +257,6 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
       isRoot: false,
       forType: 'group',
       forIds: first.groupIds,
-      cypher: selectedRoot?.cypher,
       semesterNumber: selectedRoot?.semesterNumber,
       allowedLessonTypes: undefined,
       roomId: first.audiences[0]?.roomId || undefined,
@@ -501,7 +498,7 @@ const CopySection: React.FC<CopySectionProps> = ({
               <input
                 className="field-input"
                 type="number"
-                min={1}
+                min={0}
                 value={copy.totalHoursCount ?? ''}
                 onChange={(e) => onUpdate({ totalHoursCount: e.target.value ? parseInt(e.target.value) : undefined })}
                 placeholder="36"
@@ -559,11 +556,11 @@ const CopySection: React.FC<CopySectionProps> = ({
                 <input
                   className="field-input"
                   type="number"
-                  min={1}
+                  min={0}
                   max={6}
                   value={copy.weeklyCount}
                   onChange={(e) => {
-                    const n = Math.max(1, Math.min(6, parseInt(e.target.value) || 1));
+                    const n = Math.min(6, parseInt(e.target.value) || 0);
                     onUpdate({ weeklyCount: n, occurrences: copy.occurrences.slice(0, n) });
                   }}
                   style={{ width: 72 }}
@@ -575,7 +572,7 @@ const CopySection: React.FC<CopySectionProps> = ({
 
           {/* Даты */}
           <div className={styles.row2}>
-            <FormField label="Дата начала" required error={errors.dateFrom}>
+            <FormField label="Дата начала" hint="Если не указана — берётся из проекта расписания">
               <input
                 className="field-input"
                 value={copy.dateRange?.from ?? ''}
@@ -586,7 +583,7 @@ const CopySection: React.FC<CopySectionProps> = ({
                 maxLength={10}
               />
             </FormField>
-            <FormField label="Дата окончания" required error={errors.dateTo}>
+            <FormField label="Дата окончания" hint="Если не указана — берётся из проекта расписания">
               <input
                 className="field-input"
                 value={copy.dateRange?.to ?? ''}

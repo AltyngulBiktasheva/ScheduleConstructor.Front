@@ -11,3 +11,14 @@
   flex: 1;
   padding: $space-6;
 }
+
+.noSchedule {
+  margin: $space-6;
+  padding: $space-6;
+  background: $color-white;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-md;
+  color: $color-gray-500;
+  font-size: $font-size-base;
+  text-align: center;
+}

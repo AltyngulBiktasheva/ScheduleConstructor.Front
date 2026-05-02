@@ -27,7 +27,6 @@ export const StreamForm: React.FC<Props> = ({ initial, onSave, onCancel }) => {
     onSave({
       id: initial?.id ?? crypto.randomUUID(),
       name: name.trim(),
-      cypher: '00.00.00',
       semesterNumber,
       groupIds: initial?.groupIds ?? [],
       disciplineIds: initial?.disciplineIds ?? [],
@@ -56,10 +55,10 @@ export const StreamForm: React.FC<Props> = ({ initial, onSave, onCancel }) => {
         <input
           className="field-input"
           type="number"
-          min={1}
+          min={0}
           max={12}
           value={semesterNumber}
-          onChange={(e) => setSemesterNumber(Math.max(1, Math.min(12, parseInt(e.target.value) || 1)))}
+          onChange={(e) => setSemesterNumber(Math.min(12, parseInt(e.target.value) || 0))}
           style={{ width: 120 }}
         />
       </FormField>

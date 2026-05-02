@@ -57,7 +57,6 @@ export const fetchGroupsAll = createAsyncThunk(
             streams.push({
               id: rootDto.id,
               name: rootDto.name ?? treeItem.name,
-              cypher: rootDto.cypher ?? undefined,
               semesterNumber: rootDto.semesterNumber,
               groupIds: treeItem.children,
               disciplineIds: [],
@@ -73,7 +72,6 @@ export const fetchGroupsAll = createAsyncThunk(
                   id: groupDto.id,
                   name: groupDto.name ?? groupId,
                   streamId: rootDto.id,
-                  cypher: groupDto.cypher ?? undefined,
                   subgroups: (groupDto.children ?? []).map((sg) => ({
                     id: sg.id,
                     name: sg.name ?? sg.id,
@@ -89,7 +87,6 @@ export const fetchGroupsAll = createAsyncThunk(
               id: rootDto.id,
               name: rootDto.name ?? treeItem.name,
               streamId: '',
-              cypher: rootDto.cypher ?? undefined,
               subgroups: (rootDto.children ?? []).map((sg) => ({
                 id: sg.id,
                 name: sg.name ?? sg.id,
