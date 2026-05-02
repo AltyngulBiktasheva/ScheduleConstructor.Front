@@ -18,7 +18,7 @@ export const SchedulesPage: React.FC = () => {
   const initialTab = (location.state as { tab?: string } | null)?.tab ?? 'list';
   const [activeTab, setActiveTab] = useState(initialTab);
   const [saving, setSaving] = useState(false);
-  const { list, loading, error, fetchAll, save, delete: deleteSchedule } = useSchedule();
+  const { list, error, fetchAll, save, delete: deleteSchedule } = useSchedule();
   const [newlyCreatedId, setNewlyCreatedId] = useState<string | null>(null);
   const prevListRef = useRef<ScheduleRegistryItemDto[]>([]);
 
