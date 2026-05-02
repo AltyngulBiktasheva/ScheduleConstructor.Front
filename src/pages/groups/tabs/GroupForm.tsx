@@ -9,9 +9,10 @@ interface Props {
   streams: Stream[];
   onSave: (g: Group) => void;
   onCancel?: () => void;
+  loading?: boolean;
 }
 
-export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel }) => {
+export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel, loading }) => {
   const [name, setName] = useState(initial?.name ?? '');
   const [streamId, setStreamId] = useState(initial?.streamId ?? '');
   const [subgroups, setSubgroups] = useState<Subgroup[]>(initial?.subgroups ?? []);
@@ -124,10 +125,12 @@ export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel 
         ) : (
           <>
             {onCancel
-              ? <Button variant="secondary" onClick={onCancel}>Отмена</Button>
-              : <Button variant="secondary" onClick={() => setShowResetConfirm(true)}>Сбросить</Button>
+              ? <Button variant="secondary" onClick={onCancel} disabled={loading}>Отмена</Button>
+              : <Button variant="secondary" onClick={() => setShowResetConfirm(true)} disabled={loading}>Сбросить</Button>
             }
-            <Button variant="primary" onClick={handleSave}>Сохранить</Button>
+            <Button variant="primary" onClick={handleSave} disabled={loading}>
+              {loading ? 'Сохранение...' : 'Сохранить'}
+            </Button>
           </>
         )}
       </div>

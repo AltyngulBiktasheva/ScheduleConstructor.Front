@@ -11,6 +11,8 @@ import { fetchSchedules } from '../../store/slices/scheduleSlice';
 import { teacherPreferenceApi } from '../../api';
 import type { TeacherPreferencesViewDto } from '../../api';
 import { useEffect } from 'react';
+import { useToast } from '../../components/Toast/ToastContext';
+import { extractError } from '../../utils/extractError';
 import styles from './Styles.module.scss';
 import type { DayOfWeek } from '../../api/api/types';
 
@@ -101,11 +103,13 @@ export const TeacherWishesPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { teachers, loading } = useAppSelector((s) => s.teachersList);
   const selectedScheduleId = useAppSelector((s) => s.schedule.selectedScheduleId);
+  const { addToast } = useToast();
 
   const [teacher, setTeacher] = useState<Teacher | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [wishes, setWishes] = useState<TeacherWishes | null>(null);
   const [wishesLoading, setWishesLoading] = useState(false);
+  const [wishesSaving, setWishesSaving] = useState(false);
 
   useEffect(() => {
     dispatch(fetchSchedules());
@@ -129,7 +133,7 @@ export const TeacherWishesPage: React.FC = () => {
       .finally(() => setWishesLoading(false));
   };
 
-  const handleSave = (updated: TeacherWishes) => {
+  const handleSave = async (updated: TeacherWishes) => {
     setWishes(updated);
     setIsEditing(false);
     if (!teacher) return;
@@ -138,9 +142,16 @@ export const TeacherWishesPage: React.FC = () => {
 
     if (!selectedScheduleId) return;
 
-    void teacherPreferenceApi.saveTeacherPreference(
-      mapWishesToDto(teacher.id, selectedScheduleId, updated),
-    );
+    setWishesSaving(true);
+    try {
+      await teacherPreferenceApi.saveTeacherPreference(
+        mapWishesToDto(teacher.id, selectedScheduleId, updated),
+      );
+    } catch (err) {
+      addToast(extractError(err), 'error');
+    } finally {
+      setWishesSaving(false);
+    }
   };
 
   if (!teacher || !wishes) {

@@ -1,10 +1,9 @@
 /**
- * Публичный интерфейс: { teachers, newlyCreatedId, add, update, remove }
- * Данные хранятся в Redux и синхронизируются с бэкендом.
+ * Публичный интерфейс: { teachers, loading, error, newlyCreatedId, add, update, remove, refetch }
  *
- * Маппинг: TeacherRegistryItemDto (API) ↔ Teacher (фронтовый тип)
- *   API:   { id, fullname, contacts }
- *   Front: { id, name, wishes }
+ * add    — server-first: ждёт ответа сервера, возвращает Promise<boolean>
+ * update — оптимистично, откатывает при ошибке + показывает тост
+ * remove — оптимистично, перезагружает при ошибке + показывает тост
  */
 import { useEffect, useState, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -17,10 +16,13 @@ import {
 } from '../store/slices/teachersListSlice';
 import { teacherApi } from '../api';
 import type { Teacher } from '../types/teacher';
+import { useToast } from '../components/Toast/ToastContext';
+import { extractError } from '../utils/extractError';
 
 export function useTeachers() {
   const dispatch = useAppDispatch();
-  const { teachers, loading } = useAppSelector((s) => s.teachersList);
+  const { teachers, loading, error } = useAppSelector((s) => s.teachersList);
+  const { addToast } = useToast();
   const [newlyCreatedId, setNewlyCreatedId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -32,30 +34,51 @@ export function useTeachers() {
     setTimeout(() => setNewlyCreatedId(null), 3000);
   };
 
+  const refetch = useCallback(() => dispatch(fetchTeachersAll()), [dispatch]);
+
+  /** Создаёт на сервере, возвращает true при успехе */
   const add = useCallback(
-    (teacher: Teacher) => {
-      dispatch(addTeacherLocally(teacher));
-      dispatch(saveTeacherOnServer({ teacher, isNew: true }));
-      markCreated(teacher.id);
+    async (teacher: Teacher): Promise<boolean> => {
+      const result = await dispatch(saveTeacherOnServer({ teacher, isNew: true }));
+      if (saveTeacherOnServer.fulfilled.match(result)) {
+        markCreated(teacher.id);
+        return true;
+      }
+      addToast((result.payload as string) || 'Не удалось создать преподавателя', 'error');
+      return false;
     },
-    [dispatch],
+    [dispatch, addToast],
   );
 
+  /** Оптимистичное обновление с откатом при ошибке */
   const update = useCallback(
-    (updated: Teacher) => {
+    async (updated: Teacher): Promise<boolean> => {
+      const original = teachers.find((t) => t.id === updated.id);
       dispatch(updateTeacherLocally(updated));
-      dispatch(saveTeacherOnServer({ teacher: updated, isNew: false }));
+      const result = await dispatch(saveTeacherOnServer({ teacher: updated, isNew: false }));
+      if (saveTeacherOnServer.rejected.match(result)) {
+        if (original) dispatch(updateTeacherLocally(original));
+        addToast((result.payload as string) || 'Не удалось сохранить изменения', 'error');
+        return false;
+      }
+      return true;
     },
-    [dispatch],
+    [dispatch, teachers, addToast],
   );
 
+  /** Оптимистичное удаление с восстановлением при ошибке */
   const remove = useCallback(
     (id: string) => {
+      const teacher = teachers.find((t) => t.id === id);
       dispatch(removeTeacherLocally(id));
-      void teacherApi.deleteTeacher({ teacherId: id });
+      teacherApi.deleteTeacher({ teacherId: id }).catch((err: unknown) => {
+        if (teacher) dispatch(addTeacherLocally(teacher));
+        else dispatch(fetchTeachersAll());
+        addToast(extractError(err), 'error');
+      });
     },
-    [dispatch],
+    [dispatch, teachers, addToast],
   );
 
-  return { teachers, loading, newlyCreatedId, add, update, remove };
+  return { teachers, loading, error, newlyCreatedId, add, update, remove, refetch };
 }

@@ -10,19 +10,27 @@ import styles from './Styles.module.scss';
 
 export const TeacherSchedulePage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { teachers, loading: teachersLoading } = useAppSelector((s) => s.teachersList);
-  const disciplines = useAppSelector((s) => [
-    ...s.disciplinesList.rootDisciplines,
-    ...s.disciplinesList.disciplines,
-  ]);
+  const { teachers, loading: teachersLoading, error: teachersError } = useAppSelector((s) => s.teachersList);
+  const {
+    disciplines: rawDisciplines,
+    rootDisciplines,
+    loading: disciplinesLoading,
+    error: disciplinesError,
+  } = useAppSelector((s) => s.disciplinesList);
+  const disciplines = [...rootDisciplines, ...rawDisciplines];
 
   const [teacher, setTeacher] = useState<Teacher | null>(null);
   const [weekOffset, setWeekOffset] = useState(0);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     if (teachers.length === 0) dispatch(fetchTeachersAll());
     if (disciplines.length === 0) dispatch(fetchDisciplinesAll());
-  }, [dispatch, teachers.length, disciplines.length]);
+  }, [dispatch, teachers.length, disciplines.length, retryKey]);
+
+  const loadError =
+    (teachersError && teachers.length === 0) ||
+    (disciplinesError && disciplines.length === 0);
 
   if (!teacher) {
     return (
@@ -31,7 +39,12 @@ export const TeacherSchedulePage: React.FC = () => {
           title="Моё расписание"
           subtitle="Просмотр расписания занятий"
         />
-        {teachersLoading ? (
+        {loadError ? (
+          <div className={styles.loadError}>
+            <p>Не удалось загрузить данные</p>
+            <button onClick={() => setRetryKey((k) => k + 1)}>Повторить</button>
+          </div>
+        ) : teachersLoading || disciplinesLoading ? (
           <div>Загрузка…</div>
         ) : (
           <TeacherPicker

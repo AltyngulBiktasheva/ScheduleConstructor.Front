@@ -17,9 +17,10 @@ interface Props {
   initial?: Classroom;
   onSave: (c: Classroom) => void;
   onCancel?: () => void;
+  loading?: boolean;
 }
 
-export const ClassroomForm: React.FC<Props> = ({ initial, onSave, onCancel }) => {
+export const ClassroomForm: React.FC<Props> = ({ initial, onSave, onCancel, loading }) => {
   const dispatch = useAppDispatch();
   const campuses = useAppSelector((s) => s.campus.list);
   const campusLoading = useAppSelector((s) => s.campus.loading);
@@ -152,10 +153,12 @@ export const ClassroomForm: React.FC<Props> = ({ initial, onSave, onCancel }) =>
         ) : (
           <>
             {onCancel
-              ? <Button variant="secondary" onClick={onCancel}>Отмена</Button>
-              : <Button variant="secondary" onClick={() => setShowResetConfirm(true)}>Сбросить</Button>
+              ? <Button variant="secondary" onClick={onCancel} disabled={loading}>Отмена</Button>
+              : <Button variant="secondary" onClick={() => setShowResetConfirm(true)} disabled={loading}>Сбросить</Button>
             }
-            <Button variant="primary" onClick={handleSave}>Сохранить</Button>
+            <Button variant="primary" onClick={handleSave} disabled={loading}>
+              {loading ? 'Сохранение...' : 'Сохранить'}
+            </Button>
           </>
         )}
       </div>

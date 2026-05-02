@@ -87,11 +87,12 @@ interface Props {
   initial?: Discipline;
   onSave: (d: Discipline) => void;
   onCancel?: () => void;
+  loading?: boolean;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) => {
+export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loading }) => {
   const [parentId, setParentId] = useState(initial?.parentId ?? '');
   const [lessonType, setLessonType] = useState<AcademicDisciplineType | undefined>(initial?.lessonType);
   const [copies, setCopies] = useState<CopyForm[]>([
@@ -371,11 +372,13 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) =
         ) : (
           <>
             {onCancel ? (
-              <Button variant="secondary" onClick={onCancel}>Отмена</Button>
+              <Button variant="secondary" onClick={onCancel} disabled={loading}>Отмена</Button>
             ) : (
-              <Button variant="secondary" onClick={() => setShowResetConfirm(true)}>Сбросить</Button>
+              <Button variant="secondary" onClick={() => setShowResetConfirm(true)} disabled={loading}>Сбросить</Button>
             )}
-            <Button variant="primary" onClick={handleSave}>Сохранить</Button>
+            <Button variant="primary" onClick={handleSave} disabled={loading}>
+              {loading ? 'Сохранение...' : 'Сохранить'}
+            </Button>
           </>
         )}
       </div>

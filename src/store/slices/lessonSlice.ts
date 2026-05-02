@@ -7,6 +7,7 @@ import type {
   SaveLessonRequestDto,
 } from '../../api';
 import { useAppDispatch, useAppSelector } from '../hooks';
+import { extractError } from '../../utils/extractError';
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -43,7 +44,7 @@ export const fetchLesson = createAsyncThunk(
       const { data } = await lessonApi.getLesson(params);
       return data;
     } catch (err: unknown) {
-      return rejectWithValue((err as Error).message);
+      return rejectWithValue(extractError(err));
     }
   },
 );
@@ -58,7 +59,7 @@ export const fetchWeekLessons = createAsyncThunk(
       const { data } = await lessonApi.searchWeekLessons(params);
       return data;
     } catch (err: unknown) {
-      return rejectWithValue((err as Error).message);
+      return rejectWithValue(extractError(err));
     }
   },
 );
@@ -69,7 +70,7 @@ export const saveLesson = createAsyncThunk(
     try {
       await lessonApi.saveLesson(dto);
     } catch (err: unknown) {
-      return rejectWithValue((err as Error).message);
+      return rejectWithValue(extractError(err));
     }
   },
 );
@@ -81,7 +82,7 @@ export const deleteWeekLesson = createAsyncThunk(
       await lessonApi.deleteLesson(params);
       return params.lessonId;
     } catch (err: unknown) {
-      return rejectWithValue((err as Error).message);
+      return rejectWithValue(extractError(err));
     }
   },
 );
@@ -96,7 +97,7 @@ export const fetchLessonWeekConflicts = createAsyncThunk(
       const { data } = await lessonApi.getLessonWeekConflicts(params);
       return data;
     } catch (err: unknown) {
-      return rejectWithValue((err as Error).message);
+      return rejectWithValue(extractError(err));
     }
   },
 );

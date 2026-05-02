@@ -11,6 +11,7 @@ import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/tool
 import { studentGroupApi } from '../../api';
 import type { SaveStudentGroupDto } from '../../api';
 import type { Group, Stream } from '../../types/group';
+import { extractError } from '../../utils/extractError';
 
 // ─── State ───────────────────────────────────────────────────────────────────
 
@@ -100,7 +101,7 @@ export const fetchGroupsAll = createAsyncThunk(
 
       return { groups, streams };
     } catch (err: unknown) {
-      return rejectWithValue((err as Error).message);
+      return rejectWithValue(extractError(err));
     }
   },
 );
@@ -124,7 +125,7 @@ export const saveStudentGroupOnServer = createAsyncThunk(
       if (isNew) dispatch(fetchGroupsAll());
       return entity;
     } catch (err: unknown) {
-      return rejectWithValue((err as Error).message);
+      return rejectWithValue(extractError(err));
     }
   },
 );

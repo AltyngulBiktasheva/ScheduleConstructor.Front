@@ -8,6 +8,7 @@ interface Props {
   initial?: ScheduleRegistryItemDto;
   onSave: (dto: SaveScheduleDto) => void;
   onCancel?: () => void;
+  loading?: boolean;
 }
 
 function parseDateInput(raw: string): string {
@@ -29,7 +30,7 @@ function apiToDisplay(apiDate: string): string {
   return `${d}.${m}.${y}`;
 }
 
-export const ScheduleForm: React.FC<Props> = ({ initial, onSave, onCancel }) => {
+export const ScheduleForm: React.FC<Props> = ({ initial, onSave, onCancel, loading }) => {
   const [name, setName] = useState(initial?.name ?? '');
   const [dateFrom, setDateFrom] = useState(initial ? apiToDisplay(initial.dateInterval.dateFrom) : '');
   const [dateTo, setDateTo] = useState(initial ? apiToDisplay(initial.dateInterval.dateTo) : '');
@@ -105,11 +106,11 @@ export const ScheduleForm: React.FC<Props> = ({ initial, onSave, onCancel }) => 
         ) : (
           <>
             {onCancel
-              ? <Button variant="secondary" onClick={onCancel}>Отмена</Button>
-              : <Button variant="secondary" onClick={() => setShowResetConfirm(true)}>Сбросить</Button>
+              ? <Button variant="secondary" onClick={onCancel} disabled={loading}>Отмена</Button>
+              : <Button variant="secondary" onClick={() => setShowResetConfirm(true)} disabled={loading}>Сбросить</Button>
             }
-            <Button variant="primary" onClick={handleSave}>
-              {initial ? 'Сохранить' : 'Создать'}
+            <Button variant="primary" onClick={handleSave} disabled={loading}>
+              {loading ? 'Сохранение...' : (initial ? 'Сохранить' : 'Создать')}
             </Button>
           </>
         )}

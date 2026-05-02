@@ -1,0 +1,74 @@
+@use '../../styles/variables' as *;
+
+.container {
+  position: fixed;
+  bottom: $space-6;
+  right: $space-6;
+  z-index: $z-tooltip;
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+  max-width: 420px;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: $space-3;
+  padding: $space-3 $space-4;
+  border-radius: $border-radius-md;
+  box-shadow: $shadow-lg;
+  animation: slideIn $transition-fast;
+  pointer-events: all;
+
+  &.error {
+    background: $color-danger;
+    color: $color-white;
+  }
+
+  &.success {
+    background: $color-success;
+    color: $color-white;
+  }
+
+  &.info {
+    background: $color-primary;
+    color: $color-white;
+  }
+}
+
+.message {
+  flex: 1;
+  font-size: $font-size-base;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: $font-size-base;
+  opacity: 0.7;
+  padding: 0;
+  line-height: 1;
+  margin-top: 1px;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

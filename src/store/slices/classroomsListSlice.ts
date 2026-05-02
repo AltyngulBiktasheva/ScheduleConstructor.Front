@@ -12,6 +12,7 @@ import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/tool
 import { roomApi } from '../../api';
 import type { RoomType, RoomBoardType } from '../../api';
 import type { Classroom, ClassroomType, BoardType } from '../../types/classroom';
+import { extractError } from '../../utils/extractError';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -70,7 +71,7 @@ export const fetchClassroomsAll = createAsyncThunk(
         })),
       );
     } catch (err: unknown) {
-      return rejectWithValue((err as Error).message);
+      return rejectWithValue(extractError(err));
     }
   },
 );
@@ -100,7 +101,7 @@ export const saveClassroomOnServer = createAsyncThunk(
       if (isNew) dispatch(fetchClassroomsAll());
       return classroom;
     } catch (err: unknown) {
-      return rejectWithValue((err as Error).message);
+      return rejectWithValue(extractError(err));
     }
   },
 );

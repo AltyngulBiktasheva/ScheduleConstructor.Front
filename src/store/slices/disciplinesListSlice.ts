@@ -12,6 +12,7 @@ import { academicDisciplineApi } from '../../api';
 import type { SaveAcademicDisciplineDto, AcademicDisciplineRegistryItemDto, AcademicDisciplineType } from '../../api';
 import type { Discipline } from '../../types/discipline';
 import { LESSON_TYPE_LABELS } from '../../pages/disciplines/tabs/RootDisciplineForm';
+import { extractError } from '../../utils/extractError';
 
 // ─── State ───────────────────────────────────────────────────────────────────
 
@@ -131,7 +132,7 @@ export const fetchDisciplinesAll = createAsyncThunk(
       }
       return { rootDisciplines, disciplines };
     } catch (err: unknown) {
-      return rejectWithValue((err as Error).message);
+      return rejectWithValue(extractError(err));
     }
   },
 );
@@ -150,7 +151,7 @@ export const saveDisciplineOnServer = createAsyncThunk(
       if (isNew) dispatch(fetchDisciplinesAll());
       return discipline;
     } catch (err: unknown) {
-      return rejectWithValue((err as Error).message);
+      return rejectWithValue(extractError(err));
     }
   },
 );

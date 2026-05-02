@@ -17,20 +17,27 @@ const TABS = [
 
 export const GroupsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('list');
+  const [savingGroup, setSavingGroup] = useState(false);
+  const [savingStream, setSavingStream] = useState(false);
   const {
-    groups, streams, newlyCreatedId,
+    groups, streams, loading, error, newlyCreatedId,
     addGroup, updateGroup, removeGroup,
     addStream, updateStream, removeStream,
+    refetch,
   } = useGroups();
 
-  const handleCreateGroup = (group: Group) => {
-    addGroup(group);
-    setActiveTab('list');
+  const handleCreateGroup = async (group: Group) => {
+    setSavingGroup(true);
+    const ok = await addGroup(group);
+    setSavingGroup(false);
+    if (ok) setActiveTab('list');
   };
 
-  const handleCreateStream = (stream: Stream) => {
-    addStream(stream);
-    setActiveTab('list');
+  const handleCreateStream = async (stream: Stream) => {
+    setSavingStream(true);
+    const ok = await addStream(stream);
+    setSavingStream(false);
+    if (ok) setActiveTab('list');
   };
 
   return (
@@ -40,21 +47,31 @@ export const GroupsPage: React.FC = () => {
       <Tabs tabs={TABS} activeId={activeTab} onChange={setActiveTab} />
       <div className={styles.content}>
         {activeTab === 'list' && (
-          <GroupsList
-            groups={groups}
-            streams={streams}
-            newlyCreatedId={newlyCreatedId}
-            onUpdateGroup={updateGroup}
-            onDeleteGroup={removeGroup}
-            onUpdateStream={updateStream}
-            onDeleteStream={removeStream}
-          />
+          <>
+            {error && groups.length === 0 && streams.length === 0 && (
+              <div className={styles.loadError}>
+                <p>Не удалось загрузить данные</p>
+                <button onClick={refetch}>Повторить</button>
+              </div>
+            )}
+            {(!error || groups.length > 0 || streams.length > 0) && (
+              <GroupsList
+                groups={groups}
+                streams={streams}
+                newlyCreatedId={newlyCreatedId}
+                onUpdateGroup={updateGroup}
+                onDeleteGroup={removeGroup}
+                onUpdateStream={updateStream}
+                onDeleteStream={removeStream}
+              />
+            )}
+          </>
         )}
         {activeTab === 'create-group' && (
-          <GroupForm streams={streams} onSave={handleCreateGroup} />
+          <GroupForm streams={streams} onSave={handleCreateGroup} loading={savingGroup} />
         )}
         {activeTab === 'create-stream' && (
-          <StreamForm onSave={handleCreateStream} />
+          <StreamForm onSave={handleCreateStream} loading={savingStream} />
         )}
       </div>
     </div>

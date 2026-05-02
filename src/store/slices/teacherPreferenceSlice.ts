@@ -2,6 +2,7 @@ import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { teacherPreferenceApi } from '../../api';
 import type { SaveTeacherPreferenceDto, TeacherPreferencesViewDto } from '../../api';
 import { useAppDispatch, useAppSelector } from '../hooks';
+import { extractError } from '../../utils/extractError';
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -28,7 +29,7 @@ export const fetchTeacherPreferences = createAsyncThunk(
       const { data } = await teacherPreferenceApi.getTeacherPreferences(params);
       return data;
     } catch (err: unknown) {
-      return rejectWithValue((err as Error).message);
+      return rejectWithValue(extractError(err));
     }
   },
 );
@@ -39,7 +40,7 @@ export const saveTeacherPreference = createAsyncThunk(
     try {
       await teacherPreferenceApi.saveTeacherPreference(dto);
     } catch (err: unknown) {
-      return rejectWithValue((err as Error).message);
+      return rejectWithValue(extractError(err));
     }
   },
 );

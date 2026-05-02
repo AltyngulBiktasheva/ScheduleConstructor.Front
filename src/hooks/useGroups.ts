@@ -1,17 +1,16 @@
 /**
- * Публичный интерфейс совпадает с оригиналом.
- * Данные хранятся в Redux и синхронизируются с бэкендом.
+ * Публичный интерфейс совпадает с оригиналом + error, refetch.
  *
- * scheduleId для сохранения берётся из store.schedule.list[0].id.
+ * addGroup/addStream   — server-first, возвращают Promise<boolean>
+ * updateGroup/Stream   — оптимистично, откатывают при ошибке + тост
+ * removeGroup/Stream   — оптимистично, перезагружают при ошибке + тост
  */
 import { useEffect, useState, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
   fetchGroupsAll,
-  addGroupLocally,
   updateGroupLocally,
   removeGroupLocally,
-  addStreamLocally,
   updateStreamLocally,
   removeStreamLocally,
   saveStudentGroupOnServer,
@@ -19,19 +18,20 @@ import {
 import { fetchSchedules, saveSchedule } from '../store/slices/scheduleSlice';
 import { studentGroupApi } from '../api';
 import type { Group, Stream } from '../types/group';
+import { useToast } from '../components/Toast/ToastContext';
+import { extractError } from '../utils/extractError';
 
 export function useGroups() {
   const dispatch = useAppDispatch();
-  const { groups, streams, loading } = useAppSelector((s) => s.groupsList);
+  const { groups, streams, loading, error } = useAppSelector((s) => s.groupsList);
   const { list: scheduleList, selectedScheduleId } = useAppSelector((s) => s.schedule);
+  const { addToast } = useToast();
   const [newlyCreatedId, setNewlyCreatedId] = useState<string | null>(null);
 
-  // Сначала загружаем список расписаний (чтобы получить selectedScheduleId)
   useEffect(() => {
     dispatch(fetchSchedules());
   }, [dispatch]);
 
-  // Загружаем группы только после того, как известен selectedScheduleId
   useEffect(() => {
     if (selectedScheduleId) dispatch(fetchGroupsAll());
   }, [dispatch, selectedScheduleId]);
@@ -40,6 +40,8 @@ export function useGroups() {
     setNewlyCreatedId(id);
     setTimeout(() => setNewlyCreatedId(null), 3000);
   };
+
+  const refetch = useCallback(() => dispatch(fetchGroupsAll()), [dispatch]);
 
   const getOrCreateScheduleId = useCallback(async (): Promise<string | null> => {
     if (selectedScheduleId) return selectedScheduleId;
@@ -50,14 +52,14 @@ export function useGroups() {
     return list[0]?.id ?? null;
   }, [selectedScheduleId, scheduleList, dispatch]);
 
+  // ── Группы ──────────────────────────────────────────────────────────────────
+
   const addGroup = useCallback(
-    async (group: Group) => {
-      dispatch(addGroupLocally(group));
-      markCreated(group.id);
+    async (group: Group): Promise<boolean> => {
       const scheduleId = await getOrCreateScheduleId();
-      if (!scheduleId) return;
+      if (!scheduleId) return false;
       const stream = streams.find((s) => s.id === group.streamId);
-      dispatch(
+      const result = await dispatch(
         saveStudentGroupOnServer({
           entity: group,
           isNew: true,
@@ -70,17 +72,24 @@ export function useGroups() {
           },
         }),
       );
+      if (saveStudentGroupOnServer.fulfilled.match(result)) {
+        markCreated(group.id);
+        return true;
+      }
+      addToast((result.payload as string) || 'Не удалось создать группу', 'error');
+      return false;
     },
-    [dispatch, getOrCreateScheduleId, streams],
+    [dispatch, getOrCreateScheduleId, streams, addToast],
   );
 
   const updateGroup = useCallback(
-    async (updated: Group) => {
+    async (updated: Group): Promise<boolean> => {
+      const original = groups.find((g) => g.id === updated.id);
       dispatch(updateGroupLocally(updated));
       const scheduleId = await getOrCreateScheduleId();
-      if (!scheduleId) return;
+      if (!scheduleId) return false;
       const stream = streams.find((s) => s.id === updated.streamId);
-      dispatch(
+      const result = await dispatch(
         saveStudentGroupOnServer({
           entity: updated,
           isNew: false,
@@ -94,25 +103,34 @@ export function useGroups() {
           },
         }),
       );
+      if (saveStudentGroupOnServer.rejected.match(result)) {
+        if (original) dispatch(updateGroupLocally(original));
+        addToast((result.payload as string) || 'Не удалось сохранить группу', 'error');
+        return false;
+      }
+      return true;
     },
-    [dispatch, getOrCreateScheduleId, streams],
+    [dispatch, groups, getOrCreateScheduleId, streams, addToast],
   );
 
   const removeGroup = useCallback(
     (id: string) => {
       dispatch(removeGroupLocally(id));
-      void studentGroupApi.deleteStudentGroup({ studentGroupId: id });
+      studentGroupApi.deleteStudentGroup({ studentGroupId: id }).catch((err: unknown) => {
+        dispatch(fetchGroupsAll());
+        addToast(extractError(err), 'error');
+      });
     },
-    [dispatch],
+    [dispatch, addToast],
   );
 
+  // ── Потоки ──────────────────────────────────────────────────────────────────
+
   const addStream = useCallback(
-    async (stream: Stream) => {
-      dispatch(addStreamLocally(stream));
-      markCreated(stream.id);
+    async (stream: Stream): Promise<boolean> => {
       const scheduleId = await getOrCreateScheduleId();
-      if (!scheduleId) return;
-      dispatch(
+      if (!scheduleId) return false;
+      const result = await dispatch(
         saveStudentGroupOnServer({
           entity: stream,
           isNew: true,
@@ -125,16 +143,23 @@ export function useGroups() {
           },
         }),
       );
+      if (saveStudentGroupOnServer.fulfilled.match(result)) {
+        markCreated(stream.id);
+        return true;
+      }
+      addToast((result.payload as string) || 'Не удалось создать поток', 'error');
+      return false;
     },
-    [dispatch, getOrCreateScheduleId],
+    [dispatch, getOrCreateScheduleId, addToast],
   );
 
   const updateStream = useCallback(
-    async (updated: Stream) => {
+    async (updated: Stream): Promise<boolean> => {
+      const original = streams.find((s) => s.id === updated.id);
       dispatch(updateStreamLocally(updated));
       const scheduleId = await getOrCreateScheduleId();
-      if (!scheduleId) return;
-      dispatch(
+      if (!scheduleId) return false;
+      const result = await dispatch(
         saveStudentGroupOnServer({
           entity: updated,
           isNew: false,
@@ -148,22 +173,32 @@ export function useGroups() {
           },
         }),
       );
+      if (saveStudentGroupOnServer.rejected.match(result)) {
+        if (original) dispatch(updateStreamLocally(original));
+        addToast((result.payload as string) || 'Не удалось сохранить поток', 'error');
+        return false;
+      }
+      return true;
     },
-    [dispatch, getOrCreateScheduleId],
+    [dispatch, streams, getOrCreateScheduleId, addToast],
   );
 
   const removeStream = useCallback(
     (id: string) => {
       dispatch(removeStreamLocally(id));
-      void studentGroupApi.deleteStudentGroup({ studentGroupId: id });
+      studentGroupApi.deleteStudentGroup({ studentGroupId: id }).catch((err: unknown) => {
+        dispatch(fetchGroupsAll());
+        addToast(extractError(err), 'error');
+      });
     },
-    [dispatch],
+    [dispatch, addToast],
   );
 
   return {
     groups,
     streams,
     loading,
+    error,
     newlyCreatedId,
     addGroup,
     updateGroup,
@@ -171,5 +206,6 @@ export function useGroups() {
     addStream,
     updateStream,
     removeStream,
+    refetch,
   };
 }

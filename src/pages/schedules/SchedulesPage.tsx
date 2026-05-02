@@ -17,7 +17,8 @@ export const SchedulesPage: React.FC = () => {
   const location = useLocation();
   const initialTab = (location.state as { tab?: string } | null)?.tab ?? 'list';
   const [activeTab, setActiveTab] = useState(initialTab);
-  const { list, saving, fetchAll, save, delete: deleteSchedule } = useSchedule();
+  const [saving, setSaving] = useState(false);
+  const { list, loading, error, fetchAll, save, delete: deleteSchedule } = useSchedule();
   const [newlyCreatedId, setNewlyCreatedId] = useState<string | null>(null);
   const prevListRef = useRef<ScheduleRegistryItemDto[]>([]);
 
@@ -37,8 +38,10 @@ export const SchedulesPage: React.FC = () => {
   }, [list]);
 
   const handleCreate = async (dto: SaveScheduleDto) => {
-    await save(dto);
-    setActiveTab('list');
+    setSaving(true);
+    const ok = await save(dto);
+    setSaving(false);
+    if (ok) setActiveTab('list');
   };
 
   const handleUpdate = async (dto: SaveScheduleDto) => {
@@ -51,7 +54,7 @@ export const SchedulesPage: React.FC = () => {
 
   // Адаптер для onUpdate в SchedulesList: принимает ScheduleRegistryItemDto
   const handleUpdateFromModal = (updated: ScheduleRegistryItemDto) => {
-    handleUpdate({
+    void handleUpdate({
       id: updated.id,
       name: updated.name,
       dateInterval: updated.dateInterval,
@@ -64,17 +67,25 @@ export const SchedulesPage: React.FC = () => {
       <Tabs tabs={TABS} activeId={activeTab} onChange={setActiveTab} />
       <div className={styles.content}>
         {activeTab === 'list' && (
-          <SchedulesList
-            schedules={list}
-            newlyCreatedId={newlyCreatedId}
-            onUpdate={handleUpdateFromModal}
-            onDelete={handleDelete}
-          />
+          <>
+            {error && list.length === 0 && (
+              <div className={styles.loadError}>
+                <p>Не удалось загрузить данные</p>
+                <button onClick={() => fetchAll()}>Повторить</button>
+              </div>
+            )}
+            {(!error || list.length > 0) && (
+              <SchedulesList
+                schedules={list}
+                newlyCreatedId={newlyCreatedId}
+                onUpdate={handleUpdateFromModal}
+                onDelete={handleDelete}
+              />
+            )}
+          </>
         )}
         {activeTab === 'create' && (
-          <ScheduleForm
-            onSave={handleCreate}
-          />
+          <ScheduleForm onSave={handleCreate} loading={saving} />
         )}
       </div>
     </div>

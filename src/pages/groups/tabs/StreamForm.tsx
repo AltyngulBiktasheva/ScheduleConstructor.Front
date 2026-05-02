@@ -8,9 +8,10 @@ interface Props {
   initial?: Stream;
   onSave: (s: Stream) => void;
   onCancel?: () => void;
+  loading?: boolean;
 }
 
-export const StreamForm: React.FC<Props> = ({ initial, onSave, onCancel }) => {
+export const StreamForm: React.FC<Props> = ({ initial, onSave, onCancel, loading }) => {
   const [name, setName] = useState(initial?.name ?? '');
   const [semesterNumber, setSemesterNumber] = useState(initial?.semesterNumber ?? 1);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -69,9 +70,11 @@ export const StreamForm: React.FC<Props> = ({ initial, onSave, onCancel }) => {
 
       <div className={styles.actions}>
         {onCancel && (
-          <Button variant="secondary" onClick={onCancel}>Отмена</Button>
+          <Button variant="secondary" onClick={onCancel} disabled={loading}>Отмена</Button>
         )}
-        <Button variant="primary" onClick={handleSave}>Сохранить</Button>
+        <Button variant="primary" onClick={handleSave} disabled={loading}>
+          {loading ? 'Сохранение...' : 'Сохранить'}
+        </Button>
       </div>
     </div>
   );

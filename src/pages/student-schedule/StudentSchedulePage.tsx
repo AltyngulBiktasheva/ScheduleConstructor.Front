@@ -9,16 +9,23 @@ import styles from './Styles.module.scss';
 
 export const StudentSchedulePage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { groups, streams, loading } = useAppSelector((s) => s.groupsList);
-  const { disciplines: listDisciplines, loading: disciplinesLoading } = useAppSelector((s) => s.disciplinesList);
+  const { groups, streams, loading, error: groupsError } = useAppSelector((s) => s.groupsList);
+  const {
+    disciplines: listDisciplines,
+    loading: disciplinesLoading,
+    error: disciplinesError,
+  } = useAppSelector((s) => s.disciplinesList);
 
   const [selection, setSelection] = useState<{ ids: string[]; label: string } | null>(null);
   const [weekOffset, setWeekOffset] = useState(0);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     if (groups.length === 0) dispatch(fetchGroupsAll());
     if (listDisciplines.length === 0 && !disciplinesLoading) dispatch(fetchDisciplinesAll());
-  }, [dispatch, groups.length, listDisciplines.length, disciplinesLoading]);
+  }, [dispatch, groups.length, listDisciplines.length, disciplinesLoading, retryKey]);
+
+  const loadError = (groupsError && groups.length === 0) || (disciplinesError && listDisciplines.length === 0);
 
   if (!selection) {
     return (
@@ -27,7 +34,12 @@ export const StudentSchedulePage: React.FC = () => {
           title="Расписание"
           subtitle="Выберите группу для просмотра расписания"
         />
-        {loading ? (
+        {loadError ? (
+          <div className={styles.loadError}>
+            <p>Не удалось загрузить данные</p>
+            <button onClick={() => setRetryKey((k) => k + 1)}>Повторить</button>
+          </div>
+        ) : loading ? (
           <div>Загрузка…</div>
         ) : (
           <GroupPicker
@@ -40,7 +52,7 @@ export const StudentSchedulePage: React.FC = () => {
     );
   }
 
-  const groupDisciplines = disciplines.filter((d) =>
+  const groupDisciplines = listDisciplines.filter((d) =>
     d.isInGrid && selection.ids.some(() => d.dayId != null)
   );
 

@@ -2,6 +2,8 @@ import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { scheduleApi } from '../../api';
 import type { SaveScheduleDto, ScheduleRegistryItemDto } from '../../api';
 import { useAppDispatch, useAppSelector } from '../hooks';
+import { extractError } from '../../utils/extractError';
+import { useToast } from '../../components/Toast/ToastContext';
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -32,7 +34,7 @@ export const fetchSchedules = createAsyncThunk(
       const { data } = await scheduleApi.searchSchedules();
       return data.items;
     } catch (err: unknown) {
-      return rejectWithValue((err as Error).message);
+      return rejectWithValue(extractError(err));
     }
   },
 );
@@ -44,7 +46,7 @@ export const saveSchedule = createAsyncThunk(
       await scheduleApi.saveSchedule(dto);
       dispatch(fetchSchedules());
     } catch (err: unknown) {
-      return rejectWithValue((err as Error).message);
+      return rejectWithValue(extractError(err));
     }
   },
 );
@@ -57,7 +59,7 @@ export const deleteSchedule = createAsyncThunk(
       dispatch(fetchSchedules());
       return scheduleId;
     } catch (err: unknown) {
-      return rejectWithValue((err as Error).message);
+      return rejectWithValue(extractError(err));
     }
   },
 );
@@ -130,12 +132,27 @@ export default scheduleSlice.reducer;
 export const useSchedule = () => {
   const dispatch = useAppDispatch();
   const state = useAppSelector((s) => s.schedule);
+  const { addToast } = useToast();
 
   return {
     ...state,
     fetchAll: () => dispatch(fetchSchedules()),
-    save: (dto: SaveScheduleDto) => dispatch(saveSchedule(dto)),
-    delete: (id: string) => dispatch(deleteSchedule(id)),
+    save: async (dto: SaveScheduleDto): Promise<boolean> => {
+      const result = await dispatch(saveSchedule(dto));
+      if (saveSchedule.rejected.match(result)) {
+        addToast((result.payload as string) || 'Не удалось сохранить расписание', 'error');
+        return false;
+      }
+      return true;
+    },
+    delete: async (id: string): Promise<boolean> => {
+      const result = await dispatch(deleteSchedule(id));
+      if (deleteSchedule.rejected.match(result)) {
+        addToast((result.payload as string) || 'Не удалось удалить расписание', 'error');
+        return false;
+      }
+      return true;
+    },
     selectSchedule: (id: string | null) => dispatch(setSelectedScheduleId(id)),
     clearError: () => dispatch(clearScheduleError()),
   };

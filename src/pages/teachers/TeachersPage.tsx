@@ -15,11 +15,14 @@ const TABS = [
 
 export const TeachersPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('list');
-  const { teachers, newlyCreatedId, add, update, remove } = useTeachers();
+  const [saving, setSaving] = useState(false);
+  const { teachers, loading, error, newlyCreatedId, add, update, remove, refetch } = useTeachers();
 
-  const handleCreate = (teacher: Teacher) => {
-    add(teacher);
-    setActiveTab('list');
+  const handleCreate = async (teacher: Teacher) => {
+    setSaving(true);
+    const ok = await add(teacher);
+    setSaving(false);
+    if (ok) setActiveTab('list');
   };
 
   return (
@@ -29,15 +32,25 @@ export const TeachersPage: React.FC = () => {
       <Tabs tabs={TABS} activeId={activeTab} onChange={setActiveTab} />
       <div className={styles.content}>
         {activeTab === 'list' && (
-          <TeachersList
-            teachers={teachers}
-            newlyCreatedId={newlyCreatedId}
-            onUpdate={update}
-            onDelete={remove}
-          />
+          <>
+            {error && teachers.length === 0 && (
+              <div className={styles.loadError}>
+                <p>Не удалось загрузить данные</p>
+                <button onClick={refetch}>Повторить</button>
+              </div>
+            )}
+            {(!error || teachers.length > 0) && (
+              <TeachersList
+                teachers={teachers}
+                newlyCreatedId={newlyCreatedId}
+                onUpdate={update}
+                onDelete={remove}
+              />
+            )}
+          </>
         )}
         {activeTab === 'create' && (
-          <TeacherForm onSave={handleCreate} />
+          <TeacherForm onSave={handleCreate} loading={saving} />
         )}
       </div>
     </div>

@@ -10,6 +10,7 @@ import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/tool
 import { teacherApi } from '../../api';
 import type { Teacher } from '../../types/teacher';
 import { emptyWishes } from '../../types/teacher';
+import { extractError } from '../../utils/extractError';
 
 // ─── State ───────────────────────────────────────────────────────────────────
 
@@ -42,7 +43,7 @@ export const fetchTeachersAll = createAsyncThunk(
         wishes: emptyWishes(),
       }));
     } catch (err: unknown) {
-      return rejectWithValue((err as Error).message);
+      return rejectWithValue(extractError(err));
     }
   },
 );
@@ -64,7 +65,7 @@ export const saveTeacherOnServer = createAsyncThunk(
       if (isNew) dispatch(fetchTeachersAll());
       return teacher;
     } catch (err: unknown) {
-      return rejectWithValue((err as Error).message);
+      return rejectWithValue(extractError(err));
     }
   },
 );

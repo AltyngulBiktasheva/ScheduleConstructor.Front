@@ -12,6 +12,7 @@ import { fetchWeekLessons, saveLesson, deleteWeekLesson } from '../../store/slic
 import { fetchDisciplinesAll } from '../../store/slices/disciplinesListSlice';
 import { fetchGroupsAll } from '../../store/slices/groupsListSlice';
 import type { LessonWeekItemDto, AcademicDisciplineType } from '../../api';
+import { useToast } from '../Toast/ToastContext';
 import styles from './Styles.module.scss';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -121,6 +122,8 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
     Array.isArray(selection.entityId) &&
     selection.entityId.length > 1;
 
+  const { addToast } = useToast();
+
   const [weekOffset, setWeekOffset] = useState(0);
   const [editingDiscipline, setEditingDiscipline] = useState<Discipline | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
@@ -217,7 +220,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
       if (existingLesson) {
         // Перемещаем существующее занятие
         if (existingLesson.flexibilityType === 'Fixed') return;
-        await dispatch(saveLesson({
+        const result = await dispatch(saveLesson({
           id: existingLesson.id,
           scheduleId: selectedScheduleId,
           academicDisciplineId: existingLesson.academicDisciplineId,
@@ -233,6 +236,11 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
           allowCombining: existingLesson.allowCombining,
           hoursCost: 2,
         }));
+        if (saveLesson.rejected.match(result)) {
+          addToast((result.payload as string) || 'Не удалось переместить занятие', 'error');
+          refetchWeek(); // откат: восстанавливаем исходную позицию
+          return;
+        }
       } else {
         // Создаём новое занятие из дисциплины в списке
         const listDiscipline = listDisciplines.find((d) => d.id === disciplineId);
@@ -242,7 +250,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
           ? (Array.isArray(selection.entityId) ? selection.entityId : [selection.entityId])
           : listDiscipline.forIds;
 
-        await dispatch(saveLesson({
+        const result = await dispatch(saveLesson({
           scheduleId: selectedScheduleId,
           academicDisciplineId: listDiscipline.academicDisciplineId ?? listDiscipline.parentId,
           academicDisciplineType: listDiscipline.lessonType,
@@ -259,11 +267,15 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
           allowCombining: false,
           hoursCost: listDiscipline.totalHoursCount ?? 2,
         }));
+        if (saveLesson.rejected.match(result)) {
+          addToast((result.payload as string) || 'Не удалось добавить занятие', 'error');
+          return;
+        }
       }
 
       refetchWeek();
     },
-    [dispatch, selectedScheduleId, weekOffset, weekLessons, listDisciplines, selection, refetchWeek],
+    [dispatch, selectedScheduleId, weekOffset, weekLessons, listDisciplines, selection, refetchWeek, addToast],
   );
 
   // ── DnD: возврат занятия в список (удаление) ─────────────────────────────
@@ -273,9 +285,13 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
       const lesson = weekLessons.find((l) => l.id === disciplineId);
       if (!lesson || lesson.flexibilityType === 'Fixed') return;
 
-      await dispatch(deleteWeekLesson({ scheduleId: selectedScheduleId, lessonId: disciplineId }));
+      const result = await dispatch(deleteWeekLesson({ scheduleId: selectedScheduleId, lessonId: disciplineId }));
+      if (deleteWeekLesson.rejected.match(result)) {
+        addToast((result.payload as string) || 'Не удалось удалить занятие', 'error');
+        refetchWeek(); // откат: восстанавливаем занятие в сетке
+      }
     },
-    [dispatch, selectedScheduleId, weekLessons],
+    [dispatch, selectedScheduleId, weekLessons, addToast, refetchWeek],
   );
 
   // ── Клик на карточку → открыть модалку ───────────────────────────────────
@@ -298,7 +314,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
         ? weekDates[DAY_IDS.indexOf(updated.dayId as typeof DAY_IDS[number])] ?? weekDates[0]
         : lesson.dateWithTimeInterval.date;
 
-      await dispatch(saveLesson({
+      const result = await dispatch(saveLesson({
         id: lesson.id,
         scheduleId: selectedScheduleId,
         academicDisciplineId: lesson.academicDisciplineId,
@@ -318,10 +334,15 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
         hoursCost: 2,
       }));
 
+      if (saveLesson.rejected.match(result)) {
+        addToast((result.payload as string) || 'Не удалось сохранить занятие', 'error');
+        return; // модальное окно остаётся открытым
+      }
+
       setEditingDiscipline(null);
       refetchWeek();
     },
-    [dispatch, selectedScheduleId, weekLessons, weekDates, refetchWeek],
+    [dispatch, selectedScheduleId, weekLessons, weekDates, refetchWeek, addToast],
   );
 
   // ── Eye icon → week-conflicts → highlights ────────────────────────────────

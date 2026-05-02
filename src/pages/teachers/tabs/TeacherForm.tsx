@@ -9,9 +9,10 @@ interface Props {
   initial?: Teacher;
   onSave: (t: Teacher) => void;
   onCancel?: () => void;
+  loading?: boolean;
 }
 
-export const TeacherForm: React.FC<Props> = ({ initial, onSave, onCancel }) => {
+export const TeacherForm: React.FC<Props> = ({ initial, onSave, onCancel, loading }) => {
   const [name, setName] = useState(initial?.name ?? '');
   const [contacts, setContacts] = useState(initial?.contacts ?? '');
   const [error, setError] = useState('');
@@ -51,9 +52,11 @@ export const TeacherForm: React.FC<Props> = ({ initial, onSave, onCancel }) => {
 
       <div className={styles.actions}>
         {onCancel && (
-          <Button variant="secondary" onClick={onCancel}>Отмена</Button>
+          <Button variant="secondary" onClick={onCancel} disabled={loading}>Отмена</Button>
         )}
-        <Button variant="primary" onClick={handleSave}>Сохранить</Button>
+        <Button variant="primary" onClick={handleSave} disabled={loading}>
+          {loading ? 'Сохранение...' : 'Сохранить'}
+        </Button>
       </div>
     </div>
   );

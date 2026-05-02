@@ -1,11 +1,12 @@
 /**
- * Публичный интерфейс: { rootDisciplines, disciplines, newlyCreatedId, add, addRoot, update, remove }
+ * Публичный интерфейс: { rootDisciplines, disciplines, loading, error, newlyCreatedId,
+ *                         add, addRoot, update, remove, refetch }
  *
  * Корневые дисциплины → /academic-discipline/save
  * Дочерние (обычные) → /lesson/save
  *
- * scheduleId берётся из store.schedule.selectedScheduleId, либо из первого расписания.
- * Если расписаний нет — создаётся дефолтное.
+ * add/addRoot/update возвращают Promise<boolean> — true если сохранение успешно.
+ * При ошибке показывается тост, навигация остаётся за вызывающим кодом.
  */
 import { useEffect, useState, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -27,6 +28,8 @@ import type {
 } from '../api';
 import type { Discipline } from '../types/discipline';
 import type { RootDisciplineFormData } from '../pages/disciplines/tabs/RootDisciplineForm';
+import { useToast } from '../components/Toast/ToastContext';
+import { extractError } from '../utils/extractError';
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 
@@ -135,8 +138,9 @@ async function saveAsPayload(
 
 export function useDisciplines() {
   const dispatch = useAppDispatch();
-  const { rootDisciplines, disciplines, loading } = useAppSelector((s) => s.disciplinesList);
+  const { rootDisciplines, disciplines, loading, error } = useAppSelector((s) => s.disciplinesList);
   const { list: scheduleList, selectedScheduleId } = useAppSelector((s) => s.schedule);
+  const { addToast } = useToast();
   const [newlyCreatedId, setNewlyCreatedId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -148,6 +152,8 @@ export function useDisciplines() {
     setNewlyCreatedId(id);
     setTimeout(() => setNewlyCreatedId(null), 3000);
   };
+
+  const refetch = useCallback(() => dispatch(fetchDisciplinesAll()), [dispatch]);
 
   const getOrCreateScheduleId = useCallback(async (): Promise<string | null> => {
     if (selectedScheduleId) return selectedScheduleId;
@@ -161,9 +167,9 @@ export function useDisciplines() {
   // ── Корневая дисциплина ────────────────────────────────────────────────────
 
   const addRoot = useCallback(
-    async (data: RootDisciplineFormData) => {
+    async (data: RootDisciplineFormData): Promise<boolean> => {
       const scheduleId = await getOrCreateScheduleId();
-      if (!scheduleId) return;
+      if (!scheduleId) return false;
 
       const tempDiscipline: Discipline = {
         id: crypto.randomUUID(),
@@ -184,7 +190,7 @@ export function useDisciplines() {
       dispatch(addDisciplineLocally(tempDiscipline));
       markCreated(tempDiscipline.id);
 
-      dispatch(
+      const result = await dispatch(
         saveDisciplineOnServer({
           discipline: tempDiscipline,
           isNew: true,
@@ -197,129 +203,162 @@ export function useDisciplines() {
           },
         }),
       );
+
+      if (saveDisciplineOnServer.rejected.match(result)) {
+        dispatch(removeDisciplineLocally(tempDiscipline.id));
+        addToast((result.payload as string) || 'Не удалось создать корневую дисциплину', 'error');
+        return false;
+      }
+
+      return true;
     },
-    [dispatch, getOrCreateScheduleId],
+    [dispatch, getOrCreateScheduleId, addToast],
   );
 
   // ── Обычная дисциплина ────────────────────────────────────────────────────
 
   const add = useCallback(
-    async (discipline: Discipline) => {
+    async (discipline: Discipline): Promise<boolean> => {
       const scheduleId = await getOrCreateScheduleId();
-      if (!scheduleId) return;
+      if (!scheduleId) return false;
 
       const lessonType = discipline.lessonType;
 
-      if (lessonType === 'Lecture' || lessonType === 'Practice' || lessonType === 'Lab') {
-        // → /academic-discipline/save: обновляем нужный payload корневой дисциплины
-        const selectedSchedule = scheduleList.find((sc) => sc.id === selectedScheduleId);
-        const dateInterval = resolveDateInterval(discipline.dateRange, selectedSchedule?.dateInterval);
-        await saveAsPayload(discipline, scheduleId, rootDisciplines, dateInterval);
-        dispatch(fetchDisciplinesAll());
-      } else {
-        // Exam / Test → /lesson/save (текущее поведение)
-        const occ = discipline.occurrences?.[0];
-        const dateFrom = discipline.dateRange?.from
-          ? displayToApiDate(discipline.dateRange.from)
-          : new Date().toISOString().split('T')[0];
-
-        const dateWithTimeInterval = occ
-          ? { date: dateFrom, timeInterval: { timeFrom: padTime(occ.timeStart), timeTo: padTime(occ.timeEnd) } }
-          : null;
-
-        const tempId = crypto.randomUUID();
-        dispatch(addDisciplineLocally({ ...discipline, id: tempId }));
-        markCreated(tempId);
-
-        await dispatch(
-          saveLesson({
-            scheduleId,
-            academicDisciplineId: discipline.parentId,
-            academicDisciplineType: discipline.lessonType,
-            studentGroupIds: discipline.forIds,
-            teacherId: discipline.teachers[0]?.id ?? undefined,
-            roomId: discipline.roomId ?? undefined,
-            dateWithTimeInterval: dateWithTimeInterval ?? undefined,
-            flexibilityType: discipline.isStatic ? 'Fixed' : 'Flexible',
-            allowCombining: discipline.canOverlap,
-            hoursCost: discipline.totalHoursCount ?? 0,
-          }),
-        );
-
-        dispatch(fetchDisciplinesAll());
-      }
-    },
-    [dispatch, getOrCreateScheduleId, rootDisciplines],
-  );
-
-  // ── Обновление ─────────────────────────────────────────────────────────────
-
-  const update = useCallback(
-    async (updated: Discipline) => {
-      dispatch(updateDisciplineLocally(updated));
-      const scheduleId = await getOrCreateScheduleId();
-      if (!scheduleId) return;
-
-      if (updated.isRoot) {
-        dispatch(
-          saveDisciplineOnServer({
-            discipline: updated,
-            isNew: false,
-            dto: {
-              id: updated.id,
-              scheduleId,
-              name: updated.name,
-              semesterNumber: updated.semesterNumber ?? 1,
-              academicDisciplineTargetType: 'General',
-              allowedLessonTypes: updated.allowedLessonTypes ?? [],
-              lecturePayload:  (updated.allowedLessonTypes ?? []).includes('Lecture')  ? { totalHoursCount: 0 } : undefined,
-              practicePayload: (updated.allowedLessonTypes ?? []).includes('Practice') ? { totalHoursCount: 0 } : undefined,
-              labPayload:      (updated.allowedLessonTypes ?? []).includes('Lab')      ? { totalHoursCount: 0 } : undefined,
-              comment: updated.comment,
-            },
-          }),
-        );
-      } else {
-        const lessonType = updated.lessonType;
-
+      try {
         if (lessonType === 'Lecture' || lessonType === 'Practice' || lessonType === 'Lab') {
-          // → /academic-discipline/save
           const selectedSchedule = scheduleList.find((sc) => sc.id === selectedScheduleId);
-          const dateInterval = resolveDateInterval(updated.dateRange, selectedSchedule?.dateInterval);
-          await saveAsPayload(updated, scheduleId, rootDisciplines, dateInterval);
+          const dateInterval = resolveDateInterval(discipline.dateRange, selectedSchedule?.dateInterval);
+          await saveAsPayload(discipline, scheduleId, rootDisciplines, dateInterval);
           dispatch(fetchDisciplinesAll());
         } else {
           // Exam / Test → /lesson/save
-          const occ = updated.occurrences?.[0];
-          const dateFrom = updated.dateRange?.from
-            ? displayToApiDate(updated.dateRange.from)
+          const occ = discipline.occurrences?.[0];
+          const dateFrom = discipline.dateRange?.from
+            ? displayToApiDate(discipline.dateRange.from)
             : new Date().toISOString().split('T')[0];
 
           const dateWithTimeInterval = occ
             ? { date: dateFrom, timeInterval: { timeFrom: padTime(occ.timeStart), timeTo: padTime(occ.timeEnd) } }
             : null;
 
-          await dispatch(
+          const tempId = crypto.randomUUID();
+          dispatch(addDisciplineLocally({ ...discipline, id: tempId }));
+          markCreated(tempId);
+
+          const result = await dispatch(
             saveLesson({
-              id: updated.lessonId ?? undefined,
               scheduleId,
-              academicDisciplineId: updated.parentId ?? updated.academicDisciplineId,
-              academicDisciplineType: updated.lessonType,
-              studentGroupIds: updated.forIds,
-              teacherId: updated.teachers[0]?.id ?? undefined,
-              roomId: updated.roomId ?? undefined,
+              academicDisciplineId: discipline.parentId,
+              academicDisciplineType: discipline.lessonType,
+              studentGroupIds: discipline.forIds,
+              teacherId: discipline.teachers[0]?.id ?? undefined,
+              roomId: discipline.roomId ?? undefined,
               dateWithTimeInterval: dateWithTimeInterval ?? undefined,
-              flexibilityType: updated.isStatic ? 'Fixed' : 'Flexible',
-              allowCombining: updated.canOverlap,
-              hoursCost: updated.totalHoursCount ?? 0,
+              flexibilityType: discipline.isStatic ? 'Fixed' : 'Flexible',
+              allowCombining: discipline.canOverlap,
+              hoursCost: discipline.totalHoursCount ?? 0,
             }),
           );
 
+          if (saveLesson.rejected.match(result)) {
+            dispatch(removeDisciplineLocally(tempId));
+            addToast((result.payload as string) || 'Не удалось сохранить занятие', 'error');
+            return false;
+          }
+
           dispatch(fetchDisciplinesAll());
         }
+        return true;
+      } catch (err) {
+        addToast(extractError(err), 'error');
+        return false;
       }
     },
-    [dispatch, getOrCreateScheduleId, rootDisciplines],
+    [dispatch, getOrCreateScheduleId, rootDisciplines, scheduleList, selectedScheduleId, addToast],
+  );
+
+  // ── Обновление ─────────────────────────────────────────────────────────────
+
+  const update = useCallback(
+    async (updated: Discipline): Promise<boolean> => {
+      dispatch(updateDisciplineLocally(updated));
+      const scheduleId = await getOrCreateScheduleId();
+      if (!scheduleId) return false;
+
+      try {
+        if (updated.isRoot) {
+          const result = await dispatch(
+            saveDisciplineOnServer({
+              discipline: updated,
+              isNew: false,
+              dto: {
+                id: updated.id,
+                scheduleId,
+                name: updated.name,
+                semesterNumber: updated.semesterNumber ?? 1,
+                academicDisciplineTargetType: 'General',
+                allowedLessonTypes: updated.allowedLessonTypes ?? [],
+                lecturePayload:  (updated.allowedLessonTypes ?? []).includes('Lecture')  ? { totalHoursCount: 0 } : undefined,
+                practicePayload: (updated.allowedLessonTypes ?? []).includes('Practice') ? { totalHoursCount: 0 } : undefined,
+                labPayload:      (updated.allowedLessonTypes ?? []).includes('Lab')      ? { totalHoursCount: 0 } : undefined,
+                comment: updated.comment,
+              },
+            }),
+          );
+          if (saveDisciplineOnServer.rejected.match(result)) {
+            addToast((result.payload as string) || 'Не удалось сохранить дисциплину', 'error');
+            return false;
+          }
+        } else {
+          const lessonType = updated.lessonType;
+
+          if (lessonType === 'Lecture' || lessonType === 'Practice' || lessonType === 'Lab') {
+            const selectedSchedule = scheduleList.find((sc) => sc.id === selectedScheduleId);
+            const dateInterval = resolveDateInterval(updated.dateRange, selectedSchedule?.dateInterval);
+            await saveAsPayload(updated, scheduleId, rootDisciplines, dateInterval);
+            dispatch(fetchDisciplinesAll());
+          } else {
+            // Exam / Test → /lesson/save
+            const occ = updated.occurrences?.[0];
+            const dateFrom = updated.dateRange?.from
+              ? displayToApiDate(updated.dateRange.from)
+              : new Date().toISOString().split('T')[0];
+
+            const dateWithTimeInterval = occ
+              ? { date: dateFrom, timeInterval: { timeFrom: padTime(occ.timeStart), timeTo: padTime(occ.timeEnd) } }
+              : null;
+
+            const result = await dispatch(
+              saveLesson({
+                id: updated.lessonId ?? undefined,
+                scheduleId,
+                academicDisciplineId: updated.parentId ?? updated.academicDisciplineId,
+                academicDisciplineType: updated.lessonType,
+                studentGroupIds: updated.forIds,
+                teacherId: updated.teachers[0]?.id ?? undefined,
+                roomId: updated.roomId ?? undefined,
+                dateWithTimeInterval: dateWithTimeInterval ?? undefined,
+                flexibilityType: updated.isStatic ? 'Fixed' : 'Flexible',
+                allowCombining: updated.canOverlap,
+                hoursCost: updated.totalHoursCount ?? 0,
+              }),
+            );
+
+            if (saveLesson.rejected.match(result)) {
+              addToast((result.payload as string) || 'Не удалось сохранить занятие', 'error');
+              return false;
+            }
+
+            dispatch(fetchDisciplinesAll());
+          }
+        }
+        return true;
+      } catch (err) {
+        addToast(extractError(err), 'error');
+        return false;
+      }
+    },
+    [dispatch, getOrCreateScheduleId, rootDisciplines, scheduleList, selectedScheduleId, addToast],
   );
 
   // ── Удаление ───────────────────────────────────────────────────────────────
@@ -327,10 +366,24 @@ export function useDisciplines() {
   const remove = useCallback(
     (id: string) => {
       dispatch(removeDisciplineLocally(id));
-      void academicDisciplineApi.deleteAcademicDiscipline({ academicDisciplineId: id });
+      academicDisciplineApi.deleteAcademicDiscipline({ academicDisciplineId: id }).catch((err: unknown) => {
+        dispatch(fetchDisciplinesAll());
+        addToast(extractError(err), 'error');
+      });
     },
-    [dispatch],
+    [dispatch, addToast],
   );
 
-  return { rootDisciplines, disciplines, loading, newlyCreatedId, add, addRoot, update, remove };
+  return {
+    rootDisciplines,
+    disciplines,
+    loading,
+    error,
+    newlyCreatedId,
+    add,
+    addRoot,
+    update,
+    remove,
+    refetch,
+  };
 }

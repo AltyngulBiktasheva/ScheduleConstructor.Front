@@ -19,17 +19,26 @@ const TABS = [
 
 export const DisciplinesPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('list');
-  const { rootDisciplines, disciplines, newlyCreatedId, add, addRoot, update, remove } = useDisciplines();
+  const [savingRoot, setSavingRoot] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const {
+    rootDisciplines, disciplines, loading, error, newlyCreatedId,
+    add, addRoot, update, remove, refetch,
+  } = useDisciplines();
   const selectedScheduleId = useAppSelector((s) => s.schedule.selectedScheduleId);
 
-  const handleCreateRoot = (data: RootDisciplineFormData) => {
-    void addRoot(data);
-    setActiveTab('list');
+  const handleCreateRoot = async (data: RootDisciplineFormData) => {
+    setSavingRoot(true);
+    const ok = await addRoot(data);
+    setSavingRoot(false);
+    if (ok) setActiveTab('list');
   };
 
-  const handleCreate = (discipline: Discipline) => {
-    void add(discipline);
-    setActiveTab('list');
+  const handleCreate = async (discipline: Discipline) => {
+    setSaving(true);
+    const ok = await add(discipline);
+    setSaving(false);
+    if (ok) setActiveTab('list');
   };
 
   return (
@@ -45,19 +54,29 @@ export const DisciplinesPage: React.FC = () => {
           <Tabs tabs={TABS} activeId={activeTab} onChange={setActiveTab} />
           <div className={styles.content}>
             {activeTab === 'list' && (
-              <DisciplinesList
-                rootDisciplines={rootDisciplines}
-                disciplines={disciplines}
-                newlyCreatedId={newlyCreatedId}
-                onUpdate={update}
-                onDelete={remove}
-              />
+              <>
+                {error && rootDisciplines.length === 0 && disciplines.length === 0 && (
+                  <div className={styles.loadError}>
+                    <p>Не удалось загрузить данные</p>
+                    <button onClick={refetch}>Повторить</button>
+                  </div>
+                )}
+                {(!error || rootDisciplines.length > 0 || disciplines.length > 0) && (
+                  <DisciplinesList
+                    rootDisciplines={rootDisciplines}
+                    disciplines={disciplines}
+                    newlyCreatedId={newlyCreatedId}
+                    onUpdate={update}
+                    onDelete={remove}
+                  />
+                )}
+              </>
             )}
             {activeTab === 'create-root' && (
-              <RootDisciplineForm onSave={handleCreateRoot} />
+              <RootDisciplineForm onSave={handleCreateRoot} loading={savingRoot} />
             )}
             {activeTab === 'create' && (
-              <DisciplineForm onSave={handleCreate} />
+              <DisciplineForm onSave={handleCreate} loading={saving} />
             )}
           </div>
         </>

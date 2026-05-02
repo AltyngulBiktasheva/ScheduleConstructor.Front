@@ -28,11 +28,12 @@ interface Props {
   initial?: RootDisciplineFormData;
   onSave: (data: RootDisciplineFormData) => void;
   onCancel?: () => void;
+  loading?: boolean;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export const RootDisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel }) => {
+export const RootDisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loading }) => {
   const [name, setName] = useState(initial?.name ?? '');
   const [allowedLessonTypes, setAllowedLessonTypes] = useState<AcademicDisciplineType[]>(initial?.allowedLessonTypes ?? []);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -102,10 +103,10 @@ export const RootDisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel 
       {/* Кнопки */}
       <div className={styles.actions}>
         {onCancel && (
-          <Button variant="secondary" onClick={onCancel}>Отмена</Button>
+          <Button variant="secondary" onClick={onCancel} disabled={loading}>Отмена</Button>
         )}
-        <Button variant="primary" onClick={handleSave}>
-          {initial ? 'Сохранить' : 'Создать корневую дисциплину'}
+        <Button variant="primary" onClick={handleSave} disabled={loading}>
+          {loading ? 'Сохранение...' : (initial ? 'Сохранить' : 'Создать корневую дисциплину')}
         </Button>
       </div>
     </div>
