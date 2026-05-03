@@ -4,11 +4,16 @@ import type {
   SaveStudentGroupDto,
   SearchParametersDto,
   StudentGroupRegistryItemDto,
+  StudentGroupTreeItemDto,
   StudentGroupViewDto,
 } from './types';
 
 export const studentGroupApi = {
-  /** Получить плоский список академических групп и потоков */
+  /** Получить дерево академических групп по расписанию (для конструктора) */
+  searchStudentGroupTree: (params: { scheduleId: string }) =>
+    apiClient.get<StudentGroupTreeItemDto[]>('/student-group/search-tree', { params }),
+
+  /** Получить плоский список академических групп и потоков (для реестра) */
   searchStudentGroups: (body: { searchParameters: SearchParametersDto }) =>
     apiClient.post<RegistryDto<StudentGroupRegistryItemDto>>('/student-group/search', body),
 

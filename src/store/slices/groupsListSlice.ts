@@ -73,6 +73,74 @@ export const fetchGroupsAll = createAsyncThunk(
 );
 
 /**
+ * Загружает иерархию групп через /student-group/search-tree (для конструктора).
+ * Возвращает потоки с заполненными groupIds и группы с заполненными subgroups.
+ * Перезаписывает тот же срез состояния, что и fetchGroupsAll.
+ */
+export const fetchGroupsTree = createAsyncThunk(
+  'groupsList/fetchTree',
+  async (scheduleId: string, { rejectWithValue }) => {
+    try {
+      const { data: treeItems } = await studentGroupApi.searchStudentGroupTree({ scheduleId });
+
+      const streams: Stream[] = [];
+      const groups: Group[] = [];
+
+      // Для каждого корневого элемента вызываем /view только чтобы узнать тип (Thread или Group).
+      // Данные групп и подгрупп читаем прямо из вложенного дерева — без дополнительных запросов.
+      await Promise.all(
+        treeItems.map(async (treeItem) => {
+          const { data: rootDto } = await studentGroupApi.getStudentGroup({
+            studentGroupId: treeItem.id,
+          });
+
+          if (rootDto.studentGroupType === 'Thread') {
+            streams.push({
+              id: treeItem.id,
+              name: treeItem.name,
+              semesterNumber: rootDto.semesterNumber,
+              groupIds: treeItem.children.map((c) => c.id),
+              disciplineIds: [],
+            });
+
+            // Группы и подгруппы берём из дерева — ID уже строки, лишних запросов нет
+            for (const groupNode of treeItem.children) {
+              groups.push({
+                id: groupNode.id,
+                name: groupNode.name,
+                streamIds: [treeItem.id],
+                subgroups: groupNode.children.map((sg) => ({
+                  id: sg.id,
+                  name: sg.name,
+                })),
+                studentCount: 0,
+                disciplineIds: [],
+              });
+            }
+          } else if (rootDto.studentGroupType === 'Group') {
+            groups.push({
+              id: treeItem.id,
+              name: treeItem.name,
+              streamIds: [],
+              subgroups: treeItem.children.map((sg) => ({
+                id: sg.id,
+                name: sg.name,
+              })),
+              studentCount: 0,
+              disciplineIds: [],
+            });
+          }
+        }),
+      );
+
+      return { groups, streams };
+    } catch (err: unknown) {
+      return rejectWithValue(extractError(err));
+    }
+  },
+);
+
+/**
  * Создаёт / обновляет студенческую группу / поток на сервере.
  * При создании (isNew=true) id не передаётся — генерируется на бэке.
  * После создания перезагружает список.
@@ -160,6 +228,7 @@ const groupsListSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // fetchGroupsAll — плоский /search (реестр)
       .addCase(fetchGroupsAll.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -170,6 +239,20 @@ const groupsListSlice = createSlice({
         state.streams = action.payload.streams;
       })
       .addCase(fetchGroupsAll.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      // fetchGroupsTree — иерархический /search-tree (конструктор)
+      .addCase(fetchGroupsTree.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchGroupsTree.fulfilled, (state, action) => {
+        state.loading = false;
+        state.groups = action.payload.groups;
+        state.streams = action.payload.streams;
+      })
+      .addCase(fetchGroupsTree.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });

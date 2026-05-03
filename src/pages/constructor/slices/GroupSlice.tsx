@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { fetchGroupsAll } from '../../../store/slices/groupsListSlice';
+import { fetchGroupsTree } from '../../../store/slices/groupsListSlice';
 import type { Group, Stream } from '../../../types/group';
 import styles from './SliceCard.module.scss';
 import treeStyles from './GroupTree.module.scss';
@@ -20,7 +20,7 @@ export const GroupSlice: React.FC<Props> = ({ onSelect }) => {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (selectedScheduleId && groups.length === 0) dispatch(fetchGroupsAll());
+    if (selectedScheduleId && groups.length === 0) dispatch(fetchGroupsTree(selectedScheduleId));
   }, [dispatch, selectedScheduleId, groups.length]);
 
   // Авто-раскрываем первый поток при загрузке

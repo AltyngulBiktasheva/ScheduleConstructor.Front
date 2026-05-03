@@ -291,6 +291,11 @@ export interface StudentGroupRegistryItemDto {
   studentGroupType: StudentGroupType;
 }
 
+export interface StudentGroupTreeItemDto {
+  id: string;
+  name: string;
+  children: StudentGroupTreeItemDto[];
+}
 
 export interface SaveStudentGroupDto {
   id?: string | null;
