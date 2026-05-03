@@ -130,7 +130,7 @@ export const ScheduleGrid: React.FC<Props> = ({
   };
 
   return (
-    <div className={styles.wrapper}>
+    <div className={styles.wrapper} data-tour="schedule-grid">
       <div className={styles.toolbar}>
         <div className={styles.weekNav}>
           <button

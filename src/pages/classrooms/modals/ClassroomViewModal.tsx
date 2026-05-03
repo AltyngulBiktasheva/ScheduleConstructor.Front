@@ -94,9 +94,16 @@ export const ClassroomViewModal: React.FC<Props> = ({
         </Row>
         <Row label="Вместимость">до {classroom.capacity} чел.</Row>
         <Row label="Тип доски">
-          {classroom.boardType === 'chalk' ? '🖊️ Меловая' : '✏️ Маркерная'}
+          {classroom.boardType === 'chalk' ? '🖊️ Только меловая'
+            : classroom.boardType === 'marker' ? '✏️ Только маркерная'
+            : classroom.boardType === 'both' ? '🖊️✏️ Оба вида доски'
+            : '— Не указано'}
         </Row>
-        <Row label="Проектор">{classroom.hasProjector ? '📽️ Есть' : '🚫 Нет'}</Row>
+        <Row label="Проектор">
+          {classroom.hasProjector === true ? '📽️ Есть'
+            : classroom.hasProjector === false ? '🚫 Нет'
+            : '— Не указано'}
+        </Row>
       </div>
     </Modal>
   );

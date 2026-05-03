@@ -39,7 +39,6 @@ export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel,
   const validate = () => {
     const errs: Record<string, string> = {};
     if (!name.trim()) errs.name = 'Обязательное поле';
-    if (!studentCount || studentCount < 1) errs.studentCount = 'Укажите корректное количество';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -97,7 +96,7 @@ export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel,
         )}
       </FormField>
 
-      <FormField label="Количество студентов" required error={errors.studentCount}>
+      <FormField label="Количество студентов" error={errors.studentCount}>
         <div className={styles.countRow}>
           <input
             className="field-input"

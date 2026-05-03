@@ -1,5 +1,3 @@
-import type { BoardType } from './classroom';
-
 export type WishPriority = 'preferred' | 'undesirable' | 'forbidden';
 
 export interface TimeWish {
@@ -23,9 +21,6 @@ export interface TeacherWishes {
   undesirableAudiences: AudienceWish[];
   forbiddenAudiences: AudienceWish[];
   comment: string;
-  // Предпочтения по оборудованию
-  preferredBoardType: BoardType | null;  // null = нет предпочтений
-  needsProjector: boolean | null;        // null = нет предпочтений
 }
 
 export interface Teacher {
@@ -44,7 +39,5 @@ export function emptyWishes(): TeacherWishes {
     undesirableAudiences: [],
     forbiddenAudiences: [],
     comment: '',
-    preferredBoardType: null,
-    needsProjector: null,
   };
 }

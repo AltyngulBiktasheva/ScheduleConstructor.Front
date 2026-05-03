@@ -17,7 +17,7 @@ export const ScheduleSelector: React.FC = () => {
   };
 
   return (
-    <div className={styles.wrapper}>
+    <div className={styles.wrapper} data-tour="schedule-selector">
       <span className={styles.label}>Проект расписания:</span>
       <select
         className={styles.select}

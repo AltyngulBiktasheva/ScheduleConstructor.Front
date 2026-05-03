@@ -2,7 +2,7 @@
 
 export type AcademicDisciplineTargetType = 'General' | 'Specialized' | 'ByChoice' | 'Optional';
 export type AcademicDisciplineType = 'Lecture' | 'Practice' | 'Lab' | 'Exam' | 'Test';
-export type DisciplineLessonRepeatType = 1 | 2 | 3 | 4; // 1=Weekly, 2=EvenWeeks, 3=OddWeeks, 4=Once
+export type DisciplineLessonRepeatType = 1 | 2 | 3 | 4 | 'Weekly' | 'EvenWeeks' | 'OddWeeks' | 'Once';
 export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 export type LessonFlexibilityType = 'Fixed' | 'Flexible';
 export type LessonValidationErrorType = 'Warning' | 'Error';
@@ -65,8 +65,8 @@ export interface RegistryDto<T> {
 export interface LessonBatchInfoDto {
   id?: string | null;
   studentGroupIds: string[];
-  teacherId?: string | null;
-  roomId?: string | null;
+  teacherIds: string[];
+  roomIds: string[];
   dayOfWeekTimeIntervals?: DayOfWeekTimeInterval[] | null;
   repeatType: DisciplineLessonRepeatType;
   dateInterval: DateInterval;
@@ -87,6 +87,8 @@ export interface AcademicDisciplineViewDto {
   lecturePayload?: AcademicDisciplinePayloadDto;
   practicePayload?: AcademicDisciplinePayloadDto;
   labPayload?: AcademicDisciplinePayloadDto;
+  examPayload?: AcademicDisciplinePayloadDto;
+  testPayload?: AcademicDisciplinePayloadDto;
   hasExam: boolean;
   hasTest: boolean;
   comment?: string | null;
@@ -101,6 +103,8 @@ export interface AcademicDisciplineRegistryItemDto {
   lecturePayload?: AcademicDisciplinePayloadDto | null;
   practicePayload?: AcademicDisciplinePayloadDto | null;
   labPayload?: AcademicDisciplinePayloadDto | null;
+  examPayload?: AcademicDisciplinePayloadDto | null;
+  testPayload?: AcademicDisciplinePayloadDto | null;
   comment?: string | null;
 }
 
@@ -114,6 +118,8 @@ export interface SaveAcademicDisciplineDto {
   lecturePayload?: AcademicDisciplinePayloadDto | null;
   practicePayload?: AcademicDisciplinePayloadDto | null;
   labPayload?: AcademicDisciplinePayloadDto | null;
+  examPayload?: AcademicDisciplinePayloadDto | null;
+  testPayload?: AcademicDisciplinePayloadDto | null;
   comment?: string | null;
 }
 
@@ -208,8 +214,9 @@ export interface LessonWeekItemDto {
 }
 
 export interface AcademicDisciplineWeekConflictDto {
-  dayOfWeek: DayOfWeek;
-  timeInterval: TimeInterval;
+  dayOfWeekTimeInterval: DayOfWeekTimeInterval;
+  messages: string[];
+  errorType: LessonValidationErrorType;
 }
 
 export interface LessonWeekConflictDto {
@@ -237,16 +244,16 @@ export interface RoomViewDto {
   roomType: RoomType;
 }
 
-export type RoomBoardType = 'Chalk' | 'Marker';
+export type RoomBoardType = 'Chalk' | 'Marker' | 'Both';
 
 export interface SaveRoomDto {
   id?: string | null;
   name: string;
   campusId: string;
   roomType: RoomType;
-  capacity: number;
-  roomBoardType: RoomBoardType;
-  hasProjector: boolean;
+  capacity?: number | null;
+  roomBoardType?: RoomBoardType | null;
+  hasProjector?: boolean | null;
 }
 
 // ─── Schedule ─────────────────────────────────────────────────────────────────

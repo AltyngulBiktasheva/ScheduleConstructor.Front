@@ -304,15 +304,11 @@
   position: absolute;
   left: 0;
   right: 0;
-  pointer-events: none;
+  pointer-events: auto;
   z-index: 1;
   border-radius: $border-radius-sm;
   opacity: 0.6;
-}
-
-.highlight_green {
-  background: $slot-green;
-  border-left: 3px solid $slot-green-border;
+  cursor: help;
 }
 
 .highlight_yellow {

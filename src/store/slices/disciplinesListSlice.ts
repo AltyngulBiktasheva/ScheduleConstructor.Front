@@ -32,11 +32,13 @@ const initialState: DisciplinesListState = {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/** Маппинг типов с payload-полем (Lecture/Practice/Lab) */
-const PAYLOAD_KEY_MAP: Partial<Record<AcademicDisciplineType, 'lecturePayload' | 'practicePayload' | 'labPayload'>> = {
+/** Маппинг типов с payload-полем */
+const PAYLOAD_KEY_MAP: Partial<Record<AcademicDisciplineType, 'lecturePayload' | 'practicePayload' | 'labPayload' | 'examPayload' | 'testPayload'>> = {
   Lecture:  'lecturePayload',
   Practice: 'practicePayload',
   Lab:      'labPayload',
+  Exam:     'examPayload',
+  Test:     'testPayload',
 };
 
 function mapDto(dto: AcademicDisciplineRegistryItemDto): { root: Discipline; children: Discipline[] } {
@@ -62,13 +64,11 @@ function mapDto(dto: AcademicDisciplineRegistryItemDto): { root: Discipline; chi
   for (const type of dto.allowedLessonTypes) {
     const childName = `${dto.name} (${LESSON_TYPE_LABELS[type] ?? type})`;
     const payloadKey = PAYLOAD_KEY_MAP[type];
+    const payload = payloadKey ? dto[payloadKey] : undefined;
 
-    if (payloadKey) {
-      // Lecture / Practice / Lab — показываем только если есть хотя бы одна копия занятия
-      const payload = dto[payloadKey];
-      if (!payload?.lessonBatchInfos?.length) continue;
+    if (payload?.lessonBatchInfos?.length) {
+      // Есть сохранённый payload — показываем из него
       const batch = payload.lessonBatchInfos[0];
-
       children.push({
         id: batch.id ?? `${dto.id}_${type}`,
         lessonId: batch.id ?? undefined,
@@ -89,7 +89,7 @@ function mapDto(dto: AcademicDisciplineRegistryItemDto): { root: Discipline; chi
         comment: dto.comment ?? undefined,
       });
     } else {
-      // Exam / Test — показываем всегда, если тип есть в allowedLessonTypes
+      // Payload пуст или отсутствует — показываем placeholder
       children.push({
         id: `${dto.id}_${type}`,
         name: childName,

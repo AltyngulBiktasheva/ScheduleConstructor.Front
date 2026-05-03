@@ -2,12 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '../../components/Button/Button';
 import { FormField } from '../../components/FormField/FormField';
 import type { TeacherWishes, TimeWish, AudienceWish } from '../../types';
-import { BOARD_TYPE_LABELS, type BoardType } from '../../types';
 import { DAYS } from '../../constants/days';
 import { roomApi } from '../../api';
 import type { RoomTreeDto } from '../../api';
 import styles from './WishesEditor.module.scss';
-import equipStyles from './EquipmentWishes.module.scss';
 
 interface Props {
   wishes: TeacherWishes;
@@ -206,71 +204,6 @@ export const WishesEditor: React.FC<Props> = ({ wishes, onSave, onCancel }) => {
             </div>
           ))}
         </div>
-      </div>
-
-      {/* ─── Пожелания по оборудованию ──────────────────────────────────── */}
-      <div className={styles.card}>
-        <h3 className={styles.cardTitle}>Пожелания по оборудованию</h3>
-        <p className={styles.cardHint}>Учитываются автоматически при составлении расписания</p>
-
-        <FormField label="Предпочитаемый тип доски">
-          <div className={styles.wishSections} style={{ gridTemplateColumns: '1fr' }}>
-            <div className={equipStyles.radioGroup}>
-              <label className={equipStyles.radioLabel}>
-                <input
-                  type="radio"
-                  name="boardType"
-                  checked={form.preferredBoardType === null}
-                  onChange={() => setForm((prev) => ({ ...prev, preferredBoardType: null }))}
-                />
-                Нет предпочтений
-              </label>
-              {(Object.keys(BOARD_TYPE_LABELS) as BoardType[]).map((b) => (
-                <label key={b} className={equipStyles.radioLabel}>
-                  <input
-                    type="radio"
-                    name="boardType"
-                    checked={form.preferredBoardType === b}
-                    onChange={() => setForm((prev) => ({ ...prev, preferredBoardType: b }))}
-                  />
-                  {b === 'chalk' ? '🖊️' : '✏️'} {BOARD_TYPE_LABELS[b]}
-                </label>
-              ))}
-            </div>
-          </div>
-        </FormField>
-
-        <FormField label="Проектор">
-          <div className={equipStyles.radioGroup}>
-            <label className={equipStyles.radioLabel}>
-              <input
-                type="radio"
-                name="needsProjector"
-                checked={form.needsProjector === null}
-                onChange={() => setForm((prev) => ({ ...prev, needsProjector: null }))}
-              />
-              Нет предпочтений
-            </label>
-            <label className={equipStyles.radioLabel}>
-              <input
-                type="radio"
-                name="needsProjector"
-                checked={form.needsProjector === true}
-                onChange={() => setForm((prev) => ({ ...prev, needsProjector: true }))}
-              />
-              📽️ Нужен проектор
-            </label>
-            <label className={equipStyles.radioLabel}>
-              <input
-                type="radio"
-                name="needsProjector"
-                checked={form.needsProjector === false}
-                onChange={() => setForm((prev) => ({ ...prev, needsProjector: false }))}
-              />
-              🚫 Проектор не нужен
-            </label>
-          </div>
-        </FormField>
       </div>
 
       {/* ─── Дополнительные пожелания ───────────────────────────────────────── */}

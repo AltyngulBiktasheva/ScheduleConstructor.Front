@@ -34,6 +34,7 @@ export const CLASSROOM_TYPE_REVERSE: Record<ClassroomType, RoomType> = {
 export const BOARD_TYPE_REVERSE: Record<BoardType, RoomBoardType> = {
   chalk: 'Chalk',
   marker: 'Marker',
+  both: 'Both',
 };
 
 // ─── State ───────────────────────────────────────────────────────────────────
@@ -66,8 +67,8 @@ export const fetchClassroomsAll = createAsyncThunk(
           campusId: campus.campusId,
           type: 'standard',
           capacity: 30,
-          boardType: 'chalk',
-          hasProjector: false,
+          boardType: null,
+          hasProjector: null,
         })),
       );
     } catch (err: unknown) {
@@ -94,9 +95,9 @@ export const saveClassroomOnServer = createAsyncThunk(
         name: classroom.name,
         campusId: classroom.campusId,
         roomType: CLASSROOM_TYPE_REVERSE[classroom.type],
-        capacity: classroom.capacity,
-        roomBoardType: BOARD_TYPE_REVERSE[classroom.boardType],
-        hasProjector: classroom.hasProjector,
+        capacity: classroom.capacity || null,
+        roomBoardType: classroom.boardType != null ? BOARD_TYPE_REVERSE[classroom.boardType] : undefined,
+        hasProjector: classroom.hasProjector ?? undefined,
       });
       if (isNew) dispatch(fetchClassroomsAll());
       return classroom;

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { FormField } from '../../../components/FormField/FormField';
 import { Button } from '../../../components/Button/Button';
 import type { Classroom, ClassroomType, BoardType } from '../../../types';
-import { CLASSROOM_TYPE_LABELS, BOARD_TYPE_LABELS } from '../../../types';
+import { CLASSROOM_TYPE_LABELS } from '../../../types';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchCampuses } from '../../../store/slices/campusSlice';
 import styles from './ClassroomForm.module.scss';
@@ -10,7 +10,7 @@ import styles from './ClassroomForm.module.scss';
 // ─── Form ─────────────────────────────────────────────────────────────────────
 
 function emptyForm(firstCampusId = '', firstCampusName = ''): Omit<Classroom, 'id'> {
-  return { name: '', building: firstCampusName, campusId: firstCampusId, type: 'standard', capacity: 30, boardType: 'chalk', hasProjector: false };
+  return { name: '', building: firstCampusName, campusId: firstCampusId, type: 'standard', capacity: 30, boardType: null, hasProjector: null };
 }
 
 interface Props {
@@ -56,7 +56,6 @@ export const ClassroomForm: React.FC<Props> = ({ initial, onSave, onCancel, load
     if (!form.name.trim()) errs.name = 'Обязательное поле';
     if (!form.campusId) errs.campusId = 'Выберите корпус';
     if (!form.type) errs.type = 'Обязательное поле';
-    if (!form.capacity || form.capacity < 1) errs.capacity = 'Укажите корректную вместимость';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -108,7 +107,7 @@ export const ClassroomForm: React.FC<Props> = ({ initial, onSave, onCancel, load
         </div>
       </FormField>
 
-      <FormField label="Вместимость" required error={errors.capacity} hint="Максимальное количество человек">
+      <FormField label="Вместимость" error={errors.capacity} hint="Максимальное количество человек">
         <div className={styles.capacityRow}>
           <input className="field-input" type="number" min={0} max={999} value={form.capacity}
             onChange={(e) => set('capacity', parseInt(e.target.value) || 0)} style={{ width: 120 }} />
@@ -116,31 +115,35 @@ export const ClassroomForm: React.FC<Props> = ({ initial, onSave, onCancel, load
         </div>
       </FormField>
 
-      <FormField label="Тип доски" required>
-        <div className={styles.radioGroup}>
-          {(Object.keys(BOARD_TYPE_LABELS) as BoardType[]).map((b) => (
-            <label key={b} className={styles.radioLabel}>
-              <input type="radio" name="boardType" checked={form.boardType === b} onChange={() => set('boardType', b)} />
-              <span className={styles.boardIcon}>{b === 'chalk' ? '🖊️' : '✏️'}</span>
-              {BOARD_TYPE_LABELS[b]}
-            </label>
-          ))}
-        </div>
+      <FormField label="Тип доски">
+        <select
+          className="field-input"
+          value={form.boardType ?? ''}
+          onChange={(e) => {
+            const v = e.target.value;
+            set('boardType', v === '' ? null : v as BoardType);
+          }}
+        >
+          <option value="">Не указано</option>
+          <option value="both">Оба вида доски</option>
+          <option value="marker">Только маркерная</option>
+          <option value="chalk">Только меловая</option>
+        </select>
       </FormField>
 
-      <FormField label="Проектор" required>
-        <div className={styles.radioGroup}>
-          <label className={styles.radioLabel}>
-            <input type="radio" name="hasProjector" checked={!form.hasProjector} onChange={() => set('hasProjector', false)} />
-            <span className={styles.boardIcon}>🚫</span>
-            Нет
-          </label>
-          <label className={styles.radioLabel}>
-            <input type="radio" name="hasProjector" checked={form.hasProjector} onChange={() => set('hasProjector', true)} />
-            <span className={styles.boardIcon}>📽️</span>
-            Есть
-          </label>
-        </div>
+      <FormField label="Проектор">
+        <select
+          className="field-input"
+          value={form.hasProjector === null ? '' : String(form.hasProjector)}
+          onChange={(e) => {
+            const v = e.target.value;
+            set('hasProjector', v === '' ? null : v === 'true');
+          }}
+        >
+          <option value="">Не указано</option>
+          <option value="true">Есть проектор</option>
+          <option value="false">Нет проектора</option>
+        </select>
       </FormField>
 
       <div className={styles.actions}>

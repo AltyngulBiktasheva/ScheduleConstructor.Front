@@ -6,6 +6,7 @@ import { useAppDispatch } from './store/hooks';
 import { ensureDefaultCampuses } from './store/slices/campusSlice';
 import { ToastProvider } from './components/Toast/ToastContext';
 import { ToastContainer } from './components/Toast/ToastContainer';
+import { TourProvider } from './components/Tour';
 
 import { ConstructorPage } from './pages/constructor/ConstructorPage';
 import { SchedulesPage } from './pages/schedules/SchedulesPage';
@@ -28,8 +29,9 @@ function App() {
   }, [dispatch]);
 
   return (
-    <ToastProvider>
-      <BrowserRouter>
+    <TourProvider>
+      <ToastProvider>
+        <BrowserRouter>
         <Routes>
           <Route element={<Layout />}>
             <Route index element={<Navigate to={ROUTES.CONSTRUCTOR} replace />} />
@@ -52,9 +54,10 @@ function App() {
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>
-      </BrowserRouter>
-      <ToastContainer />
-    </ToastProvider>
+        </BrowserRouter>
+        <ToastContainer />
+      </ToastProvider>
+    </TourProvider>
   );
 }
 

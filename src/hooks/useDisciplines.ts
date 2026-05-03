@@ -17,7 +17,6 @@ import {
   removeDisciplineLocally,
   saveDisciplineOnServer,
 } from '../store/slices/disciplinesListSlice';
-import { saveLesson } from '../store/slices/lessonSlice';
 import { academicDisciplineApi } from '../api';
 import { fetchSchedules, saveSchedule } from '../store/slices/scheduleSlice';
 import type {
@@ -52,10 +51,10 @@ const DAY_ID_TO_DOW: Record<string, DayOfWeek> = {
 
 function mapRepeatType(repeat: string | undefined): DisciplineLessonRepeatType {
   switch (repeat) {
-    case 'even-weeks': return 2; // EvenWeeks
-    case 'odd-weeks':  return 3; // OddWeeks
-    case 'once':       return 4; // Once
-    default:           return 1; // Weekly
+    case 'even-weeks': return 'EvenWeeks';
+    case 'odd-weeks':  return 'OddWeeks';
+    case 'once':       return 'Once';
+    default:           return 'Weekly';
   }
 }
 
@@ -66,8 +65,8 @@ function buildLessonBatchInfo(
   return {
     id: discipline.lessonId ?? null,
     studentGroupIds: discipline.forIds,
-    teacherId: discipline.teachers[0]?.id ?? null,
-    roomId: discipline.roomId ?? null,
+    teacherIds: discipline.teachers.map((t) => t.id),
+    roomIds: discipline.roomId ? [discipline.roomId] : [],
     dayOfWeekTimeIntervals: discipline.occurrences?.length
       ? discipline.occurrences.map((occ) => ({
           dayOfWeek: DAY_ID_TO_DOW[occ.dayId] ?? 1,
@@ -130,6 +129,8 @@ async function saveAsPayload(
     lecturePayload:  lessonType === 'Lecture'  ? updatedPayload : payloadOrDefault(viewDto.lecturePayload),
     practicePayload: lessonType === 'Practice' ? updatedPayload : payloadOrDefault(viewDto.practicePayload),
     labPayload:      lessonType === 'Lab'      ? updatedPayload : payloadOrDefault(viewDto.labPayload),
+    examPayload:     lessonType === 'Exam'     ? updatedPayload : payloadOrDefault(viewDto.examPayload),
+    testPayload:     lessonType === 'Test'     ? updatedPayload : payloadOrDefault(viewDto.testPayload),
     comment: viewDto.comment ?? undefined,
   });
 }
@@ -222,52 +223,11 @@ export function useDisciplines() {
       const scheduleId = await getOrCreateScheduleId();
       if (!scheduleId) return false;
 
-      const lessonType = discipline.lessonType;
-
       try {
-        if (lessonType === 'Lecture' || lessonType === 'Practice' || lessonType === 'Lab') {
-          const selectedSchedule = scheduleList.find((sc) => sc.id === selectedScheduleId);
-          const dateInterval = resolveDateInterval(discipline.dateRange, selectedSchedule?.dateInterval);
-          await saveAsPayload(discipline, scheduleId, rootDisciplines, dateInterval);
-          dispatch(fetchDisciplinesAll());
-        } else {
-          // Exam / Test → /lesson/save
-          const occ = discipline.occurrences?.[0];
-          const dateFrom = discipline.dateRange?.from
-            ? displayToApiDate(discipline.dateRange.from)
-            : new Date().toISOString().split('T')[0];
-
-          const dateWithTimeInterval = occ
-            ? { date: dateFrom, timeInterval: { timeFrom: padTime(occ.timeStart), timeTo: padTime(occ.timeEnd) } }
-            : null;
-
-          const tempId = crypto.randomUUID();
-          dispatch(addDisciplineLocally({ ...discipline, id: tempId }));
-          markCreated(tempId);
-
-          const result = await dispatch(
-            saveLesson({
-              scheduleId,
-              academicDisciplineId: discipline.parentId,
-              academicDisciplineType: discipline.lessonType,
-              studentGroupIds: discipline.forIds,
-              teacherId: discipline.teachers[0]?.id ?? undefined,
-              roomId: discipline.roomId ?? undefined,
-              dateWithTimeInterval: dateWithTimeInterval ?? undefined,
-              flexibilityType: discipline.isStatic ? 'Fixed' : 'Flexible',
-              allowCombining: discipline.canOverlap,
-              hoursCost: discipline.totalHoursCount ?? 0,
-            }),
-          );
-
-          if (saveLesson.rejected.match(result)) {
-            dispatch(removeDisciplineLocally(tempId));
-            addToast((result.payload as string) || 'Не удалось сохранить занятие', 'error');
-            return false;
-          }
-
-          dispatch(fetchDisciplinesAll());
-        }
+        const selectedSchedule = scheduleList.find((sc) => sc.id === selectedScheduleId);
+        const dateInterval = resolveDateInterval(discipline.dateRange, selectedSchedule?.dateInterval);
+        await saveAsPayload(discipline, scheduleId, rootDisciplines, dateInterval);
+        dispatch(fetchDisciplinesAll());
         return true;
       } catch (err) {
         addToast(extractError(err), 'error');
@@ -298,9 +258,11 @@ export function useDisciplines() {
                 semesterNumber: updated.semesterNumber ?? 1,
                 academicDisciplineTargetType: 'General',
                 allowedLessonTypes: updated.allowedLessonTypes ?? [],
-                lecturePayload:  (updated.allowedLessonTypes ?? []).includes('Lecture')  ? { totalHoursCount: 0 } : undefined,
-                practicePayload: (updated.allowedLessonTypes ?? []).includes('Practice') ? { totalHoursCount: 0 } : undefined,
-                labPayload:      (updated.allowedLessonTypes ?? []).includes('Lab')      ? { totalHoursCount: 0 } : undefined,
+                lecturePayload:  (updated.allowedLessonTypes ?? []).includes('Lecture')  ? { totalHoursCount: 0, lessonBatchInfos: [] } : undefined,
+                practicePayload: (updated.allowedLessonTypes ?? []).includes('Practice') ? { totalHoursCount: 0, lessonBatchInfos: [] } : undefined,
+                labPayload:      (updated.allowedLessonTypes ?? []).includes('Lab')      ? { totalHoursCount: 0, lessonBatchInfos: [] } : undefined,
+                examPayload:     (updated.allowedLessonTypes ?? []).includes('Exam')     ? { totalHoursCount: 0, lessonBatchInfos: [] } : undefined,
+                testPayload:     (updated.allowedLessonTypes ?? []).includes('Test')     ? { totalHoursCount: 0, lessonBatchInfos: [] } : undefined,
                 comment: updated.comment,
               },
             }),
@@ -310,47 +272,10 @@ export function useDisciplines() {
             return false;
           }
         } else {
-          const lessonType = updated.lessonType;
-
-          if (lessonType === 'Lecture' || lessonType === 'Practice' || lessonType === 'Lab') {
-            const selectedSchedule = scheduleList.find((sc) => sc.id === selectedScheduleId);
-            const dateInterval = resolveDateInterval(updated.dateRange, selectedSchedule?.dateInterval);
-            await saveAsPayload(updated, scheduleId, rootDisciplines, dateInterval);
-            dispatch(fetchDisciplinesAll());
-          } else {
-            // Exam / Test → /lesson/save
-            const occ = updated.occurrences?.[0];
-            const dateFrom = updated.dateRange?.from
-              ? displayToApiDate(updated.dateRange.from)
-              : new Date().toISOString().split('T')[0];
-
-            const dateWithTimeInterval = occ
-              ? { date: dateFrom, timeInterval: { timeFrom: padTime(occ.timeStart), timeTo: padTime(occ.timeEnd) } }
-              : null;
-
-            const result = await dispatch(
-              saveLesson({
-                id: updated.lessonId ?? undefined,
-                scheduleId,
-                academicDisciplineId: updated.parentId ?? updated.academicDisciplineId,
-                academicDisciplineType: updated.lessonType,
-                studentGroupIds: updated.forIds,
-                teacherId: updated.teachers[0]?.id ?? undefined,
-                roomId: updated.roomId ?? undefined,
-                dateWithTimeInterval: dateWithTimeInterval ?? undefined,
-                flexibilityType: updated.isStatic ? 'Fixed' : 'Flexible',
-                allowCombining: updated.canOverlap,
-                hoursCost: updated.totalHoursCount ?? 0,
-              }),
-            );
-
-            if (saveLesson.rejected.match(result)) {
-              addToast((result.payload as string) || 'Не удалось сохранить занятие', 'error');
-              return false;
-            }
-
-            dispatch(fetchDisciplinesAll());
-          }
+          const selectedSchedule = scheduleList.find((sc) => sc.id === selectedScheduleId);
+          const dateInterval = resolveDateInterval(updated.dateRange, selectedSchedule?.dateInterval);
+          await saveAsPayload(updated, scheduleId, rootDisciplines, dateInterval);
+          dispatch(fetchDisciplinesAll());
         }
         return true;
       } catch (err) {

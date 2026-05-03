@@ -39,7 +39,7 @@ export const DisciplineList: React.FC<Props> = ({
   };
 
   return (
-    <div className={styles.container} onDragOver={handleDragOver} onDrop={handleDrop}>
+    <div className={styles.container} onDragOver={handleDragOver} onDrop={handleDrop} data-tour="discipline-list">
       <h2 className={styles.title}>Дисциплины</h2>
       {disciplines.length === 0 ? (
         <p className={styles.empty}>Все дисциплины размещены</p>

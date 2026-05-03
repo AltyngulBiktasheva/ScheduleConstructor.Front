@@ -5,7 +5,7 @@ export interface SlotHighlight {
   dayId: string;
   timeStart: string;
   timeEnd: string;
-  color: 'green' | 'yellow' | 'red';
+  color: 'yellow' | 'red';
   message?: string;
 }
 
@@ -26,11 +26,12 @@ export async function fetchSlotHighlights(params: {
   const { data } = await academicDisciplineApi.getWeekConflicts(params);
 
   return data
-    .filter((conflict) => conflict.dayOfWeek in DOW_TO_DAY_ID)
-    .map((conflict) => ({
-      dayId: DOW_TO_DAY_ID[conflict.dayOfWeek],
-      timeStart: conflict.timeInterval.timeFrom.slice(0, 5),
-      timeEnd: conflict.timeInterval.timeTo.slice(0, 5),
-      color: 'red' as const,
+    .filter((c) => c.dayOfWeekTimeInterval.dayOfWeek in DOW_TO_DAY_ID)
+    .map((c) => ({
+      dayId: DOW_TO_DAY_ID[c.dayOfWeekTimeInterval.dayOfWeek],
+      timeStart: c.dayOfWeekTimeInterval.timeInterval.timeFrom.slice(0, 5),
+      timeEnd: c.dayOfWeekTimeInterval.timeInterval.timeTo.slice(0, 5),
+      color: c.errorType === 'Warning' ? 'yellow' as const : 'red' as const,
+      message: c.messages.join('\n'),
     }));
 }

@@ -32,7 +32,7 @@ export const Sidebar: React.FC<Props> = ({ isOpen, onToggle }) => {
     <>
       {isOpen && <div className={styles.backdrop} onClick={onToggle} />}
 
-      <aside className={`${styles.sidebar} ${isOpen ? styles.open : styles.closed}`}>
+      <aside className={`${styles.sidebar} ${isOpen ? styles.open : styles.closed}`} data-tour="sidebar">
         <div className={styles.header}>
           {isOpen && (
             <div className={styles.logo}>

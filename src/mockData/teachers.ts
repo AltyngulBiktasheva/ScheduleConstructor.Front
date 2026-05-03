@@ -18,8 +18,6 @@ export const MOCK_TEACHERS: Teacher[] = [
         { id: 'pa1', roomId: '', roomName: 'Тургенева, 301' },
       ],
       comment: 'Прошу не ставить занятия позже 18:00.',
-      preferredBoardType: 'marker',
-      needsProjector: true,
     },
   },
   {
