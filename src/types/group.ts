@@ -6,7 +6,7 @@ export interface Subgroup {
 export interface Group {
   id: string;
   name: string;
-  streamId?: string;
+  streamIds?: string[];
   subgroups: Subgroup[];
   studentCount: number;
   disciplineIds: string[];

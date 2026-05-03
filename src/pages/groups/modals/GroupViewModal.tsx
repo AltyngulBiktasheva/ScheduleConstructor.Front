@@ -20,7 +20,11 @@ export const GroupViewModal: React.FC<Props> = ({
 }) => {
   const [mode, setMode] = useState<Mode>('view');
 
-  const streamName = streams.find((s) => s.id === group.streamId)?.name ?? '—';
+  const streamName = (() => {
+    const ids = group.streamIds ?? [];
+    if (ids.length === 0) return '—';
+    return ids.map((id) => streams.find((s) => s.id === id)?.name).filter(Boolean).join(', ') || '—';
+  })();
 
   if (mode === 'edit') {
     return (

@@ -287,24 +287,21 @@ export interface StudentGroupRegistryItemDto {
   id: string;
   name: string;
   semesterNumber: number;
+  studentsCount: number;
   studentGroupType: StudentGroupType;
-  children?: string[] | null;
 }
 
-export interface StudentGroupTreeItemDto {
-  id: string;
-  name: string;
-  children: string[];
-}
 
 export interface SaveStudentGroupDto {
   id?: string | null;
   scheduleId: string;
   name: string;
   semesterNumber: number;
+  studentsCount?: number;
   studentGroupType: StudentGroupType;
-  parentId?: string | null;
+  parentIds?: string[];
   childIds?: string[] | null;
+  semiGroupToCreateNames?: string[];
 }
 
 // ─── Teacher ─────────────────────────────────────────────────────────────────

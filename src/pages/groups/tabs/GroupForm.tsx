@@ -14,11 +14,16 @@ interface Props {
 
 export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel, loading }) => {
   const [name, setName] = useState(initial?.name ?? '');
-  const [streamId, setStreamId] = useState(initial?.streamId ?? '');
+  const [streamIds, setStreamIds] = useState<string[]>(initial?.streamIds ?? []);
   const [subgroups, setSubgroups] = useState<Subgroup[]>(initial?.subgroups ?? []);
   const [studentCount, setStudentCount] = useState(initial?.studentCount ?? 25);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  const toggleStream = (id: string) =>
+    setStreamIds((prev) =>
+      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id],
+    );
 
   const addSubgroup = () => {
     const newName = `${name}/${subgroups.length + 1}`;
@@ -44,7 +49,7 @@ export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel,
     onSave({
       id: initial?.id ?? crypto.randomUUID(),
       name: name.trim(),
-      streamId: streamId || undefined,
+      streamIds,
       subgroups,
       studentCount,
       disciplineIds: initial?.disciplineIds ?? [],
@@ -52,9 +57,12 @@ export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel,
   };
 
   const handleReset = () => {
-    setName(''); setStreamId(streams[0]?.id ?? '');
-    setSubgroups([]); setStudentCount(25);
-    setErrors({}); setShowResetConfirm(false);
+    setName('');
+    setStreamIds([]);
+    setSubgroups([]);
+    setStudentCount(25);
+    setErrors({});
+    setShowResetConfirm(false);
   };
 
   return (
@@ -70,15 +78,23 @@ export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel,
         />
       </FormField>
 
-      <FormField label="Поток">
-        <select
-          className="field-input"
-          value={streamId}
-          onChange={(e) => setStreamId(e.target.value)}
-        >
-          <option value="">— не указан —</option>
-          {streams.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-        </select>
+      <FormField label="Поток(и)" hint="Необязательно. Группа может входить в несколько потоков.">
+        {streams.length === 0 ? (
+          <span className={styles.noStreams}>Нет созданных потоков</span>
+        ) : (
+          <div className={styles.streamCheckboxes}>
+            {streams.map((s) => (
+              <label key={s.id} className={styles.checkboxLabel}>
+                <input
+                  type="checkbox"
+                  checked={streamIds.includes(s.id)}
+                  onChange={() => toggleStream(s.id)}
+                />
+                <span>{s.name}</span>
+              </label>
+            ))}
+          </div>
+        )}
       </FormField>
 
       <FormField label="Количество студентов" required error={errors.studentCount}>

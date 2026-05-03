@@ -58,7 +58,7 @@ export function useGroups() {
     async (group: Group): Promise<boolean> => {
       const scheduleId = await getOrCreateScheduleId();
       if (!scheduleId) return false;
-      const stream = streams.find((s) => s.id === group.streamId);
+      const firstStream = streams.find((s) => (group.streamIds ?? []).includes(s.id));
       const result = await dispatch(
         saveStudentGroupOnServer({
           entity: group,
@@ -66,9 +66,11 @@ export function useGroups() {
           dto: {
             scheduleId,
             name: group.name,
-            semesterNumber: stream?.semesterNumber ?? 1,
+            semesterNumber: firstStream?.semesterNumber ?? 1,
+            studentsCount: group.studentCount,
             studentGroupType: 'Group',
-            parentId: group.streamId || null,
+            parentIds: group.streamIds ?? [],
+            semiGroupToCreateNames: group.subgroups.map((sg) => sg.name),
           },
         }),
       );
@@ -88,7 +90,7 @@ export function useGroups() {
       dispatch(updateGroupLocally(updated));
       const scheduleId = await getOrCreateScheduleId();
       if (!scheduleId) return false;
-      const stream = streams.find((s) => s.id === updated.streamId);
+      const firstStream = streams.find((s) => (updated.streamIds ?? []).includes(s.id));
       const result = await dispatch(
         saveStudentGroupOnServer({
           entity: updated,
@@ -97,9 +99,10 @@ export function useGroups() {
             id: updated.id,
             scheduleId,
             name: updated.name,
-            semesterNumber: stream?.semesterNumber ?? 1,
+            semesterNumber: firstStream?.semesterNumber ?? 1,
+            studentsCount: updated.studentCount,
             studentGroupType: 'Group',
-            parentId: updated.streamId || null,
+            parentIds: updated.streamIds ?? [],
           },
         }),
       );

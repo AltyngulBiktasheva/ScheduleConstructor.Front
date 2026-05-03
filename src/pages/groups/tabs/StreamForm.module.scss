@@ -11,6 +11,108 @@
   max-width: 480px;
 }
 
+.treeRoot {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  padding: $space-2;
+}
+
+.treeStream {
+  display: flex;
+  flex-direction: column;
+}
+
+.treeStreamRow {
+  display: flex;
+  align-items: center;
+  gap: $space-1;
+}
+
+.expandBtn {
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: $color-gray-500;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  border-radius: $border-radius-sm;
+  transition: background $transition-fast;
+
+  &:hover { background: $color-gray-100; }
+}
+
+.treeChildren {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+  padding-left: 30px;
+  margin-top: $space-1;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  cursor: pointer;
+  font-size: $font-size-base;
+  color: $color-gray-700;
+  padding: $space-1 $space-2;
+  border-radius: $border-radius-sm;
+  transition: background $transition-fast;
+  flex: 1;
+
+  &:hover { background: $color-gray-50; }
+
+  input[type='checkbox'] {
+    width: 15px;
+    height: 15px;
+    accent-color: $color-primary;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+}
+
+.streamName {
+  font-weight: 500;
+}
+
+.groupCount {
+  margin-left: auto;
+  font-size: $font-size-sm;
+  color: $color-gray-400;
+  white-space: nowrap;
+}
+
+.ungrouped {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+  margin-top: $space-1;
+}
+
+.ungroupedLabel {
+  font-size: $font-size-sm;
+  color: $color-gray-400;
+  padding: $space-1 $space-2;
+  font-style: italic;
+}
+
+.noGroups {
+  font-size: $font-size-sm;
+  color: $color-gray-400;
+}
+
 .hint {
   font-size: $font-size-sm;
   color: $color-gray-500;

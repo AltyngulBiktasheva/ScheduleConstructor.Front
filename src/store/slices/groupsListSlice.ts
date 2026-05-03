@@ -3,8 +3,9 @@
  *
  * Маппинг StudentGroupRegistryItemDto → Group / Stream:
  *   StudentGroupType.Thread  → Stream (поток)
- *   StudentGroupType.Group / SemiGroup → Group (группа / подгруппа)
+ *   StudentGroupType.Group / SemiGroup → Group (группа)
  *
+ * API: /student-group/search возвращает плоский список всех элементов.
  * API: SaveStudentGroup принимает scheduleId — пробрасывается в payload.
  */
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
@@ -31,73 +32,38 @@ const initialState: GroupsListState = {
 
 // ─── Thunks ──────────────────────────────────────────────────────────────────
 
-/** Загружает дерево групп и потоков с бэкенда */
+/** Загружает плоский список групп и потоков с бэкенда */
 export const fetchGroupsAll = createAsyncThunk(
   'groupsList/fetchAll',
-  async (_: undefined, { rejectWithValue, getState }) => {
+  async (_: undefined, { rejectWithValue }) => {
     try {
-      const state = getState() as { schedule: { selectedScheduleId: string | null } };
-      const scheduleId = state.schedule.selectedScheduleId;
-      if (!scheduleId) return { groups: [], streams: [] };
-
-      // Шаг 1: получаем дерево (список корневых элементов с дочерними id)
-      const { data: treeItems } = await studentGroupApi.searchStudentGroupTree({ scheduleId });
+      const { data } = await studentGroupApi.searchStudentGroups({
+        searchParameters: { page: 1, itemsPerPage: 100 },
+      });
 
       const streams: Stream[] = [];
       const groups: Group[] = [];
 
-      // Шаг 2: для каждого корневого элемента запрашиваем /view чтобы узнать тип
-      await Promise.all(
-        treeItems.map(async (treeItem) => {
-          const { data: rootDto } = await studentGroupApi.getStudentGroup({
-            studentGroupId: treeItem.id,
+      for (const dto of data.items) {
+        if (dto.studentGroupType === 'Thread') {
+          streams.push({
+            id: dto.id,
+            name: dto.name,
+            semesterNumber: dto.semesterNumber,
+            groupIds: [],
+            disciplineIds: [],
           });
-
-          if (rootDto.studentGroupType === 'Thread') {
-            // Это поток — его дети (из treeItem.children) суть группы
-            streams.push({
-              id: rootDto.id,
-              name: rootDto.name ?? treeItem.name,
-              semesterNumber: rootDto.semesterNumber,
-              groupIds: treeItem.children,
-              disciplineIds: [],
-            });
-
-            // Шаг 3: загружаем каждую дочернюю группу
-            await Promise.all(
-              treeItem.children.map(async (groupId) => {
-                const { data: groupDto } = await studentGroupApi.getStudentGroup({
-                  studentGroupId: groupId,
-                });
-                groups.push({
-                  id: groupDto.id,
-                  name: groupDto.name ?? groupId,
-                  streamId: rootDto.id,
-                  subgroups: (groupDto.children ?? []).map((sg) => ({
-                    id: sg.id,
-                    name: sg.name ?? sg.id,
-                  })),
-                  studentCount: 0,
-                  disciplineIds: [],
-                });
-              }),
-            );
-          } else if (rootDto.studentGroupType === 'Group') {
-            // Группа верхнего уровня (без потока)
-            groups.push({
-              id: rootDto.id,
-              name: rootDto.name ?? treeItem.name,
-              streamId: '',
-              subgroups: (rootDto.children ?? []).map((sg) => ({
-                id: sg.id,
-                name: sg.name ?? sg.id,
-              })),
-              studentCount: 0,
-              disciplineIds: [],
-            });
-          }
-        }),
-      );
+        } else if (dto.studentGroupType === 'Group') {
+          groups.push({
+            id: dto.id,
+            name: dto.name,
+            streamIds: [],
+            subgroups: [],
+            studentCount: dto.studentsCount,
+            disciplineIds: [],
+          });
+        }
+      }
 
       return { groups, streams };
     } catch (err: unknown) {
@@ -138,9 +104,11 @@ const groupsListSlice = createSlice({
   reducers: {
     addGroupLocally(state, action: PayloadAction<Group>) {
       state.groups.push(action.payload);
-      const stream = state.streams.find((s) => s.id === action.payload.streamId);
-      if (stream && !stream.groupIds.includes(action.payload.id)) {
-        stream.groupIds.push(action.payload.id);
+      for (const streamId of (action.payload.streamIds ?? [])) {
+        const stream = state.streams.find((s) => s.id === streamId);
+        if (stream && !stream.groupIds.includes(action.payload.id)) {
+          stream.groupIds.push(action.payload.id);
+        }
       }
     },
     updateGroupLocally(state, action: PayloadAction<Group>) {
@@ -148,12 +116,22 @@ const groupsListSlice = createSlice({
       if (idx === -1) return;
       const prev = state.groups[idx];
       state.groups[idx] = action.payload;
-      if (prev.streamId !== action.payload.streamId) {
-        const oldStream = state.streams.find((s) => s.id === prev.streamId);
-        if (oldStream) oldStream.groupIds = oldStream.groupIds.filter((id) => id !== prev.id);
-        const newStream = state.streams.find((s) => s.id === action.payload.streamId);
-        if (newStream && !newStream.groupIds.includes(action.payload.id)) {
-          newStream.groupIds.push(action.payload.id);
+      const prevStreamIds = prev.streamIds ?? [];
+      const newStreamIds = action.payload.streamIds ?? [];
+      // Remove from streams that are no longer selected
+      for (const streamId of prevStreamIds) {
+        if (!newStreamIds.includes(streamId)) {
+          const stream = state.streams.find((s) => s.id === streamId);
+          if (stream) stream.groupIds = stream.groupIds.filter((id) => id !== prev.id);
+        }
+      }
+      // Add to newly selected streams
+      for (const streamId of newStreamIds) {
+        if (!prevStreamIds.includes(streamId)) {
+          const stream = state.streams.find((s) => s.id === streamId);
+          if (stream && !stream.groupIds.includes(action.payload.id)) {
+            stream.groupIds.push(action.payload.id);
+          }
         }
       }
     },
@@ -172,7 +150,12 @@ const groupsListSlice = createSlice({
     },
     removeStreamLocally(state, action: PayloadAction<string>) {
       state.streams = state.streams.filter((s) => s.id !== action.payload);
-      state.groups = state.groups.filter((g) => g.streamId !== action.payload);
+      // Remove the deleted stream from each group's streamIds
+      state.groups = state.groups.map((g) =>
+        g.streamIds?.includes(action.payload)
+          ? { ...g, streamIds: g.streamIds.filter((id) => id !== action.payload) }
+          : g,
+      );
     },
   },
   extraReducers: (builder) => {

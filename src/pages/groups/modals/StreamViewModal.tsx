@@ -8,6 +8,7 @@ import styles from './StreamViewModal.module.scss';
 interface Props {
   stream: Stream;
   groups: Group[];
+  streams: Stream[];
   onClose: () => void;
   onUpdate: (s: Stream) => void;
   onDelete: (id: string) => void;
@@ -16,7 +17,7 @@ interface Props {
 type Mode = 'view' | 'edit' | 'confirm-delete';
 
 export const StreamViewModal: React.FC<Props> = ({
-  stream, groups, onClose, onUpdate, onDelete,
+  stream, groups, streams, onClose, onUpdate, onDelete,
 }) => {
   const [mode, setMode] = useState<Mode>('view');
 
@@ -25,9 +26,11 @@ export const StreamViewModal: React.FC<Props> = ({
 
   if (mode === 'edit') {
     return (
-      <Modal title="Редактирование потока" onClose={onClose} width={480}>
+      <Modal title="Редактирование потока" onClose={onClose} width={520}>
         <StreamForm
           initial={stream}
+          groups={groups}
+          streams={streams}
           onSave={(updated) => { onUpdate(updated); setMode('view'); }}
           onCancel={() => setMode('view')}
         />

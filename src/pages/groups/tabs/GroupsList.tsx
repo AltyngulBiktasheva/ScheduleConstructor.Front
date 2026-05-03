@@ -32,8 +32,13 @@ export const GroupsList: React.FC<Props> = ({
     }
   }, [newlyCreatedId]);
 
-  const getStreamName = (streamId: string) =>
-    streams.find((s) => s.id === streamId)?.name ?? '—';
+  const getStreamNames = (streamIds: string[] | undefined) => {
+    if (!streamIds || streamIds.length === 0) return '—';
+    return streamIds
+      .map((id) => streams.find((s) => s.id === id)?.name)
+      .filter(Boolean)
+      .join(', ') || '—';
+  };
 
   const getStreamStudentCount = (stream: Stream) =>
     groups.filter((g) => stream.groupIds.includes(g.id)).reduce((sum, g) => sum + g.studentCount, 0);
@@ -83,7 +88,7 @@ export const GroupsList: React.FC<Props> = ({
                   onClick={() => setSelectedGroup(g)}
                 >
                   <td className={styles.name}>{g.name}</td>
-                  <td className={styles.secondary}>{getStreamName(g.streamId)}</td>
+                  <td className={styles.secondary}>{getStreamNames(g.streamIds)}</td>
                   <td className={styles.secondary}>
                     {g.subgroups.length > 0
                       ? g.subgroups.map((s) => s.name).join(', ')
@@ -146,6 +151,7 @@ export const GroupsList: React.FC<Props> = ({
         <StreamViewModal
           stream={selectedStream}
           groups={groups}
+          streams={streams}
           onClose={() => setSelectedStream(null)}
           onUpdate={(updated) => { onUpdateStream(updated); setSelectedStream(updated); }}
           onDelete={(id) => { onDeleteStream(id); setSelectedStream(null); }}

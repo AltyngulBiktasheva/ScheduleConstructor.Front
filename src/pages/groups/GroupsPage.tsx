@@ -71,7 +71,12 @@ export const GroupsPage: React.FC = () => {
           <GroupForm streams={streams} onSave={handleCreateGroup} loading={savingGroup} />
         )}
         {activeTab === 'create-stream' && (
-          <StreamForm onSave={handleCreateStream} loading={savingStream} />
+          <StreamForm
+            groups={groups}
+            streams={streams}
+            onSave={handleCreateStream}
+            loading={savingStream}
+          />
         )}
       </div>
     </div>
