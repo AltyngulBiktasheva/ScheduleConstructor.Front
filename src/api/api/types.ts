@@ -237,6 +237,22 @@ export interface RoomTreeDto {
   childRooms: RoomShortDto[];
 }
 
+export interface RoomRegistryItemDto {
+  id: string;
+  name: string;
+  campusId: string;
+  campusName: string;
+  roomType: RoomType;
+  capacity: number;
+  roomBoardType: RoomBoardType;
+  hasProjector: boolean;
+}
+
+export interface SearchRoomsDto {
+  campusId?: string | null;
+  searchParameters: SearchParametersDto;
+}
+
 export interface RoomViewDto {
   id: string;
   name?: string | null;

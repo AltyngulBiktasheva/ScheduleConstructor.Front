@@ -1,12 +1,16 @@
 import apiClient from './client';
-import type { RoomTreeDto, RoomViewDto, SaveRoomDto } from './types';
+import type { RegistryDto, RoomRegistryItemDto, RoomTreeDto, RoomViewDto, SaveRoomDto, SearchRoomsDto } from './types';
 
 export const roomApi = {
   /** Получить данные аудитории */
   getRoom: (params: { roomId: string }) =>
     apiClient.get<RoomViewDto>('/room/view', { params }),
 
-  /** Получить дерево аудиторий (сгруппированы по кампусу) */
+  /** Поиск аудиторий с полными данными (тип, вместимость, доска, проектор) */
+  searchRooms: (body: SearchRoomsDto) =>
+    apiClient.post<RegistryDto<RoomRegistryItemDto>>('/room/search', body),
+
+  /** Получить дерево аудиторий (используется в пожеланиях преподавателей) */
   getRoomTree: () =>
     apiClient.get<RoomTreeDto[]>('/room/search-tree'),
 
