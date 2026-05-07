@@ -77,7 +77,7 @@ export interface AcademicDisciplineViewDto {
   comment?: string | null;
 }
 
-export interface SaveAcademicDisciplineDto {
+export interface AcademicDisciplineSaveDto {
   id?: string | null;
   scheduleId: string;
   name?: string | null;
@@ -98,7 +98,7 @@ export interface CampusDto {
   [key: string]: unknown;
 }
 
-export interface SaveCampusDto {
+export interface CampusSaveDto {
   name?: string | null;
 }
 
@@ -134,7 +134,7 @@ export interface LessonViewDto {
   validationMessages?: LessonValidationMessage[] | null;
 }
 
-export interface SaveLessonRequestDto {
+export interface LessonSaveDto {
   id?: string | null;
   scheduleId: string;
   academicDisciplineId?: string | null;
@@ -166,7 +166,7 @@ export interface RoomViewDto {
   roomType: RoomType;
 }
 
-export interface SaveRoomDto {
+export interface RoomSaveDto {
   name?: string | null;
   campusId: string;
   roomType: RoomType;
@@ -179,7 +179,7 @@ export interface ScheduleDto {
   [key: string]: unknown;
 }
 
-export interface SaveScheduleDto {
+export interface ScheduleSaveDto {
   id?: string | null;
   name: string;
   dateInterval: DateInterval;
@@ -200,7 +200,7 @@ export interface StudentGroupViewDto {
   children?: StudentGroupShortViewDto[] | null;
 }
 
-export interface SaveStudentGroupDto {
+export interface StudentGroupSaveDto {
   id?: string | null;
   scheduleId: string;
   name?: string | null;
@@ -218,7 +218,7 @@ export interface TeacherViewDto {
   contacts?: string | null;
 }
 
-export interface SaveTeacherDto {
+export interface TeacherSaveDto {
   fullname?: string | null;
 }
 
@@ -240,7 +240,7 @@ export interface TeacherPreferencesViewDto {
   comment?: string | null;
 }
 
-export interface SaveTeacherPreferenceDto {
+export interface TeacherPreferenceSaveDto {
   scheduleId: string;
   teacherId: string;
   teacherTimeAvailabilities?: TeacherTimeAvailabilityDto[] | null;

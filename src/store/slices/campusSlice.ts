@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { campusApi } from '../../api';
-import type { CampusRegistryItemDto, SaveCampusDto } from '../../api';
+import type { CampusRegistryItemDto, CampusSaveDto } from '../../api';
 import { useAppDispatch, useAppSelector } from '../hooks';
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -35,7 +35,7 @@ export const fetchCampuses = createAsyncThunk(
 
 export const saveCampus = createAsyncThunk(
   'campus/save',
-  async (dto: SaveCampusDto, { dispatch, rejectWithValue }) => {
+  async (dto: CampusSaveDto, { dispatch, rejectWithValue }) => {
     try {
       await campusApi.saveCampus(dto);
       dispatch(fetchCampuses());
@@ -121,7 +121,7 @@ export const useCampus = () => {
   return {
     ...state,
     fetchAll: () => dispatch(fetchCampuses()),
-    save: (dto: SaveCampusDto) => dispatch(saveCampus(dto)),
+    save: (dto: CampusSaveDto) => dispatch(saveCampus(dto)),
     clearError: () => dispatch(clearCampusError()),
   };
 };

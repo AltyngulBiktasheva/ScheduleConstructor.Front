@@ -4,7 +4,7 @@ import type {
   LessonViewDto,
   LessonWeekConflictDto,
   LessonWeekItemDto,
-  SaveLessonRequestDto,
+  LessonSaveDto,
 } from '../../api';
 import { useAppDispatch, useAppSelector } from '../hooks';
 import { extractError } from '../../utils/extractError';
@@ -66,7 +66,7 @@ export const fetchWeekLessons = createAsyncThunk(
 
 export const saveLesson = createAsyncThunk(
   'lesson/save',
-  async (dto: SaveLessonRequestDto, { rejectWithValue }) => {
+  async (dto: LessonSaveDto, { rejectWithValue }) => {
     try {
       await lessonApi.saveLesson(dto);
     } catch (err: unknown) {
@@ -198,7 +198,7 @@ export const useLesson = () => {
       dispatch(fetchLesson(params)),
     fetchWeek: (params: { scheduleId: string; dateFrom: string; dateTo: string }) =>
       dispatch(fetchWeekLessons(params)),
-    save: (dto: SaveLessonRequestDto) =>
+    save: (dto: LessonSaveDto) =>
       dispatch(saveLesson(dto)),
     delete: (params: { scheduleId: string; lessonId: string }) =>
       dispatch(deleteWeekLesson(params)),

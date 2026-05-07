@@ -5,7 +5,7 @@ import type {
   LessonWeekConflictDto,
   LessonWeekItemDto,
   RegistryDto,
-  SaveLessonRequestDto,
+  LessonSaveDto,
   SearchParametersDto,
 } from './types';
 
@@ -23,7 +23,7 @@ export const lessonApi = {
     apiClient.get<LessonViewDto>('/lesson/view', { params }),
 
   /** Добавить / обновить занятие */
-  saveLesson: (data: SaveLessonRequestDto) =>
+  saveLesson: (data: LessonSaveDto) =>
     apiClient.post<void>('/lesson/save', data),
 
   /** Удалить занятие из расписания */

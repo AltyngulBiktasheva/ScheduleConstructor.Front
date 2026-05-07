@@ -1,5 +1,5 @@
 import apiClient from './client';
-import type { RoomTreeDto, RoomViewDto, SaveRoomDto } from './types';
+import type { RoomTreeDto, RoomViewDto, RoomSaveDto } from './types';
 
 export const roomApi = {
   /** Получить данные аудитории */
@@ -11,7 +11,7 @@ export const roomApi = {
     apiClient.get<RoomTreeDto[]>('/room/search-tree'),
 
   /** Добавить / обновить аудиторию */
-  saveRoom: (data: SaveRoomDto) =>
+  saveRoom: (data: RoomSaveDto) =>
     apiClient.post<void>('/room/save', data),
 
   /** Удалить аудиторию */

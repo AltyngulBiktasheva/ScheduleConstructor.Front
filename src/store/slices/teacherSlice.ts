@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { teacherApi } from '../../api';
-import type { SaveTeacherDto, TeacherViewDto } from '../../api';
+import type { TeacherSaveDto, TeacherViewDto } from '../../api';
 import { useAppDispatch, useAppSelector } from '../hooks';
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -35,7 +35,7 @@ export const fetchTeacher = createAsyncThunk(
 
 export const saveTeacher = createAsyncThunk(
   'teacher/save',
-  async (dto: SaveTeacherDto, { rejectWithValue }) => {
+  async (dto: TeacherSaveDto, { rejectWithValue }) => {
     try {
       await teacherApi.saveTeacher(dto);
     } catch (err: unknown) {
@@ -97,7 +97,7 @@ export const useTeacher = () => {
   return {
     ...state,
     fetch: (params: { teacherId: string }) => dispatch(fetchTeacher(params)),
-    save: (dto: SaveTeacherDto) => dispatch(saveTeacher(dto)),
+    save: (dto: TeacherSaveDto) => dispatch(saveTeacher(dto)),
     clear: () => dispatch(clearTeacher()),
   };
 };

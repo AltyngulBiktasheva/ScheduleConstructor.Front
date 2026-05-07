@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Modal } from '../../../components/Modal/Modal';
 import { Button } from '../../../components/Button/Button';
 import { ScheduleForm } from '../tabs/ScheduleForm';
-import type { SaveScheduleDto, ScheduleRegistryItemDto } from '../../../api';
+import type { ScheduleSaveDto, ScheduleRegistryItemDto } from '../../../api';
 import styles from './ScheduleViewModal.module.scss';
 
 interface Props {
@@ -27,7 +27,7 @@ export const ScheduleViewModal: React.FC<Props> = ({ schedule, onClose, onUpdate
       <Modal title="Редактирование расписания" onClose={onClose} width={560}>
         <ScheduleForm
           initial={schedule}
-          onSave={(dto: SaveScheduleDto) => {
+          onSave={(dto: ScheduleSaveDto) => {
             onUpdate({
               ...schedule,
               name: dto.name,

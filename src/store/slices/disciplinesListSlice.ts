@@ -9,7 +9,7 @@
  */
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { academicDisciplineApi } from '../../api';
-import type { SaveAcademicDisciplineDto, AcademicDisciplineRegistryItemDto, AcademicDisciplineType } from '../../api';
+import type { AcademicDisciplineSaveDto, AcademicDisciplineRegistryItemDto, AcademicDisciplineType } from '../../api';
 import type { Discipline } from '../../types/discipline';
 import { LESSON_TYPE_LABELS } from '../../pages/disciplines/tabs/RootDisciplineForm';
 import { extractError } from '../../utils/extractError';
@@ -140,7 +140,7 @@ export const fetchDisciplinesAll = createAsyncThunk(
 export const saveDisciplineOnServer = createAsyncThunk(
   'disciplinesList/save',
   async (
-    { discipline, dto, isNew }: { discipline: Discipline; dto: SaveAcademicDisciplineDto; isNew: boolean },
+    { discipline, dto, isNew }: { discipline: Discipline; dto: AcademicDisciplineSaveDto; isNew: boolean },
     { dispatch, rejectWithValue },
   ) => {
     try {

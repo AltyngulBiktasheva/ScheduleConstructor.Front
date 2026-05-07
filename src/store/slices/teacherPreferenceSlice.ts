@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { teacherPreferenceApi } from '../../api';
-import type { SaveTeacherPreferenceDto, TeacherPreferencesViewDto } from '../../api';
+import type { TeacherPreferenceSaveDto, TeacherPreferencesViewDto } from '../../api';
 import { useAppDispatch, useAppSelector } from '../hooks';
 import { extractError } from '../../utils/extractError';
 
@@ -36,7 +36,7 @@ export const fetchTeacherPreferences = createAsyncThunk(
 
 export const saveTeacherPreference = createAsyncThunk(
   'teacherPreference/save',
-  async (dto: SaveTeacherPreferenceDto, { rejectWithValue }) => {
+  async (dto: TeacherPreferenceSaveDto, { rejectWithValue }) => {
     try {
       await teacherPreferenceApi.saveTeacherPreference(dto);
     } catch (err: unknown) {
@@ -99,7 +99,7 @@ export const useTeacherPreference = () => {
     ...state,
     fetch: (params: { teacherId: string; scheduleId: string }) =>
       dispatch(fetchTeacherPreferences(params)),
-    save: (dto: SaveTeacherPreferenceDto) => dispatch(saveTeacherPreference(dto)),
+    save: (dto: TeacherPreferenceSaveDto) => dispatch(saveTeacherPreference(dto)),
     clear: () => dispatch(clearTeacherPreference()),
   };
 };

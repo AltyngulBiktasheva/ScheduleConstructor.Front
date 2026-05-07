@@ -5,7 +5,7 @@ import type {
   AcademicDisciplineViewDto,
   AcademicDisciplineWeekConflictDto,
   RegistryDto,
-  SaveAcademicDisciplineDto,
+  AcademicDisciplineSaveDto,
   SearchParametersDto,
 } from './types';
 
@@ -19,7 +19,7 @@ export const academicDisciplineApi = {
     apiClient.get<AcademicDisciplineViewDto>('/academic-discipline/view', { params }),
 
   /** Сохранить академическую дисциплину (создать или обновить) */
-  saveAcademicDiscipline: (data: SaveAcademicDisciplineDto) =>
+  saveAcademicDiscipline: (data: AcademicDisciplineSaveDto) =>
     apiClient.post<void>('/academic-discipline/save', data),
 
   /** Получить конфликтные временные слоты дисциплины за неделю */
