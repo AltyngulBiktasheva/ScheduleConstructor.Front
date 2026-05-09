@@ -38,7 +38,7 @@ interface CopyForm {
   isStatic: boolean;
   canOverlap: boolean;
   repeat: RepeatType;
-  weeklyCount: number;
+  weeklyCount: number | null;
   dateRange?: { from: string; to: string };
   occurrences: WeeklyOccurrence[];
   teachers: DisciplineTeacher[];
@@ -111,13 +111,25 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
   const selectedRoot = rootDisciplines.find((d) => d.id === parentId) ?? null;
   const availableLessonTypes: AcademicDisciplineType[] = selectedRoot?.allowedLessonTypes ?? [];
 
-  // Combined flat list for group multiselect (streams, groups, subgroups)
-  const allGroups = [
-    ...streams.map((s) => ({ id: s.id, label: s.name })),
-    ...groups.flatMap((g) => [
-      { id: g.id, label: g.name },
-      ...g.subgroups.map((sg) => ({ id: sg.id, label: `${g.name} / ${sg.name}` })),
-    ]),
+  // Потоки с подсказкой о входящих группах
+  const streamOptions = streams.map((s) => ({
+    id: s.id,
+    label: s.name,
+    childGroupNames: groups
+      .filter((g) => g.streamIds?.includes(s.id))
+      .map((g) => g.name),
+  }));
+
+  // Группы с подгруппами (плоский список)
+  const groupOptions = groups.flatMap((g) => [
+    { id: g.id, label: g.name },
+    ...g.subgroups.map((sg) => ({ id: sg.id, label: `${g.name} / ${sg.name}` })),
+  ]);
+
+  // Общий плоский список для поиска подписей в заголовке копии
+  const allGroupsFlat = [
+    ...streamOptions.map((s) => ({ id: s.id, label: s.label })),
+    ...groupOptions,
   ];
 
   useEffect(() => {
@@ -164,7 +176,13 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
 
   // ─── Per-copy handlers ──────────────────────────────────────────────────────
 
-  const setWeeklyCount = (index: number, count: number) => {
+  const setWeeklyCount = (index: number, count: number | null) => {
+    if (count === null) {
+      setCopies((prev) =>
+        prev.map((c, i) => i === index ? { ...c, weeklyCount: null } : c),
+      );
+      return;
+    }
     const clamped = Math.max(1, Math.min(6, count));
     setCopies((prev) =>
       prev.map((c, i) =>
@@ -177,7 +195,7 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
 
   const addOccurrence = (index: number) => {
     const copy = copies[index];
-    if (copy.occurrences.length >= copy.weeklyCount) return;
+    if (copy.occurrences.length >= (copy.weeklyCount ?? 1)) return;
     updateCopy(index, {
       occurrences: [...copy.occurrences, { dayId: 'mon', timeStart: '09:00', timeEnd: '10:30' }],
     });
@@ -249,6 +267,21 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
     const generatedName = selectedRoot ? `${selectedRoot.name} (${typeLabel})` : typeLabel;
     const first = copies[0];
 
+    const extraCopies: Partial<Discipline>[] = copies.slice(1).map((c) => ({
+      forIds: c.groupIds,
+      teachers: c.teachers,
+      audiences: c.audiences,
+      roomId: c.audiences[0]?.roomId || undefined,
+      occurrences: c.occurrences,
+      repeat: c.repeat,
+      canOverlap: c.canOverlap,
+      totalHoursCount: c.totalHoursCount,
+      dateRange: c.dateRange,
+      weeklyCount: c.weeklyCount ?? 1,
+      isStatic: c.isStatic,
+      comment: c.comment,
+    }));
+
     onSave({
       ...first,
       id: initial?.id ?? crypto.randomUUID(),
@@ -261,6 +294,7 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
       semesterNumber: selectedRoot?.semesterNumber,
       allowedLessonTypes: undefined,
       roomId: first.audiences[0]?.roomId || undefined,
+      extraCopies: extraCopies.length > 0 ? extraCopies : undefined,
     } as Discipline);
   };
 
@@ -338,7 +372,9 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
           copy={copy}
           total={copies.length}
           errors={idx === 0 ? errors : {}}
-          allGroups={allGroups}
+          streamOptions={streamOptions}
+          groupOptions={groupOptions}
+          allGroupsFlat={allGroupsFlat}
           teachersList={teachersList}
           roomOptions={roomOptions}
           onUpdate={(patch) => updateCopy(idx, patch)}
@@ -388,12 +424,25 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
 
 // ─── CopySection ─────────────────────────────────────────────────────────────
 
+interface StreamOption {
+  id: string;
+  label: string;
+  childGroupNames: string[];
+}
+
+interface GroupOption {
+  id: string;
+  label: string;
+}
+
 interface CopySectionProps {
   index: number;
   copy: CopyForm;
   total: number;
   errors: Record<string, string>;
-  allGroups: { id: string; label: string }[];
+  streamOptions: StreamOption[];
+  groupOptions: GroupOption[];
+  allGroupsFlat: GroupOption[];
   teachersList: { id: string; name: string }[];
   roomOptions: RoomOption[];
   onUpdate: (patch: Partial<CopyForm>) => void;
@@ -416,7 +465,9 @@ const CopySection: React.FC<CopySectionProps> = ({
   copy,
   total,
   errors,
-  allGroups,
+  streamOptions,
+  groupOptions,
+  allGroupsFlat,
   teachersList,
   roomOptions,
   onUpdate,
@@ -434,14 +485,15 @@ const CopySection: React.FC<CopySectionProps> = ({
   handleDateInput,
 }) => {
   const selectedGroupLabels = copy.groupIds
-    .map((id) => allGroups.find((g) => g.id === id)?.label ?? id);
+    .map((id) => allGroupsFlat.find((g) => g.id === id)?.label ?? id);
   const groupSummary = selectedGroupLabels.length === 0
     ? '— не выбраны —'
     : selectedGroupLabels.length <= 2
       ? selectedGroupLabels.join(', ')
       : `${selectedGroupLabels.slice(0, 2).join(', ')}…`;
 
-  const canAddOccurrence = copy.occurrences.length < copy.weeklyCount;
+  const effectiveWeeklyCount = copy.weeklyCount ?? 1;
+  const canAddOccurrence = copy.occurrences.length < effectiveWeeklyCount;
 
   const toggleGroup = (id: string) => {
     const has = copy.groupIds.includes(id);
@@ -477,20 +529,47 @@ const CopySection: React.FC<CopySectionProps> = ({
         <div className={styles.copyBody}>
           {/* Группы (мультиселект) */}
           <FormField label="Группы" required error={errors.group}>
-            {allGroups.length === 0 ? (
+            {streamOptions.length === 0 && groupOptions.length === 0 ? (
               <span style={{ fontSize: 12, color: '#9ca3af' }}>Нет доступных групп</span>
             ) : (
               <div className={styles.checkList}>
-                {allGroups.map((g) => (
-                  <label key={g.id} className={styles.checkLabel}>
-                    <input
-                      type="checkbox"
-                      checked={copy.groupIds.includes(g.id)}
-                      onChange={() => toggleGroup(g.id)}
-                    />
-                    {g.label}
-                  </label>
-                ))}
+                {streamOptions.length > 0 && (
+                  <>
+                    <div className={styles.groupSectionLabel}>Потоки</div>
+                    {streamOptions.map((s) => (
+                      <div key={s.id}>
+                        <label className={styles.checkLabel}>
+                          <input
+                            type="checkbox"
+                            checked={copy.groupIds.includes(s.id)}
+                            onChange={() => toggleGroup(s.id)}
+                          />
+                          {s.label}
+                        </label>
+                        {s.childGroupNames.length > 0 && (
+                          <span className={styles.groupHint}>
+                            Группы: {s.childGroupNames.join(', ')}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </>
+                )}
+                {groupOptions.length > 0 && (
+                  <>
+                    <div className={styles.groupSectionLabel}>Группы</div>
+                    {groupOptions.map((g) => (
+                      <label key={g.id} className={styles.checkLabel}>
+                        <input
+                          type="checkbox"
+                          checked={copy.groupIds.includes(g.id)}
+                          onChange={() => toggleGroup(g.id)}
+                        />
+                        {g.label}
+                      </label>
+                    ))}
+                  </>
+                )}
               </div>
             )}
           </FormField>
@@ -559,12 +638,23 @@ const CopySection: React.FC<CopySectionProps> = ({
                 <input
                   className="field-input"
                   type="number"
-                  min={0}
+                  min={1}
                   max={6}
-                  value={copy.weeklyCount}
+                  value={copy.weeklyCount ?? ''}
+                  placeholder="1"
                   onChange={(e) => {
-                    const n = Math.min(6, parseInt(e.target.value) || 0);
-                    onUpdate({ weeklyCount: n, occurrences: copy.occurrences.slice(0, n) });
+                    const raw = e.target.value;
+                    if (raw === '') {
+                      onUpdate({ weeklyCount: null });
+                    } else {
+                      const n = Math.min(6, parseInt(raw) || 1);
+                      onUpdate({ weeklyCount: n, occurrences: copy.occurrences.slice(0, n) });
+                    }
+                  }}
+                  onBlur={() => {
+                    if (copy.weeklyCount == null || copy.weeklyCount < 1) {
+                      onUpdate({ weeklyCount: 1, occurrences: copy.occurrences.slice(0, 1) });
+                    }
                   }}
                   style={{ width: 72 }}
                 />
@@ -602,7 +692,7 @@ const CopySection: React.FC<CopySectionProps> = ({
             label="Время проведения"
             required
             error={errors.occurrences}
-            hint={copy.weeklyCount > 1 ? `Можно добавить до ${copy.weeklyCount} промежутков` : undefined}
+            hint={effectiveWeeklyCount > 1 ? `Можно добавить до ${effectiveWeeklyCount} промежутков` : undefined}
           >
             <div className={styles.occurrences}>
               {copy.occurrences.map((occ, i) => (

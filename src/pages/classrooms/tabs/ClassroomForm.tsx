@@ -10,7 +10,7 @@ import styles from './ClassroomForm.module.scss';
 // ─── Form ─────────────────────────────────────────────────────────────────────
 
 function emptyForm(firstCampusId = '', firstCampusName = ''): Omit<Classroom, 'id'> {
-  return { name: '', building: firstCampusName, campusId: firstCampusId, type: 'standard', capacity: 30, boardType: null, hasProjector: null };
+  return { name: '', building: firstCampusName, campusId: firstCampusId, type: 'standard', capacity: null, boardType: null, hasProjector: null };
 }
 
 interface Props {
@@ -109,8 +109,9 @@ export const ClassroomForm: React.FC<Props> = ({ initial, onSave, onCancel, load
 
       <FormField label="Вместимость" error={errors.capacity} hint="Максимальное количество человек">
         <div className={styles.capacityRow}>
-          <input className="field-input" type="number" min={0} max={999} value={form.capacity}
-            onChange={(e) => set('capacity', parseInt(e.target.value) || 0)} style={{ width: 120 }} />
+          <input className="field-input" type="number" min={0} max={999} value={form.capacity ?? ''}
+            onChange={(e) => set('capacity', e.target.value === '' ? null : parseInt(e.target.value))}
+            placeholder="30" style={{ width: 120 }} />
           <span className={styles.capacityUnit}>чел.</span>
         </div>
       </FormField>
@@ -125,7 +126,6 @@ export const ClassroomForm: React.FC<Props> = ({ initial, onSave, onCancel, load
           }}
         >
           <option value="">Не указано</option>
-          <option value="both">Оба вида доски</option>
           <option value="marker">Только маркерная</option>
           <option value="chalk">Только меловая</option>
         </select>

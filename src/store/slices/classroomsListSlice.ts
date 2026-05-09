@@ -30,7 +30,6 @@ const ROOM_TYPE_MAP: Record<RoomType, ClassroomType> = {
 const BOARD_TYPE_MAP: Record<RoomBoardType, BoardType> = {
   Chalk:  'chalk',
   Marker: 'marker',
-  Both:   'both',
 };
 
 export const CLASSROOM_TYPE_REVERSE: Record<ClassroomType, RoomType> = {
@@ -43,7 +42,6 @@ export const CLASSROOM_TYPE_REVERSE: Record<ClassroomType, RoomType> = {
 export const BOARD_TYPE_REVERSE: Record<BoardType, RoomBoardType> = {
   chalk:  'Chalk',
   marker: 'Marker',
-  both:   'Both',
 };
 
 // ─── State ───────────────────────────────────────────────────────────────────
@@ -76,7 +74,7 @@ export const fetchClassroomsAll = createAsyncThunk(
         building: room.campusName,
         campusId: room.campusId,
         type: ROOM_TYPE_MAP[room.roomType] ?? 'standard',
-        capacity: room.capacity ?? 0,
+        capacity: room.capacity || null,
         boardType: room.roomBoardType ? (BOARD_TYPE_MAP[room.roomBoardType] ?? null) : null,
         hasProjector: room.hasProjector ?? null,
       }));

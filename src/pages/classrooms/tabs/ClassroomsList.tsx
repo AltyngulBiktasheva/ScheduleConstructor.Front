@@ -14,7 +14,6 @@ const BUILDING_LABELS: Record<string, string> = {
 const BOARD_LABELS: Record<string, string> = {
   chalk:  '🖊️ Меловая',
   marker: '✏️ Маркерная',
-  both:   '🖊️✏️ Обе',
 };
 
 const TYPE_BADGE: Record<string, 'blue' | 'green' | 'purple' | 'yellow'> = {

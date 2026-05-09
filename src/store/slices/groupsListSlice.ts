@@ -50,15 +50,15 @@ export const fetchGroupsAll = createAsyncThunk(
             id: dto.id,
             name: dto.name,
             semesterNumber: dto.semesterNumber,
-            groupIds: [],
+            groupIds: dto.children?.map((c) => c.id) ?? [],
             disciplineIds: [],
           });
         } else if (dto.studentGroupType === 'Group') {
           groups.push({
             id: dto.id,
             name: dto.name,
-            streamIds: [],
-            subgroups: [],
+            streamIds: dto.parents?.map((p) => p.id) ?? [],
+            subgroups: dto.children?.map((c) => ({ id: c.id, name: c.name ?? '' })) ?? [],
             studentCount: dto.studentsCount,
             disciplineIds: [],
           });

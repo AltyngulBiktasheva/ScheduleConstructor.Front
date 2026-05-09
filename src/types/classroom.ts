@@ -1,5 +1,5 @@
 export type ClassroomType = 'standard' | 'computer' | 'laboratory' | 'amphitheater';
-export type BoardType = 'chalk' | 'marker' | 'both';
+export type BoardType = 'chalk' | 'marker';
 
 export const CLASSROOM_TYPE_LABELS: Record<ClassroomType, string> = {
   standard: 'Стандартная',
@@ -11,7 +11,6 @@ export const CLASSROOM_TYPE_LABELS: Record<ClassroomType, string> = {
 export const BOARD_TYPE_LABELS: Record<BoardType, string> = {
   chalk: 'Только меловая',
   marker: 'Только маркерная',
-  both: 'Оба вида доски',
 };
 
 export interface Classroom {
@@ -21,7 +20,7 @@ export interface Classroom {
   buildingName?: string;
   campusId?: string;     // UUID кампуса для API (обязателен при сохранении)
   type: ClassroomType;
-  capacity: number;
+  capacity: number | null;
   boardType: BoardType | null;   // null = не указано
   hasProjector: boolean | null;  // null = не указано
 }

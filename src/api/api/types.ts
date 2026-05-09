@@ -260,7 +260,7 @@ export interface RoomViewDto {
   roomType: RoomType;
 }
 
-export type RoomBoardType = 'Chalk' | 'Marker' | 'Both';
+export type RoomBoardType = 'Chalk' | 'Marker';
 
 export interface RoomSaveDto {
   id?: string | null;
@@ -312,6 +312,8 @@ export interface StudentGroupRegistryItemDto {
   semesterNumber: number;
   studentsCount: number;
   studentGroupType: StudentGroupType;
+  parents: StudentGroupShortViewDto[];
+  children: StudentGroupShortViewDto[];
 }
 
 export interface StudentGroupTreeItemDto {

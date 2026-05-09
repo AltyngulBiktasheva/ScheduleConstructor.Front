@@ -21,6 +21,7 @@ export const DisciplinesList: React.FC<Props> = ({
   onDelete,
 }) => {
   const [selected, setSelected] = useState<Discipline | null>(null);
+  const [filterRootId, setFilterRootId] = useState<string | null>(null);
   const highlightRef = useRef<HTMLTableRowElement | null>(null);
 
   useEffect(() => {
@@ -29,16 +30,30 @@ export const DisciplinesList: React.FC<Props> = ({
     }
   }, [newlyCreatedId]);
 
-  const isEmpty = rootDisciplines.length === 0 && disciplines.length === 0;
+  const filteredRoots = filterRootId
+    ? rootDisciplines.filter((d) => d.id === filterRootId)
+    : rootDisciplines;
+
+  const filteredChildren = filterRootId
+    ? disciplines.filter(
+        (d) => d.parentId === filterRootId || d.academicDisciplineId === filterRootId,
+      )
+    : disciplines;
+
+  const isEmpty = filteredRoots.length === 0 && filteredChildren.length === 0;
+
+  if (rootDisciplines.length === 0 && disciplines.length === 0) {
+    return <div className={styles.empty}>Дисциплины не добавлены</div>;
+  }
 
   if (isEmpty) {
-    return <div className={styles.empty}>Дисциплины не добавлены</div>;
+    return <div className={styles.empty}>Нет дисциплин, соответствующих фильтру</div>;
   }
 
   return (
     <>
       {/* ── Корневые дисциплины ── */}
-      {rootDisciplines.length > 0 && (
+      {filteredRoots.length > 0 && (
         <section className={styles.section}>
           <h3 className={styles.sectionTitle}>Корневые дисциплины</h3>
           <div className={styles.tableWrapper}>
@@ -47,10 +62,11 @@ export const DisciplinesList: React.FC<Props> = ({
                 <tr>
                   <th>Название</th>
                   <th>Допустимые виды занятий</th>
+                  <th style={{ width: 40 }}></th>
                 </tr>
               </thead>
               <tbody>
-                {rootDisciplines.map((d) => (
+                {filteredRoots.map((d) => (
                   <tr
                     key={d.id}
                     ref={d.id === newlyCreatedId ? highlightRef : null}
@@ -67,6 +83,18 @@ export const DisciplinesList: React.FC<Props> = ({
                         ))}
                       </div>
                     </td>
+                    <td>
+                      <button
+                        className={`${styles.filterBtn} ${filterRootId === d.id ? styles.filterBtnActive : ''}`}
+                        title={filterRootId === d.id ? 'Показать все' : 'Показать только эту дисциплину'}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setFilterRootId(filterRootId === d.id ? null : d.id);
+                        }}
+                      >
+                        👁
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -76,46 +104,58 @@ export const DisciplinesList: React.FC<Props> = ({
       )}
 
       {/* ── Обычные дисциплины ── */}
-      {disciplines.length > 0 && (
+      {(filteredChildren.length > 0 || filterRootId) && (
         <section className={styles.section}>
           <h3 className={styles.sectionTitle}>Дисциплины</h3>
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Название</th>
-                  <th>Вид занятия</th>
-                  <th>Часов</th>
-                  <th>Группа</th>
-                </tr>
-              </thead>
-              <tbody>
-                {disciplines.map((d) => (
-                  <tr
-                    key={d.id}
-                    ref={d.id === newlyCreatedId ? highlightRef : null}
-                    className={`${styles.row} ${d.id === newlyCreatedId ? styles.highlighted : ''}`}
-                    onClick={() => setSelected(d)}
-                  >
-                    <td>
-                      <span className={styles.name}>{d.name}</span>
-                    </td>
-                    <td>
-                      {d.lessonType && (
-                        <Badge variant="purple">{LESSON_TYPE_LABELS[d.lessonType] ?? d.lessonType}</Badge>
-                      )}
-                    </td>
-                    <td className={styles.secondary}>
-                      {d.totalHoursCount != null ? `${d.totalHoursCount} ч.` : '—'}
-                    </td>
-                    <td className={styles.secondary}>
-                      {d.forIds.length > 0 ? d.forIds.join(', ') : '—'}
-                    </td>
+          {filterRootId && (
+            <div className={styles.filterBadge}>
+              <span>
+                Фильтр: {rootDisciplines.find((d) => d.id === filterRootId)?.name}
+              </span>
+              <button onClick={() => setFilterRootId(null)}>✕</button>
+            </div>
+          )}
+          {filteredChildren.length > 0 ? (
+            <div className={styles.tableWrapper}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>Название</th>
+                    <th>Вид занятия</th>
+                    <th>Часов</th>
+                    <th>Группа</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {filteredChildren.map((d) => (
+                    <tr
+                      key={d.id}
+                      ref={d.id === newlyCreatedId ? highlightRef : null}
+                      className={`${styles.row} ${d.id === newlyCreatedId ? styles.highlighted : ''}`}
+                      onClick={() => setSelected(d)}
+                    >
+                      <td>
+                        <span className={styles.name}>{d.name}</span>
+                      </td>
+                      <td>
+                        {d.lessonType && (
+                          <Badge variant="purple">{LESSON_TYPE_LABELS[d.lessonType] ?? d.lessonType}</Badge>
+                        )}
+                      </td>
+                      <td className={styles.secondary}>
+                        {d.totalHoursCount != null ? `${d.totalHoursCount} ч.` : '—'}
+                      </td>
+                      <td className={styles.secondary}>
+                        {d.forIds.length > 0 ? d.forIds.join(', ') : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className={styles.emptySection}>Нет дочерних дисциплин</div>
+          )}
         </section>
       )}
 

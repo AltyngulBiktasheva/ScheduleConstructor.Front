@@ -113,9 +113,21 @@ async function saveAsPayload(
   });
   const root = rootDisciplines.find((r) => r.id === parentId);
 
+  // Собираем все батчи: основная дисциплина + extraCopies
+  const allBatchInfos: LessonBatchInfoDto[] = [
+    buildLessonBatchInfo(discipline, dateInterval),
+    ...(discipline.extraCopies ?? []).map((copy) => {
+      const copyDateInterval = resolveDateInterval(
+        copy.dateRange,
+        { dateFrom: dateInterval.dateFrom, dateTo: dateInterval.dateTo },
+      );
+      return buildLessonBatchInfo({ ...discipline, ...copy } as Discipline, copyDateInterval);
+    }),
+  ];
+
   const updatedPayload: AcademicDisciplinePayloadDto = {
     totalHoursCount: discipline.totalHoursCount ?? 0,
-    lessonBatchInfos: [buildLessonBatchInfo(discipline, dateInterval)],
+    lessonBatchInfos: allBatchInfos,
   };
 
   await academicDisciplineApi.saveAcademicDiscipline({
