@@ -6,7 +6,7 @@ export type DisciplineLessonRepeatType = 1 | 2 | 3 | 4;
 export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 export type LessonFlexibilityType = 'Fixed' | 'Flexible';
 export type LessonValidationErrorType = 'Warning' | 'Error';
-export type LessonValidationCode =
+export type LessonPolicyViolationCode =
   | 'MismatchedSemesterNumber'
   | 'MismatchedAcademicDisciplineType'
   | 'FixedLessonTypeConflictByGroup'
@@ -112,10 +112,10 @@ export interface LessonValidationPayload {
   affectedByTeacherId?: string | null;
 }
 
-export interface LessonValidationMessage {
+export interface LessonPolicyViolation {
   id?: string | null;
   errorType: LessonValidationErrorType;
-  code: LessonValidationCode;
+  code: LessonPolicyViolationCode;
   payload: LessonValidationPayload;
   message?: string | null;
 }
@@ -131,7 +131,7 @@ export interface LessonViewDto {
   flexibilityType: LessonFlexibilityType;
   hoursCost: number;
   createdFromDiscipline: boolean;
-  validationMessages?: LessonValidationMessage[] | null;
+  violations?: LessonPolicyViolation[] | null;
 }
 
 export interface LessonSaveDto {

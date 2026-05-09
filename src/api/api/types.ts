@@ -145,7 +145,7 @@ export interface LessonValidationPayload {
   affectedByTeacherId?: string | null;
 }
 
-export interface LessonValidationMessage {
+export interface LessonPolicyViolation {
   id?: string | null;
   errorType: LessonValidationErrorType;
   code: LessonValidationCode;
@@ -165,7 +165,7 @@ export interface LessonViewDto {
   allowCombining: boolean;
   hoursCost: number;
   createdFromDiscipline: boolean;
-  validationMessages?: LessonValidationMessage[] | null;
+  violations?: LessonPolicyViolation[] | null;
 }
 
 export interface LessonRegistryItemDto {
@@ -180,7 +180,7 @@ export interface LessonRegistryItemDto {
   allowCombining: boolean;
   hoursCost: number;
   createdFromDiscipline: boolean;
-  validationMessages: LessonValidationMessage[];
+  violations: LessonPolicyViolation[];
 }
 
 export interface LessonSaveDto {
