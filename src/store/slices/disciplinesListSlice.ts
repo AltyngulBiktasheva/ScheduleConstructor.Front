@@ -113,30 +113,26 @@ function mapDto(dto: AcademicDisciplineRegistryItemDto): { root: Discipline; chi
     const payload = payloadKey ? dto[payloadKey] : undefined;
 
     if (payload?.lessonBatchInfos?.length) {
-      // Есть сохранённый payload — показываем из него
-      const [firstBatch, ...restBatches] = payload.lessonBatchInfos;
-      const firstFields = mapBatchToFields(firstBatch);
-
-      const extraCopies: Partial<Discipline>[] = restBatches.map((batch) => ({
-        lessonId: batch.id ?? undefined,
-        ...mapBatchToFields(batch),
-        totalHoursCount: batch.hoursCost,
-      }));
-
-      children.push({
-        id: firstBatch.id ?? `${dto.id}_${type}`,
-        lessonId: firstBatch.id ?? undefined,
-        name: childName,
-        isRoot: false,
-        parentId: dto.id,
-        academicDisciplineId: dto.id,
-        lessonType: type,
-        totalHoursCount: payload.totalHoursCount,
-        forType: 'group',
-        isStatic: false,   // TODO: Тип дисциплины (isStatic) — ожидаем реализацию на бэке
-        comment: dto.comment ?? undefined,
-        ...firstFields,
-        extraCopies: extraCopies.length > 0 ? extraCopies : undefined,
+      // Есть сохранённый payload — создаём отдельную карточку для каждого batch
+      const batchTotal = payload.lessonBatchInfos.length;
+      payload.lessonBatchInfos.forEach((batch, batchIndex) => {
+        const fields = mapBatchToFields(batch);
+        children.push({
+          id: batch.id ?? `${dto.id}_${type}_${batchIndex}`,
+          lessonId: batch.id ?? undefined,
+          name: childName,
+          isRoot: false,
+          parentId: dto.id,
+          academicDisciplineId: dto.id,
+          lessonType: type,
+          totalHoursCount: batch.hoursCost ?? payload.totalHoursCount,
+          forType: 'group',
+          isStatic: false,   // TODO: Тип дисциплины (isStatic) — ожидаем реализацию на бэке
+          comment: dto.comment ?? undefined,
+          batchIndex,
+          batchTotal,
+          ...fields,
+        });
       });
     } else {
       // Payload пуст или отсутствует — показываем placeholder

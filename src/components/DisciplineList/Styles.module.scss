@@ -33,3 +33,19 @@
   text-align: center;
   margin-top: $space-6;
 }
+
+.sectionTitle {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $color-gray-500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: $space-2 0 $space-1;
+  margin-top: $space-2;
+  border-top: 1px solid $border-color;
+
+  &:first-child {
+    margin-top: 0;
+    border-top: none;
+  }
+}

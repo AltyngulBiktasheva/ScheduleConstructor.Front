@@ -110,6 +110,12 @@
   margin-top: 2px;
 }
 
+.batchNumber {
+  font-weight: $font-weight-regular;
+  color: $color-gray-400;
+  font-size: $font-size-xs;
+}
+
 .details {
   display: flex;
   flex-direction: column;

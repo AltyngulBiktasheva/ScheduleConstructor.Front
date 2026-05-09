@@ -72,8 +72,12 @@ export interface Discipline {
   // ── Уровень ошибок валидации ───────────────────────────────────────────
   errorLevel?: 'Warning' | 'Error' | null;
 
-  // ── Дополнительные копии занятия (для lessonBatchInfos[1..N]) ─────────────
-  extraCopies?: Partial<Discipline>[];
+  // ── Batch-метаданные (для sidebar: один batch = одна карточка) ───────────
+  batchIndex?: number;   // порядковый номер batch внутри payload (0, 1, 2...)
+  batchTotal?: number;   // сколько всего batches в этом payload
+
+  // ── Транспортное поле для сохранения нескольких batches из формы ────────
+  _extraBatches?: Partial<Discipline>[];
 
   // Устаревшие поля (совместимость с DisciplineCard / EditModal)
   building?: BuildingType;

@@ -197,15 +197,15 @@
   &:hover { border-color: $color-primary; background: $color-primary-light; }
 }
 
-// ─── Copies (accordion) ──────────────────────────────────────────────────────
+// ─── Batches (accordion) ─────────────────────────────────────────────────────
 
-.copySection {
+.batchSection {
   border: 1px solid $border-color;
   border-radius: $border-radius;
   overflow: hidden;
 }
 
-.copyHeader {
+.batchHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -214,7 +214,7 @@
   border-bottom: 1px solid $border-color;
 }
 
-.copyToggle {
+.batchToggle {
   display: flex;
   align-items: center;
   gap: $space-2;
@@ -231,17 +231,17 @@
   &:hover { color: $color-primary; }
 }
 
-.copyChevron {
+.batchChevron {
   font-size: 10px;
   color: $color-gray-400;
   flex-shrink: 0;
 }
 
-.copyGroupLabel {
+.batchGroupLabel {
   font-size: $font-size-base;
 }
 
-.copyRemoveBtn {
+.batchRemoveBtn {
   width: 24px;
   height: 24px;
   border: none;
@@ -259,7 +259,7 @@
   &:hover { background: $slot-red; color: $color-danger; }
 }
 
-.copyBody {
+.batchBody {
   display: flex;
   flex-direction: column;
   gap: $space-5;

@@ -206,6 +206,23 @@
   }
 }
 
+// ─── Read-only fields ────────────────────────────────────────────────────────
+
+.readOnlyValue {
+  font-size: $font-size-base;
+  color: $color-gray-600;
+  padding: $space-2 $space-3;
+  background: $color-gray-50;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+}
+
+.readOnlyOccurrences {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+}
+
 // ─── Error & Actions ──────────────────────────────────────────────────────────
 
 .error {

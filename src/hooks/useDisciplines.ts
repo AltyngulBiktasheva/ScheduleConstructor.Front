@@ -113,15 +113,15 @@ async function saveAsPayload(
   });
   const root = rootDisciplines.find((r) => r.id === parentId);
 
-  // Собираем все батчи: основная дисциплина + extraCopies
+  // Основной batch + дополнительные из _extraBatches (транспортное поле формы)
   const allBatchInfos: LessonBatchInfoDto[] = [
     buildLessonBatchInfo(discipline, dateInterval),
-    ...(discipline.extraCopies ?? []).map((copy) => {
-      const copyDateInterval = resolveDateInterval(
-        copy.dateRange,
+    ...(discipline._extraBatches ?? []).map((extra) => {
+      const extraDateInterval = resolveDateInterval(
+        extra.dateRange,
         { dateFrom: dateInterval.dateFrom, dateTo: dateInterval.dateTo },
       );
-      return buildLessonBatchInfo({ ...discipline, ...copy } as Discipline, copyDateInterval);
+      return buildLessonBatchInfo({ ...discipline, ...extra } as Discipline, extraDateInterval);
     }),
   ];
 

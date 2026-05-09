@@ -1,11 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import type { Discipline, WeeklyOccurrence } from '../../types';
+import type { AcademicDisciplineType } from '../../api';
 import { DAYS } from '../../constants/days';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { fetchTeachersAll } from '../../store/slices/teachersListSlice';
 import { fetchClassroomsAll } from '../../store/slices/classroomsListSlice';
 import { fetchCampuses } from '../../store/slices/campusSlice';
+import { fetchGroupsAll } from '../../store/slices/groupsListSlice';
 import styles from './Styles.module.scss';
+
+const LESSON_TYPE_LABELS: Record<AcademicDisciplineType, string> = {
+  Lecture: 'Лекция',
+  Practice: 'Практика',
+  Lab: 'Лабораторная',
+  Exam: 'Экзамен',
+  Test: 'Зачёт',
+};
+
+const REPEAT_LABELS: Record<string, string> = {
+  'every-week': 'Каждую неделю',
+  'once': 'Единожды',
+  'even-weeks': 'По чётным неделям',
+  'odd-weeks': 'По нечётным неделям',
+};
 
 interface Props {
   discipline: Discipline;
@@ -33,12 +50,15 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
   const teachers = useAppSelector((s) => s.teachersList.teachers);
   const campuses = useAppSelector((s) => s.campus.list);
   const classrooms = useAppSelector((s) => s.classroomsList.classrooms);
+  const { groups, streams } = useAppSelector((s) => s.groupsList);
 
   const [formData, setFormData] = useState<Discipline>(() => ({
     ...discipline,
     occurrences: normalizeToOccurrences(discipline),
   }));
   const [error, setError] = useState('');
+
+  const isStatic = discipline.isStatic;
 
   // Determine initial campus selection from discipline.roomId
   const initialCampusId = (() => {
@@ -63,9 +83,9 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
     if (teachers.length === 0) dispatch(fetchTeachersAll());
     if (classrooms.length === 0) dispatch(fetchClassroomsAll());
     if (campuses.length === 0) dispatch(fetchCampuses());
+    if (groups.length === 0) dispatch(fetchGroupsAll());
   }, []);
 
-  const isChild = Boolean(discipline.parentId);
   const weeklyCount = discipline.weeklyCount ?? 1;
   const occurrences = formData.occurrences ?? [];
 
@@ -94,7 +114,7 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
 
   const handleSave = () => {
     if (!formData.name.trim()) { setError('Название дисциплины обязательно'); return; }
-    if (selectedCampusId === OTHER_VALUE && !otherRoomName.trim()) {
+    if (!isStatic && selectedCampusId === OTHER_VALUE && !otherRoomName.trim()) {
       setError('Укажите название аудитории'); return;
     }
 
@@ -105,7 +125,13 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
     let building: string | undefined;
     let buildingName: string | undefined;
 
-    if (selectedCampusId === ONLINE_VALUE) {
+    if (isStatic) {
+      // Для статических — не меняем аудиторию/корпус
+      roomId = discipline.roomId;
+      audience = discipline.audience;
+      building = discipline.building;
+      buildingName = discipline.buildingName;
+    } else if (selectedCampusId === ONLINE_VALUE) {
       building = 'online';
     } else if (selectedCampusId === OTHER_VALUE) {
       building = 'other';
@@ -122,7 +148,9 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
     const firstOcc = occurrences[0];
     onSave({
       ...formData,
-      teachers: teacher ? [teacher] : formData.teachers,
+      teachers: isStatic
+        ? formData.teachers
+        : (teacher ? [teacher] : formData.teachers),
       roomId,
       audience,
       building: building as any,
@@ -133,7 +161,20 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
     });
   };
 
-  const canAddOccurrence = !isChild && occurrences.length < weeklyCount;
+  const canAddOccurrence = !isStatic && occurrences.length < weeklyCount;
+
+  // ── Резолв имён групп ──────────────────────────────────────────────────────
+  const groupNames = discipline.forIds.map((id) => {
+    const g = groups.find((g) => g.id === id);
+    if (g) return g.name;
+    for (const gr of groups) {
+      const sub = gr.subgroups.find((s) => s.id === id);
+      if (sub) return sub.name;
+    }
+    const s = streams.find((s) => s.id === id);
+    if (s) return s.name;
+    return id;
+  });
 
   return (
     <div className={styles.overlay} onClick={onClose}>
@@ -144,98 +185,165 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
         </div>
 
         <div className={styles.form}>
-          <Field label="Название *">
-            <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className={styles.input} autoFocus />
+          {/* ── Read-only: Название ── */}
+          <Field label="Название">
+            <span className={styles.readOnlyValue}>{discipline.name}</span>
           </Field>
 
+          {/* ── Read-only: Вид занятия ── */}
+          {discipline.lessonType && (
+            <Field label="Вид занятия">
+              <span className={styles.readOnlyValue}>
+                {LESSON_TYPE_LABELS[discipline.lessonType] ?? discipline.lessonType}
+              </span>
+            </Field>
+          )}
+
+          {/* ── Read-only: Группы ── */}
+          {groupNames.length > 0 && (
+            <Field label="Группы">
+              <span className={styles.readOnlyValue}>{groupNames.join(', ')}</span>
+            </Field>
+          )}
+
+          {/* ── Read-only: Часы ── */}
+          <Field label="Часы">
+            <span className={styles.readOnlyValue}>{discipline.totalHoursCount ?? '—'}</span>
+          </Field>
+
+          {/* ── Read-only: Совмещение ── */}
+          <Field label="Совмещение">
+            <span className={styles.readOnlyValue}>
+              {discipline.canOverlap ? 'По выбору' : 'Обязательная'}
+            </span>
+          </Field>
+
+          {/* ── Read-only: Повторение ── */}
+          <Field label="Повторение">
+            <span className={styles.readOnlyValue}>
+              {REPEAT_LABELS[discipline.repeat] ?? discipline.repeat}
+            </span>
+          </Field>
+
+          {/* ── Read-only: Кол-во раз в неделю ── */}
+          <Field label="Кол-во раз в неделю">
+            <span className={styles.readOnlyValue}>{discipline.weeklyCount ?? 1}</span>
+          </Field>
+
+          {/* ── Преподаватель (editable / read-only for static) ── */}
           <Field label="Преподаватель">
-            <select
-              value={selectedTeacherId}
-              onChange={(e) => setSelectedTeacherId(e.target.value)}
-              className={styles.select}
-            >
-              <option value="">— не выбран —</option>
-              {teachers.map((t) => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
-            </select>
-          </Field>
-
-          <Field label="Корпус">
-            <select
-              value={selectedCampusId}
-              onChange={(e) => handleCampusChange(e.target.value)}
-              className={styles.select}
-            >
-              <option value={ONLINE_VALUE}>Онлайн</option>
-              {campuses.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-              <option value={OTHER_VALUE}>Другой корпус</option>
-            </select>
-          </Field>
-
-          {selectedCampusId !== ONLINE_VALUE && selectedCampusId !== OTHER_VALUE && (
-            <Field label="Аудитория">
+            {isStatic ? (
+              <span className={styles.readOnlyValue}>
+                {discipline.teachers.map((t) => t.name).filter(Boolean).join(', ') || 'Без преподавателя'}
+              </span>
+            ) : (
               <select
-                value={selectedRoomId}
-                onChange={(e) => setSelectedRoomId(e.target.value)}
+                value={selectedTeacherId}
+                onChange={(e) => setSelectedTeacherId(e.target.value)}
                 className={styles.select}
               >
-                <option value="">— не выбрана —</option>
-                {roomsForCampus.map((r) => (
-                  <option key={r.id} value={r.id}>{r.name}</option>
+                <option value="">— не выбран —</option>
+                {teachers.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
                 ))}
               </select>
-            </Field>
-          )}
+            )}
+          </Field>
 
-          {selectedCampusId === OTHER_VALUE && (
-            <Field label="Аудитория *">
-              <input
-                type="text"
-                value={otherRoomName}
-                onChange={(e) => setOtherRoomName(e.target.value)}
-                className={styles.input}
-                placeholder="Название аудитории"
-              />
+          {/* ── Корпус / Аудитория (editable / read-only for static) ── */}
+          {isStatic ? (
+            <Field label="Аудитория">
+              <span className={styles.readOnlyValue}>
+                {discipline.building ? `${discipline.building}, ` : ''}
+                {discipline.audience || 'Без аудитории'}
+              </span>
             </Field>
-          )}
-
-          {formData.isInGrid && !discipline.isStatic && (
+          ) : (
             <>
-              <div className={styles.sectionLabel}>Время проведения</div>
-
-              <div className={styles.occurrences}>
-                {occurrences.map((occ, i) => (
-                  <div key={i} className={styles.occurrence}>
-                    <select value={occ.dayId} onChange={(e) => handleOccurrenceChange(i, 'dayId', e.target.value)} className={styles.selectSm}>
-                      {DAYS.map((d) => <option key={d.id} value={d.id}>{d.shortName}</option>)}
-                    </select>
-                    <TimeInput value={occ.timeStart} onChange={(v) => handleOccurrenceChange(i, 'timeStart', v)} />
-                    <span className={styles.timeSep}>—</span>
-                    <TimeInput value={occ.timeEnd} onChange={(v) => handleOccurrenceChange(i, 'timeEnd', v)} />
-                    {occurrences.length > 1 && (
-                      <button className={styles.removeBtn} onClick={() => removeOccurrence(i)}>✕</button>
-                    )}
-                  </div>
-                ))}
-                {canAddOccurrence && (
-                  <button className={styles.addBtn} onClick={addOccurrence}>+ Добавить ещё время</button>
-                )}
-              </div>
-
-              <Field label="Повторение">
-                <select value={formData.repeat} onChange={(e) => setFormData({ ...formData, repeat: e.target.value as any })} className={styles.select}>
-                  <option value="every-week">Каждую неделю</option>
-                  <option value="once">Единожды</option>
-                  <option value="even-weeks">По чётным неделям</option>
-                  <option value="odd-weeks">По нечётным неделям</option>
+              <Field label="Корпус">
+                <select
+                  value={selectedCampusId}
+                  onChange={(e) => handleCampusChange(e.target.value)}
+                  className={styles.select}
+                >
+                  <option value={ONLINE_VALUE}>Онлайн</option>
+                  {campuses.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                  <option value={OTHER_VALUE}>Другой корпус</option>
                 </select>
               </Field>
+
+              {selectedCampusId !== ONLINE_VALUE && selectedCampusId !== OTHER_VALUE && (
+                <Field label="Аудитория">
+                  <select
+                    value={selectedRoomId}
+                    onChange={(e) => setSelectedRoomId(e.target.value)}
+                    className={styles.select}
+                  >
+                    <option value="">— не выбрана —</option>
+                    {roomsForCampus.map((r) => (
+                      <option key={r.id} value={r.id}>{r.name}</option>
+                    ))}
+                  </select>
+                </Field>
+              )}
+
+              {selectedCampusId === OTHER_VALUE && (
+                <Field label="Аудитория *">
+                  <input
+                    type="text"
+                    value={otherRoomName}
+                    onChange={(e) => setOtherRoomName(e.target.value)}
+                    className={styles.input}
+                    placeholder="Название аудитории"
+                  />
+                </Field>
+              )}
             </>
           )}
 
+          {/* ── Время (editable / read-only for static) ── */}
+          {formData.isInGrid && (
+            <>
+              <div className={styles.sectionLabel}>Время проведения</div>
+
+              {isStatic ? (
+                <div className={styles.readOnlyOccurrences}>
+                  {occurrences.map((occ, i) => (
+                    <div key={i} className={styles.readOnlyValue}>
+                      {DAYS.find((d) => d.id === occ.dayId)?.shortName ?? occ.dayId}{' '}
+                      {occ.timeStart} — {occ.timeEnd}
+                    </div>
+                  ))}
+                  {occurrences.length === 0 && (
+                    <span className={styles.readOnlyValue}>Время не назначено</span>
+                  )}
+                </div>
+              ) : (
+                <div className={styles.occurrences}>
+                  {occurrences.map((occ, i) => (
+                    <div key={i} className={styles.occurrence}>
+                      <select value={occ.dayId} onChange={(e) => handleOccurrenceChange(i, 'dayId', e.target.value)} className={styles.selectSm}>
+                        {DAYS.map((d) => <option key={d.id} value={d.id}>{d.shortName}</option>)}
+                      </select>
+                      <TimeInput value={occ.timeStart} onChange={(v) => handleOccurrenceChange(i, 'timeStart', v)} />
+                      <span className={styles.timeSep}>—</span>
+                      <TimeInput value={occ.timeEnd} onChange={(v) => handleOccurrenceChange(i, 'timeEnd', v)} />
+                      {occurrences.length > 1 && (
+                        <button className={styles.removeBtn} onClick={() => removeOccurrence(i)}>✕</button>
+                      )}
+                    </div>
+                  ))}
+                  {canAddOccurrence && (
+                    <button className={styles.addBtn} onClick={addOccurrence}>+ Добавить ещё время</button>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ── Комментарий (always editable) ── */}
           <Field label="Комментарий">
             <textarea value={formData.comment || ''} onChange={(e) => setFormData({ ...formData, comment: e.target.value })} className={styles.textarea} rows={2} />
           </Field>

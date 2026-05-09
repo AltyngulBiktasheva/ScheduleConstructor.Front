@@ -1,10 +1,11 @@
 import React from 'react';
 import type { Discipline } from '../../types';
+import type { DisciplineSection } from '../MainContainer/MainContainer';
 import { DisciplineCard } from '../DisciplineCard/DisciplineCard';
 import styles from './Styles.module.scss';
 
 interface Props {
-  disciplines: Discipline[];
+  sections: DisciplineSection[];
   onReturn: (disciplineId: string) => void;
   onDisciplineClick: (discipline: Discipline) => void;
   onToggleHighlight?: (disciplineId: string) => void;
@@ -13,7 +14,7 @@ interface Props {
 }
 
 export const DisciplineList: React.FC<Props> = ({
-  disciplines,
+  sections,
   onReturn,
   onDisciplineClick,
   onToggleHighlight,
@@ -38,23 +39,33 @@ export const DisciplineList: React.FC<Props> = ({
     onReturn(disciplineId);
   };
 
+  const totalDisciplines = sections.reduce((sum, s) => sum + s.disciplines.length, 0);
+  const hasMultipleSections = sections.length > 1 || (sections.length === 1 && sections[0].label !== '');
+
   return (
     <div className={styles.container} onDragOver={handleDragOver} onDrop={handleDrop} data-tour="discipline-list">
       <h2 className={styles.title}>Дисциплины</h2>
-      {disciplines.length === 0 ? (
+      {totalDisciplines === 0 ? (
         <p className={styles.empty}>Все дисциплины размещены</p>
       ) : (
         <div className={styles.list}>
-          {disciplines.map((discipline) => (
-            <DisciplineCard
-              key={discipline.id}
-              discipline={discipline}
-              isHighlightActive={highlightedDisciplineId === discipline.id}
-              isLoadingHighlight={loadingHighlightId === discipline.id}
-              onDragStart={(e) => handleDragStart(e, discipline)}
-              onClick={() => onDisciplineClick(discipline)}
-              onToggleHighlight={discipline.isStatic ? undefined : onToggleHighlight}
-            />
+          {sections.map((section) => (
+            <React.Fragment key={section.label || '__default'}>
+              {hasMultipleSections && section.label && (
+                <h3 className={styles.sectionTitle}>{section.label}</h3>
+              )}
+              {section.disciplines.map((discipline) => (
+                <DisciplineCard
+                  key={discipline.id}
+                  discipline={discipline}
+                  isHighlightActive={highlightedDisciplineId === discipline.id}
+                  isLoadingHighlight={loadingHighlightId === discipline.id}
+                  onDragStart={(e) => handleDragStart(e, discipline)}
+                  onClick={() => onDisciplineClick(discipline)}
+                  onToggleHighlight={discipline.isStatic ? undefined : onToggleHighlight}
+                />
+              ))}
+            </React.Fragment>
           ))}
         </div>
       )}

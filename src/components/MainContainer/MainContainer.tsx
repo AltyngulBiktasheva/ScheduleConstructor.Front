@@ -11,6 +11,9 @@ import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { fetchWeekLessons, saveLesson, deleteWeekLesson } from '../../store/slices/lessonSlice';
 import { fetchDisciplinesAll } from '../../store/slices/disciplinesListSlice';
 import { fetchGroupsAll } from '../../store/slices/groupsListSlice';
+import { fetchTeachersAll } from '../../store/slices/teachersListSlice';
+import { fetchClassroomsAll } from '../../store/slices/classroomsListSlice';
+import { fetchCampuses } from '../../store/slices/campusSlice';
 import type { LessonWeekItemDto, AcademicDisciplineType } from '../../api';
 import { useToast } from '../Toast/ToastContext';
 import styles from './Styles.module.scss';
@@ -21,6 +24,11 @@ export interface SliceSelection {
   type: 'classrooms' | 'teachers' | 'groups';
   entityId: string | string[];
   label: string;
+}
+
+export interface DisciplineSection {
+  label: string;
+  disciplines: Discipline[];
 }
 
 interface Props {
@@ -111,6 +119,9 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
     s.schedule.list.find((sc) => sc.id === s.schedule.selectedScheduleId)?.dateInterval.dateFrom ?? null
   );
   const { groups, streams } = useAppSelector((s) => s.groupsList);
+  const teachersList = useAppSelector((s) => s.teachersList.teachers);
+  const classrooms = useAppSelector((s) => s.classroomsList.classrooms);
+  const campuses = useAppSelector((s) => s.campus.list);
 
   // Транспонированный режим: несколько групп выбрано
   const isTransposed =
@@ -147,6 +158,14 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
     if (isTransposed && groups.length === 0) dispatch(fetchGroupsAll());
   }, [dispatch, isTransposed, groups.length]);
 
+  // ── Загрузка справочников для обогащения карточек ────────────────────────
+  useEffect(() => {
+    if (teachersList.length === 0) dispatch(fetchTeachersAll());
+    if (classrooms.length === 0) dispatch(fetchClassroomsAll());
+    if (campuses.length === 0) dispatch(fetchCampuses());
+    if (groups.length === 0) dispatch(fetchGroupsAll());
+  }, [dispatch]);
+
   // ── Фильтрация занятий по сущности ───────────────────────────────────────
   const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
   const entityLessons = filterLessonsByEntity(weekLessons, selection);
@@ -154,6 +173,127 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
 
   // Дисциплины для списка — только не-корневые (листовые)
   const listItems = listDisciplines.filter((d) => !d.isRoot);
+
+  // ── Обогащение карточек именами преподавателей, аудиторий, групп ─────────
+  const enrichedListItems = useMemo(() => {
+    return listItems.map((d) => {
+      // Преподаватель
+      const teacherLabel = d.teachers.length > 0
+        ? d.teachers
+            .map((t) => t.name || teachersList.find((tl) => tl.id === t.id)?.name || '')
+            .filter(Boolean)
+            .join(', ')
+        : undefined;
+
+      // Аудитория + корпус
+      const firstRoom = d.audiences[0];
+      let audienceLabel: string | undefined;
+      let buildingLabel: string | undefined;
+      if (firstRoom?.roomId) {
+        const room = classrooms.find((c) => c.id === firstRoom.roomId);
+        if (room) {
+          audienceLabel = room.name;
+          const campus = campuses.find((c) => c.id === room.campusId);
+          buildingLabel = campus?.name;
+        }
+      }
+
+      // Время из первого occurrence
+      const firstOcc = d.occurrences?.[0];
+
+      return {
+        ...d,
+        teacher: teacherLabel || 'Без преподавателя',
+        audience: audienceLabel || 'Без аудитории',
+        building: buildingLabel as any,
+        timeStart: firstOcc?.timeStart ?? d.timeStart,
+        timeEnd: firstOcc?.timeEnd ?? d.timeEnd,
+      };
+    });
+  }, [listItems, teachersList, classrooms, campuses]);
+
+  // ── Фильтрация карточек по текущему selection ───────────────────────────
+  const filteredListItems = useMemo(() => {
+    const ids = Array.isArray(selection.entityId)
+      ? selection.entityId
+      : [selection.entityId];
+
+    return enrichedListItems.filter((d) => {
+      switch (selection.type) {
+        case 'groups':
+          return d.forIds.some((fid) => {
+            if (ids.includes(fid)) return true;
+            // fid может быть группой, входящей в выбранный поток
+            const group = groups.find((g) => g.id === fid);
+            if (group) {
+              return group.streamIds?.some((sid) => ids.includes(sid)) ?? false;
+            }
+            // fid может быть подгруппой
+            for (const g of groups) {
+              if (g.subgroups.some((s) => s.id === fid)) {
+                return ids.includes(g.id) || (g.streamIds?.some((sid) => ids.includes(sid)) ?? false);
+              }
+            }
+            return false;
+          });
+        case 'teachers':
+          return d.teachers.some((t) => ids.includes(t.id));
+        case 'classrooms':
+          return d.audiences.some((a) => ids.includes(a.roomId));
+        default:
+          return true;
+      }
+    });
+  }, [enrichedListItems, selection, groups]);
+
+  // ── Группировка в секции по покрытию ────────────────────────────────────
+  const listSections = useMemo((): DisciplineSection[] => {
+    if (selection.type !== 'groups') {
+      return [{ label: '', disciplines: filteredListItems }];
+    }
+
+    const selectedIds = Array.isArray(selection.entityId)
+      ? selection.entityId
+      : [selection.entityId];
+
+    const forAll: Discipline[] = [];
+    const byEntity = new Map<string, Discipline[]>();
+
+    for (const d of filteredListItems) {
+      // Проверяем покрывает ли дисциплина все выбранные группы
+      const coversAll = selectedIds.length <= 1 || selectedIds.every((sid) =>
+        d.forIds.includes(sid) ||
+        d.forIds.some((fid) => {
+          const stream = streams.find((s) => s.id === fid);
+          return stream?.groupIds.some((gid) =>
+            selectedIds.includes(gid) ||
+            groups.find((g) => g.id === gid)?.subgroups.some((s) => selectedIds.includes(s.id)),
+          );
+        }),
+      );
+
+      if (coversAll) {
+        forAll.push(d);
+      } else {
+        // Определяем для кого
+        for (const fid of d.forIds) {
+          const key = groups.find((g) => g.id === fid)?.name
+            ?? streams.find((s) => s.id === fid)?.name
+            ?? fid;
+          if (!byEntity.has(key)) byEntity.set(key, []);
+          byEntity.get(key)!.push(d);
+        }
+      }
+    }
+
+    const sections: DisciplineSection[] = [];
+    if (forAll.length > 0) sections.push({ label: 'Для всех выбранных', disciplines: forAll });
+    for (const [label, disciplines] of byEntity) {
+      sections.push({ label: `Для ${label}`, disciplines });
+    }
+    if (sections.length === 0) sections.push({ label: '', disciplines: [] });
+    return sections;
+  }, [filteredListItems, selection, streams, groups]);
 
   // ── Столбцы для транспонированной сетки ──────────────────────────────────
   const gridColumns = useMemo((): GridColumn[] => {
@@ -392,7 +532,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
         <ScheduleGrid {...gridProps} />
       )}
       <DisciplineList
-        disciplines={listItems}
+        sections={listSections}
         onReturn={handleDisciplineReturn}
         onDisciplineClick={handleDisciplineClick}
         onToggleHighlight={handleToggleHighlight}

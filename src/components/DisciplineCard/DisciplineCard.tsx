@@ -67,17 +67,22 @@ export const DisciplineCard: React.FC<Props> = ({
 
       {discipline.isStatic && <span className={styles.staticBadge}>С</span>}
 
-      <div className={styles.title}>{discipline.name}</div>
+      <div className={styles.title}>
+        {discipline.name}
+        {(discipline.batchTotal ?? 0) > 1 && (
+          <span className={styles.batchNumber}> (Занятие {(discipline.batchIndex ?? 0) + 1})</span>
+        )}
+      </div>
 
       <div className={styles.details}>
-        {discipline.teacher && <div className={styles.detailRow}>{discipline.teacher}</div>}
-        {buildingLabel && (
-          <div className={styles.detailRow}>
-            {buildingLabel}
-            {discipline.audience && `, ауд. ${discipline.audience}`}
-          </div>
-        )}
-        {isInGrid && discipline.timeStart && discipline.timeEnd && (
+        <div className={styles.detailRow}>
+          {discipline.teacher || 'Без преподавателя'}
+        </div>
+        <div className={styles.detailRow}>
+          {buildingLabel ? `${buildingLabel}, ` : ''}
+          {discipline.audience || 'Без аудитории'}
+        </div>
+        {discipline.timeStart && discipline.timeEnd && (
           <div className={styles.time}>
             {discipline.timeStart} – {discipline.timeEnd}
           </div>

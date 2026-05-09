@@ -30,9 +30,9 @@ const REPEAT_OPTIONS: { value: RepeatType; label: string }[] = [
   { value: 'odd-weeks', label: 'По нечётным неделям' },
 ];
 
-// ─── Copy state ───────────────────────────────────────────────────────────────
+// ─── Batch state ──────────────────────────────────────────────────────────────
 
-interface CopyForm {
+interface BatchForm {
   totalHoursCount?: number;
   groupIds: string[];
   isStatic: boolean;
@@ -47,7 +47,7 @@ interface CopyForm {
   collapsed: boolean;
 }
 
-function emptyCopy(): CopyForm {
+function emptyBatch(): BatchForm {
   return {
     totalHoursCount: undefined,
     groupIds: [],
@@ -64,7 +64,7 @@ function emptyCopy(): CopyForm {
   };
 }
 
-function copyFromDiscipline(d: Discipline): CopyForm {
+function batchFromDiscipline(d: Discipline): BatchForm {
   return {
     totalHoursCount: d.totalHoursCount,
     groupIds: d.forIds ?? [],
@@ -95,13 +95,9 @@ interface Props {
 export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loading }) => {
   const [parentId, setParentId] = useState(initial?.parentId ?? '');
   const [lessonType, setLessonType] = useState<AcademicDisciplineType | undefined>(initial?.lessonType);
-  const [copies, setCopies] = useState<CopyForm[]>(() => {
-    if (!initial) return [emptyCopy()];
-    const first = copyFromDiscipline(initial);
-    const extra = (initial.extraCopies ?? []).map((ec) =>
-      copyFromDiscipline({ ...initial, ...ec } as Discipline),
-    );
-    return [first, ...extra];
+  const [batches, setBatches] = useState<BatchForm[]>(() => {
+    if (!initial) return [emptyBatch()];
+    return [batchFromDiscipline(initial)];
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -157,39 +153,39 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
     }
   }, [parentId]);
 
-  // ─── Copy helpers ───────────────────────────────────────────────────────────
+  // ─── Batch helpers ──────────────────────────────────────────────────────────
 
-  const updateCopy = (index: number, patch: Partial<CopyForm>) => {
-    setCopies((prev) => prev.map((c, i) => (i === index ? { ...c, ...patch } : c)));
+  const updateBatch = (index: number, patch: Partial<BatchForm>) => {
+    setBatches((prev) => prev.map((c, i) => (i === index ? { ...c, ...patch } : c)));
   };
 
-  const addCopy = () => {
-    const last = copies[copies.length - 1];
-    setCopies((prev) => [
+  const addBatch = () => {
+    const last = batches[batches.length - 1];
+    setBatches((prev) => [
       ...prev.map((c) => ({ ...c, collapsed: true })),
       { ...last, groupIds: [], collapsed: false },
     ]);
   };
 
-  const removeCopy = (index: number) => {
-    setCopies((prev) => prev.filter((_, i) => i !== index));
+  const removeBatch = (index: number) => {
+    setBatches((prev) => prev.filter((_, i) => i !== index));
   };
 
   const toggleCollapse = (index: number) => {
-    updateCopy(index, { collapsed: !copies[index].collapsed });
+    updateBatch(index, { collapsed: !batches[index].collapsed });
   };
 
-  // ─── Per-copy handlers ──────────────────────────────────────────────────────
+  // ─── Per-batch handlers ─────────────────────────────────────────────────────
 
   const setWeeklyCount = (index: number, count: number | null) => {
     if (count === null) {
-      setCopies((prev) =>
+      setBatches((prev) =>
         prev.map((c, i) => i === index ? { ...c, weeklyCount: null } : c),
       );
       return;
     }
     const clamped = Math.max(1, Math.min(6, count));
-    setCopies((prev) =>
+    setBatches((prev) =>
       prev.map((c, i) =>
         i === index
           ? { ...c, weeklyCount: clamped, occurrences: c.occurrences.slice(0, clamped) }
@@ -199,54 +195,54 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
   };
 
   const addOccurrence = (index: number) => {
-    const copy = copies[index];
-    if (copy.occurrences.length >= (copy.weeklyCount ?? 1)) return;
-    updateCopy(index, {
-      occurrences: [...copy.occurrences, { dayId: 'mon', timeStart: '09:00', timeEnd: '10:30' }],
+    const batch = batches[index];
+    if (batch.occurrences.length >= (batch.weeklyCount ?? 1)) return;
+    updateBatch(index, {
+      occurrences: [...batch.occurrences, { dayId: 'mon', timeStart: '09:00', timeEnd: '10:30' }],
     });
   };
 
-  const removeOccurrence = (copyIndex: number, occIndex: number) => {
-    updateCopy(copyIndex, {
-      occurrences: copies[copyIndex].occurrences.filter((_, i) => i !== occIndex),
+  const removeOccurrence = (batchIndex: number, occIndex: number) => {
+    updateBatch(batchIndex, {
+      occurrences: batches[batchIndex].occurrences.filter((_, i) => i !== occIndex),
     });
   };
 
   const updateOccurrence = (
-    copyIndex: number,
+    batchIndex: number,
     occIndex: number,
     patch: Partial<WeeklyOccurrence>,
   ) => {
-    updateCopy(copyIndex, {
-      occurrences: copies[copyIndex].occurrences.map((o, i) =>
+    updateBatch(batchIndex, {
+      occurrences: batches[batchIndex].occurrences.map((o, i) =>
         i === occIndex ? { ...o, ...patch } : o,
       ),
     });
   };
 
-  const toggleTeacher = (copyIndex: number, teacher: DisciplineTeacher) => {
-    const copy = copies[copyIndex];
-    const has = copy.teachers.some((t) => t.id === teacher.id);
-    updateCopy(copyIndex, {
-      teachers: has ? copy.teachers.filter((t) => t.id !== teacher.id) : [...copy.teachers, teacher],
+  const toggleTeacher = (batchIndex: number, teacher: DisciplineTeacher) => {
+    const batch = batches[batchIndex];
+    const has = batch.teachers.some((t) => t.id === teacher.id);
+    updateBatch(batchIndex, {
+      teachers: has ? batch.teachers.filter((t) => t.id !== teacher.id) : [...batch.teachers, teacher],
     });
   };
 
-  const addAudience = (copyIndex: number) => {
-    updateCopy(copyIndex, {
-      audiences: [...copies[copyIndex].audiences, { roomId: '', roomName: '' }],
+  const addAudience = (batchIndex: number) => {
+    updateBatch(batchIndex, {
+      audiences: [...batches[batchIndex].audiences, { roomId: '', roomName: '' }],
     });
   };
 
-  const removeAudience = (copyIndex: number, audIndex: number) => {
-    updateCopy(copyIndex, {
-      audiences: copies[copyIndex].audiences.filter((_, i) => i !== audIndex),
+  const removeAudience = (batchIndex: number, audIndex: number) => {
+    updateBatch(batchIndex, {
+      audiences: batches[batchIndex].audiences.filter((_, i) => i !== audIndex),
     });
   };
 
-  const updateAudience = (copyIndex: number, audIndex: number, patch: Partial<DisciplineAudience>) => {
-    updateCopy(copyIndex, {
-      audiences: copies[copyIndex].audiences.map((a, i) => (i === audIndex ? { ...a, ...patch } : a)),
+  const updateAudience = (batchIndex: number, audIndex: number, patch: Partial<DisciplineAudience>) => {
+    updateBatch(batchIndex, {
+      audiences: batches[batchIndex].audiences.map((a, i) => (i === audIndex ? { ...a, ...patch } : a)),
     });
   };
 
@@ -256,7 +252,7 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
     const errs: Record<string, string> = {};
     if (!parentId) errs.parentId = 'Обязательное поле';
     if (!lessonType) errs.lessonType = 'Обязательное поле';
-    const first = copies[0];
+    const first = batches[0];
     if (first.groupIds.length === 0) errs.group = 'Выберите хотя бы одну группу';
     if (first.isStatic && first.occurrences.length === 0)
       errs.occurrences = 'Для постоянной дисциплины необходимо указать время';
@@ -270,10 +266,10 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
     if (!validate()) return;
     const typeLabel = lessonType ? LESSON_TYPE_LABELS[lessonType] : '';
     const generatedName = selectedRoot ? `${selectedRoot.name} (${typeLabel})` : typeLabel;
-    const first = copies[0];
+    const first = batches[0];
 
-    const extraCopies: Partial<Discipline>[] = copies.slice(1).map((c, idx) => ({
-      lessonId: initial?.extraCopies?.[idx]?.lessonId,
+    // Первый batch — основной, остальные передаются как _extraBatches (транспортное поле)
+    const extraBatches: Partial<Discipline>[] = batches.slice(1).map((c) => ({
       forIds: c.groupIds,
       teachers: c.teachers,
       audiences: c.audiences,
@@ -301,14 +297,14 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
       semesterNumber: selectedRoot?.semesterNumber,
       allowedLessonTypes: undefined,
       roomId: first.audiences[0]?.roomId || undefined,
-      extraCopies: extraCopies.length > 0 ? extraCopies : undefined,
+      _extraBatches: extraBatches.length > 0 ? extraBatches : undefined,
     } as Discipline);
   };
 
   const handleReset = () => {
     setParentId('');
     setLessonType(undefined);
-    setCopies([emptyCopy()]);
+    setBatches([emptyBatch()]);
     setErrors({});
     setShowResetConfirm(false);
   };
@@ -371,21 +367,21 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
         </select>
       </FormField>
 
-      {/* ── Copies ── */}
-      {copies.map((copy, idx) => (
-        <CopySection
+      {/* ── Batches ── */}
+      {batches.map((batch, idx) => (
+        <BatchSection
           key={idx}
           index={idx}
-          copy={copy}
-          total={copies.length}
+          batch={batch}
+          total={batches.length}
           errors={idx === 0 ? errors : {}}
           streamOptions={streamOptions}
           groupOptions={groupOptions}
           allGroupsFlat={allGroupsFlat}
           teachersList={teachersList}
           roomOptions={roomOptions}
-          onUpdate={(patch) => updateCopy(idx, patch)}
-          onRemove={() => removeCopy(idx)}
+          onUpdate={(patch) => updateBatch(idx, patch)}
+          onRemove={() => removeBatch(idx)}
           onToggleCollapse={() => toggleCollapse(idx)}
           onAddOccurrence={() => addOccurrence(idx)}
           onRemoveOccurrence={(i) => removeOccurrence(idx, i)}
@@ -400,8 +396,8 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
         />
       ))}
 
-      <button className={styles.addBtn} onClick={addCopy} type="button">
-        + Добавить ещё
+      <button className={styles.addBtn} onClick={addBatch} type="button">
+        + Добавить занятие
       </button>
 
       {/* ── Actions ── */}
@@ -429,7 +425,7 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
   );
 };
 
-// ─── CopySection ─────────────────────────────────────────────────────────────
+// ─── BatchSection ────────────────────────────────────────────────────────────
 
 interface StreamOption {
   id: string;
@@ -442,9 +438,9 @@ interface GroupOption {
   label: string;
 }
 
-interface CopySectionProps {
+interface BatchSectionProps {
   index: number;
-  copy: CopyForm;
+  batch: BatchForm;
   total: number;
   errors: Record<string, string>;
   streamOptions: StreamOption[];
@@ -452,7 +448,7 @@ interface CopySectionProps {
   allGroupsFlat: GroupOption[];
   teachersList: { id: string; name: string }[];
   roomOptions: RoomOption[];
-  onUpdate: (patch: Partial<CopyForm>) => void;
+  onUpdate: (patch: Partial<BatchForm>) => void;
   onRemove: () => void;
   onToggleCollapse: () => void;
   onAddOccurrence: () => void;
@@ -467,9 +463,9 @@ interface CopySectionProps {
   handleDateInput: (raw: string) => string;
 }
 
-const CopySection: React.FC<CopySectionProps> = ({
+const BatchSection: React.FC<BatchSectionProps> = ({
   index,
-  copy,
+  batch,
   total,
   errors,
   streamOptions,
@@ -491,7 +487,7 @@ const CopySection: React.FC<CopySectionProps> = ({
   normalizeTime,
   handleDateInput,
 }) => {
-  const selectedGroupLabels = copy.groupIds
+  const selectedGroupLabels = batch.groupIds
     .map((id) => allGroupsFlat.find((g) => g.id === id)?.label ?? id);
   const groupSummary = selectedGroupLabels.length === 0
     ? '— не выбраны —'
@@ -499,41 +495,41 @@ const CopySection: React.FC<CopySectionProps> = ({
       ? selectedGroupLabels.join(', ')
       : `${selectedGroupLabels.slice(0, 2).join(', ')}…`;
 
-  const effectiveWeeklyCount = copy.weeklyCount ?? 1;
-  const canAddOccurrence = copy.occurrences.length < effectiveWeeklyCount;
+  const effectiveWeeklyCount = batch.weeklyCount ?? 1;
+  const canAddOccurrence = batch.occurrences.length < effectiveWeeklyCount;
 
   const toggleGroup = (id: string) => {
-    const has = copy.groupIds.includes(id);
-    onUpdate({ groupIds: has ? copy.groupIds.filter((g) => g !== id) : [...copy.groupIds, id] });
+    const has = batch.groupIds.includes(id);
+    onUpdate({ groupIds: has ? batch.groupIds.filter((g) => g !== id) : [...batch.groupIds, id] });
   };
 
   return (
-    <div className={styles.copySection}>
+    <div className={styles.batchSection}>
       {/* Accordion header */}
-      <div className={styles.copyHeader}>
+      <div className={styles.batchHeader}>
         <button
           type="button"
-          className={styles.copyToggle}
+          className={styles.batchToggle}
           onClick={onToggleCollapse}
-          title={copy.collapsed ? 'Развернуть' : 'Свернуть'}
+          title={batch.collapsed ? 'Развернуть' : 'Свернуть'}
         >
-          <span className={styles.copyChevron}>{copy.collapsed ? '▶' : '▼'}</span>
-          <span className={styles.copyGroupLabel}>
-            {index === 0 ? 'Занятие' : `Копия ${index + 1}`}
+          <span className={styles.batchChevron}>{batch.collapsed ? '▶' : '▼'}</span>
+          <span className={styles.batchGroupLabel}>
+            {`Занятие ${index + 1}`}
             {': '}
             <strong>{groupSummary}</strong>
           </span>
         </button>
         {total > 1 && (
-          <button type="button" className={styles.copyRemoveBtn} onClick={onRemove} title="Удалить копию">
+          <button type="button" className={styles.batchRemoveBtn} onClick={onRemove} title="Удалить занятие">
             ✕
           </button>
         )}
       </div>
 
       {/* Accordion body */}
-      {!copy.collapsed && (
-        <div className={styles.copyBody}>
+      {!batch.collapsed && (
+        <div className={styles.batchBody}>
           {/* Группы (мультиселект) */}
           <FormField label="Группы" required error={errors.group}>
             {streamOptions.length === 0 && groupOptions.length === 0 ? (
@@ -548,7 +544,7 @@ const CopySection: React.FC<CopySectionProps> = ({
                         <label className={styles.checkLabel}>
                           <input
                             type="checkbox"
-                            checked={copy.groupIds.includes(s.id)}
+                            checked={batch.groupIds.includes(s.id)}
                             onChange={() => toggleGroup(s.id)}
                           />
                           {s.label}
@@ -569,7 +565,7 @@ const CopySection: React.FC<CopySectionProps> = ({
                       <label key={g.id} className={styles.checkLabel}>
                         <input
                           type="checkbox"
-                          checked={copy.groupIds.includes(g.id)}
+                          checked={batch.groupIds.includes(g.id)}
                           onChange={() => toggleGroup(g.id)}
                         />
                         {g.label}
@@ -588,7 +584,7 @@ const CopySection: React.FC<CopySectionProps> = ({
                 className="field-input"
                 type="number"
                 min={0}
-                value={copy.totalHoursCount ?? ''}
+                value={batch.totalHoursCount ?? ''}
                 onChange={(e) => onUpdate({ totalHoursCount: e.target.value ? parseInt(e.target.value) : undefined })}
                 placeholder="36"
                 style={{ width: 100 }}
@@ -603,11 +599,11 @@ const CopySection: React.FC<CopySectionProps> = ({
             <FormField label="Тип дисциплины" required>
               <div className={styles.radioGroup}>
                 <label className={styles.radioLabel}>
-                  <input type="radio" checked={!copy.isStatic} onChange={() => onUpdate({ isStatic: false })} />
+                  <input type="radio" checked={!batch.isStatic} onChange={() => onUpdate({ isStatic: false })} />
                   Непостоянная
                 </label>
                 <label className={styles.radioLabel}>
-                  <input type="radio" checked={copy.isStatic} onChange={() => onUpdate({ isStatic: true })} />
+                  <input type="radio" checked={batch.isStatic} onChange={() => onUpdate({ isStatic: true })} />
                   Постоянная
                 </label>
               </div>
@@ -616,11 +612,11 @@ const CopySection: React.FC<CopySectionProps> = ({
             <FormField label="Совмещение" required>
               <div className={styles.radioGroup}>
                 <label className={styles.radioLabel}>
-                  <input type="radio" checked={!copy.canOverlap} onChange={() => onUpdate({ canOverlap: false })} />
+                  <input type="radio" checked={!batch.canOverlap} onChange={() => onUpdate({ canOverlap: false })} />
                   Обязательная
                 </label>
                 <label className={styles.radioLabel}>
-                  <input type="radio" checked={copy.canOverlap} onChange={() => onUpdate({ canOverlap: true })} />
+                  <input type="radio" checked={batch.canOverlap} onChange={() => onUpdate({ canOverlap: true })} />
                   По выбору
                 </label>
               </div>
@@ -632,7 +628,7 @@ const CopySection: React.FC<CopySectionProps> = ({
             <FormField label="Повторение" required>
               <select
                 className="field-input"
-                value={copy.repeat}
+                value={batch.repeat}
                 onChange={(e) => onUpdate({ repeat: e.target.value as RepeatType })}
               >
                 {REPEAT_OPTIONS.map((o) => (
@@ -649,7 +645,7 @@ const CopySection: React.FC<CopySectionProps> = ({
                   type="number"
                   min={1}
                   max={6}
-                  value={copy.weeklyCount ?? ''}
+                  value={batch.weeklyCount ?? ''}
                   placeholder="1"
                   onChange={(e) => {
                     const raw = e.target.value;
@@ -657,12 +653,12 @@ const CopySection: React.FC<CopySectionProps> = ({
                       onUpdate({ weeklyCount: null });
                     } else {
                       const n = Math.min(6, parseInt(raw) || 1);
-                      onUpdate({ weeklyCount: n, occurrences: copy.occurrences.slice(0, n) });
+                      onUpdate({ weeklyCount: n, occurrences: batch.occurrences.slice(0, n) });
                     }
                   }}
                   onBlur={() => {
-                    if (copy.weeklyCount == null || copy.weeklyCount < 1) {
-                      onUpdate({ weeklyCount: 1, occurrences: copy.occurrences.slice(0, 1) });
+                    if (batch.weeklyCount == null || batch.weeklyCount < 1) {
+                      onUpdate({ weeklyCount: 1, occurrences: batch.occurrences.slice(0, 1) });
                     }
                   }}
                   style={{ width: 72 }}
@@ -677,9 +673,9 @@ const CopySection: React.FC<CopySectionProps> = ({
             <FormField label="Дата начала" hint="Если не указана — берётся из проекта расписания">
               <input
                 className="field-input"
-                value={copy.dateRange?.from ?? ''}
+                value={batch.dateRange?.from ?? ''}
                 onChange={(e) =>
-                  onUpdate({ dateRange: { from: handleDateInput(e.target.value), to: copy.dateRange?.to ?? '' } })
+                  onUpdate({ dateRange: { from: handleDateInput(e.target.value), to: batch.dateRange?.to ?? '' } })
                 }
                 placeholder="01.09.2025"
                 maxLength={10}
@@ -688,9 +684,9 @@ const CopySection: React.FC<CopySectionProps> = ({
             <FormField label="Дата окончания" hint="Если не указана — берётся из проекта расписания">
               <input
                 className="field-input"
-                value={copy.dateRange?.to ?? ''}
+                value={batch.dateRange?.to ?? ''}
                 onChange={(e) =>
-                  onUpdate({ dateRange: { from: copy.dateRange?.from ?? '', to: handleDateInput(e.target.value) } })
+                  onUpdate({ dateRange: { from: batch.dateRange?.from ?? '', to: handleDateInput(e.target.value) } })
                 }
                 placeholder="31.12.2025"
                 maxLength={10}
@@ -704,7 +700,7 @@ const CopySection: React.FC<CopySectionProps> = ({
             hint={effectiveWeeklyCount > 1 ? `Можно добавить до ${effectiveWeeklyCount} промежутков` : undefined}
           >
             <div className={styles.occurrences}>
-              {copy.occurrences.map((occ, i) => (
+              {batch.occurrences.map((occ, i) => (
                 <div key={i} className={styles.occurrenceRow}>
                   <select
                     className={styles.daySelect}
@@ -749,7 +745,7 @@ const CopySection: React.FC<CopySectionProps> = ({
                 <label key={t.id} className={styles.checkLabel}>
                   <input
                     type="checkbox"
-                    checked={copy.teachers.some((f) => f.id === t.id)}
+                    checked={batch.teachers.some((f) => f.id === t.id)}
                     onChange={() => onToggleTeacher({ id: t.id, name: t.name })}
                   />
                   {t.name}
@@ -760,7 +756,7 @@ const CopySection: React.FC<CopySectionProps> = ({
 
           <FormField label="Аудитории" hint="Можно добавить несколько">
             <div className={styles.audienceList}>
-              {copy.audiences.map((a, i) => (
+              {batch.audiences.map((a, i) => (
                 <div key={i} className={styles.audienceRow}>
                   <select
                     className={styles.roomSelect}
@@ -789,7 +785,7 @@ const CopySection: React.FC<CopySectionProps> = ({
           <FormField label="Комментарий">
             <textarea
               className="field-input"
-              value={copy.comment}
+              value={batch.comment}
               onChange={(e) => onUpdate({ comment: e.target.value })}
               rows={2}
               placeholder="Дополнительная информация..."
