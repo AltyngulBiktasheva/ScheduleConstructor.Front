@@ -63,7 +63,7 @@ function buildLessonBatchInfo(
   dateInterval: { dateFrom: string; dateTo: string },
 ): LessonBatchInfoDto {
   return {
-    id: discipline.lessonId ?? null,
+    id: discipline.lessonId || undefined,
     studentGroupIds: discipline.forIds,
     teacherIds: discipline.teachers.map((t) => t.id),
     roomIds: discipline.roomId ? [discipline.roomId] : [],
@@ -134,8 +134,7 @@ async function saveAsPayload(
     id: parentId,
     scheduleId,
     name: viewDto.name ?? root?.name,
-    cypher: viewDto.cypher ?? undefined,
-    semesterNumber: viewDto.semester,
+    semesterNumber: viewDto.semesterNumber ?? root?.semesterNumber ?? 1,
     academicDisciplineTargetType: viewDto.academicDisciplineTargetType,
     allowedLessonTypes: root?.allowedLessonTypes,
     lecturePayload:  lessonType === 'Lecture'  ? updatedPayload : payloadOrDefault(viewDto.lecturePayload),

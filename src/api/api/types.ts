@@ -82,7 +82,7 @@ export interface AcademicDisciplinePayloadDto {
 export interface AcademicDisciplineViewDto {
   id?: string | null;
   name?: string | null;
-  semester: number;
+  semesterNumber: number;
   academicDisciplineTargetType: AcademicDisciplineTargetType;
   lecturePayload?: AcademicDisciplinePayloadDto;
   practicePayload?: AcademicDisciplinePayloadDto;
