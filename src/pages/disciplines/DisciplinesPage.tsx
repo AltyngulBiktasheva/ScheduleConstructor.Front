@@ -55,13 +55,16 @@ export const DisciplinesPage: React.FC = () => {
           <div className={styles.content}>
             {activeTab === 'list' && (
               <>
-                {error && rootDisciplines.length === 0 && disciplines.length === 0 && (
+                {loading && rootDisciplines.length === 0 && disciplines.length === 0 && (
+                  <div className={styles.loading}>Загрузка дисциплин...</div>
+                )}
+                {!loading && error && rootDisciplines.length === 0 && disciplines.length === 0 && (
                   <div className={styles.loadError}>
                     <p>Не удалось загрузить данные</p>
                     <button onClick={refetch}>Повторить</button>
                   </div>
                 )}
-                {(!error || rootDisciplines.length > 0 || disciplines.length > 0) && (
+                {!loading && (!error || rootDisciplines.length > 0 || disciplines.length > 0) && (
                   <DisciplinesList
                     rootDisciplines={rootDisciplines}
                     disciplines={disciplines}

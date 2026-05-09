@@ -360,6 +360,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
       const result = await fetchSlotHighlights({
         academicDisciplineId: discipline.academicDisciplineId,
         academicDisciplineType: discipline.lessonType as AcademicDisciplineType,
+        lessonBatchInfoId: discipline.lessonId,
       });
       setHighlights(result);
       setHighlightedId(disciplineId);

@@ -431,7 +431,7 @@ const TransposedGroupCell: React.FC<GroupCellProps> = ({
             key={i}
             className={`${styles.highlight} ${styles[`highlight_${hl.color}`]}`}
             style={{ top, height }}
-            title={hl.message}
+            title={hl.messages.map((m) => `${m.timeStart}–${m.timeEnd}: ${m.message}`).join('\n')}
           />
         );
       })}

@@ -23,6 +23,14 @@
   text-align: center;
 }
 
+.loading {
+  margin: $space-6;
+  padding: $space-8 $space-6;
+  text-align: center;
+  color: $color-gray-500;
+  font-size: $font-size-base;
+}
+
 .loadError {
   margin: $space-6;
   padding: $space-8 $space-6;

@@ -10,6 +10,10 @@ export interface Group {
   subgroups: Subgroup[];
   studentCount: number;
   disciplineIds: string[];
+
+  // Транспортные поля — вычисляются в форме, используются при сохранении
+  _childIds?: string[];
+  _semiGroupToCreateNames?: string[];
 }
 
 export interface Stream {

@@ -9,8 +9,15 @@
  */
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { academicDisciplineApi } from '../../api';
-import type { AcademicDisciplineSaveDto, AcademicDisciplineRegistryItemDto, AcademicDisciplineType } from '../../api';
+import type {
+  AcademicDisciplineSaveDto,
+  AcademicDisciplineRegistryItemDto,
+  AcademicDisciplineType,
+  LessonBatchInfoDto,
+  DisciplineLessonRepeatType,
+} from '../../api';
 import type { Discipline } from '../../types/discipline';
+import type { RepeatType } from '../../types/discipline';
 import { LESSON_TYPE_LABELS } from '../../pages/disciplines/tabs/RootDisciplineForm';
 import { extractError } from '../../utils/extractError';
 
@@ -41,6 +48,45 @@ const PAYLOAD_KEY_MAP: Partial<Record<AcademicDisciplineType, 'lecturePayload' |
   Test:     'testPayload',
 };
 
+/** YYYY-MM-DD → DD.MM.YYYY */
+function apiToDisplayDate(api: string): string {
+  const [y, m, d] = api.split('-');
+  return `${d}.${m}.${y}`;
+}
+
+const DOW_TO_DAY: Record<number, string> = {
+  1: 'mon', 2: 'tue', 3: 'wed', 4: 'thu', 5: 'fri', 6: 'sat', 0: 'sun',
+};
+
+function mapRepeatTypeReverse(rt: DisciplineLessonRepeatType): RepeatType {
+  switch (rt) {
+    case 'EvenWeeks': return 'even-weeks';
+    case 'OddWeeks':  return 'odd-weeks';
+    case 'Once':      return 'once';
+    default:          return 'every-week';
+  }
+}
+
+function mapBatchToFields(batch: LessonBatchInfoDto) {
+  return {
+    forIds: batch.studentGroupIds ?? [],
+    canOverlap: batch.allowCombining ?? false,
+    repeat: mapRepeatTypeReverse(batch.repeatType) as RepeatType,
+    occurrences: (batch.dayOfWeekTimeIntervals ?? []).map((dwt) => ({
+      dayId: DOW_TO_DAY[dwt.dayOfWeek] ?? 'mon',
+      timeStart: dwt.timeInterval.timeFrom.slice(0, 5),
+      timeEnd: dwt.timeInterval.timeTo.slice(0, 5),
+    })),
+    weeklyCount: (batch.dayOfWeekTimeIntervals ?? []).length || 1,
+    dateRange: batch.dateInterval?.dateFrom
+      ? { from: apiToDisplayDate(batch.dateInterval.dateFrom), to: apiToDisplayDate(batch.dateInterval.dateTo) }
+      : undefined,
+    teachers: (batch.teacherIds ?? []).map((id) => ({ id, name: '' })),
+    audiences: (batch.roomIds ?? []).map((id) => ({ roomId: id })),
+    roomId: batch.roomIds?.[0] ?? undefined,
+  };
+}
+
 function mapDto(dto: AcademicDisciplineRegistryItemDto): { root: Discipline; children: Discipline[] } {
   const root: Discipline = {
     id: dto.id,
@@ -68,10 +114,18 @@ function mapDto(dto: AcademicDisciplineRegistryItemDto): { root: Discipline; chi
 
     if (payload?.lessonBatchInfos?.length) {
       // Есть сохранённый payload — показываем из него
-      const batch = payload.lessonBatchInfos[0];
-      children.push({
-        id: batch.id ?? `${dto.id}_${type}`,
+      const [firstBatch, ...restBatches] = payload.lessonBatchInfos;
+      const firstFields = mapBatchToFields(firstBatch);
+
+      const extraCopies: Partial<Discipline>[] = restBatches.map((batch) => ({
         lessonId: batch.id ?? undefined,
+        ...mapBatchToFields(batch),
+        totalHoursCount: batch.hoursCost,
+      }));
+
+      children.push({
+        id: firstBatch.id ?? `${dto.id}_${type}`,
+        lessonId: firstBatch.id ?? undefined,
         name: childName,
         isRoot: false,
         parentId: dto.id,
@@ -79,14 +133,10 @@ function mapDto(dto: AcademicDisciplineRegistryItemDto): { root: Discipline; chi
         lessonType: type,
         totalHoursCount: payload.totalHoursCount,
         forType: 'group',
-        forIds: batch.studentGroupIds ?? [],
-        teachers: [],
-        audiences: [],
-        isStatic: false,
-        canOverlap: batch.allowCombining ?? false,
-        repeat: 'every-week',
-        weeklyCount: 1,
+        isStatic: false,   // TODO: Тип дисциплины (isStatic) — ожидаем реализацию на бэке
         comment: dto.comment ?? undefined,
+        ...firstFields,
+        extraCopies: extraCopies.length > 0 ? extraCopies : undefined,
       });
     } else {
       // Payload пуст или отсутствует — показываем placeholder

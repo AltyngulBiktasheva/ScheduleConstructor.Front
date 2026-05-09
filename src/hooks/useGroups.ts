@@ -103,6 +103,8 @@ export function useGroups() {
             studentsCount: updated.studentCount,
             studentGroupType: 'Group',
             parentIds: updated.streamIds ?? [],
+            childIds: updated._childIds,
+            semiGroupToCreateNames: updated._semiGroupToCreateNames,
           },
         }),
       );
@@ -111,6 +113,8 @@ export function useGroups() {
         addToast((result.payload as string) || 'Не удалось сохранить группу', 'error');
         return false;
       }
+      // Перезагружаем список, чтобы подтянуть актуальные ID подгрупп с сервера
+      dispatch(fetchGroupsAll());
       return true;
     },
     [dispatch, groups, getOrCreateScheduleId, streams, addToast],

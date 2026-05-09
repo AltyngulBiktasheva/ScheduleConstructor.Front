@@ -122,7 +122,6 @@ export const DisciplinesList: React.FC<Props> = ({
                   <tr>
                     <th>Название</th>
                     <th>Вид занятия</th>
-                    <th>Часов</th>
                     <th>Группа</th>
                   </tr>
                 </thead>
@@ -141,9 +140,6 @@ export const DisciplinesList: React.FC<Props> = ({
                         {d.lessonType && (
                           <Badge variant="purple">{LESSON_TYPE_LABELS[d.lessonType] ?? d.lessonType}</Badge>
                         )}
-                      </td>
-                      <td className={styles.secondary}>
-                        {d.totalHoursCount != null ? `${d.totalHoursCount} ч.` : '—'}
                       </td>
                       <td className={styles.secondary}>
                         {d.forIds.length > 0 ? d.forIds.join(', ') : '—'}

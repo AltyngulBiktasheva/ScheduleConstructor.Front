@@ -45,6 +45,36 @@ export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel,
 
   const handleSave = () => {
     if (!validate()) return;
+
+    // ── Вычисляем childIds и semiGroupToCreateNames ──
+    const originalSubgroups = initial?.subgroups ?? [];
+    const originalIds = new Set(originalSubgroups.map((s) => s.id));
+
+    // Подгруппы с серверным ID, которые остались в списке
+    const keptServerSubgroups = subgroups.filter((s) => originalIds.has(s.id));
+
+    // Среди оставшихся серверных — найти переименованные
+    const renamedIds = new Set<string>();
+    for (const kept of keptServerSubgroups) {
+      const orig = originalSubgroups.find((o) => o.id === kept.id);
+      if (orig && orig.name !== kept.name) {
+        renamedIds.add(kept.id);
+      }
+    }
+
+    // childIds = серверные ID, которые остались И не были переименованы
+    const childIds = keptServerSubgroups
+      .filter((s) => !renamedIds.has(s.id))
+      .map((s) => s.id);
+
+    // semiGroupToCreateNames = новые подгруппы + переименованные (новое имя)
+    const newSubgroups = subgroups.filter((s) => !originalIds.has(s.id));
+    const renamedSubgroups = keptServerSubgroups.filter((s) => renamedIds.has(s.id));
+    const semiGroupToCreateNames = [
+      ...newSubgroups.map((s) => s.name),
+      ...renamedSubgroups.map((s) => s.name),
+    ];
+
     onSave({
       id: initial?.id ?? crypto.randomUUID(),
       name: name.trim(),
@@ -52,6 +82,8 @@ export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel,
       subgroups,
       studentCount: studentCount ?? 0,
       disciplineIds: initial?.disciplineIds ?? [],
+      _childIds: childIds,
+      _semiGroupToCreateNames: semiGroupToCreateNames.length > 0 ? semiGroupToCreateNames : undefined,
     });
   };
 

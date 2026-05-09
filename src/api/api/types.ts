@@ -221,9 +221,14 @@ export interface LessonWeekItemDto {
   currentErrorsMaxLevel?: LessonValidationErrorType | null;
 }
 
+export interface WeekConflictMessageDto {
+  timeInterval: TimeInterval;
+  message: string;
+}
+
 export interface AcademicDisciplineWeekConflictDto {
   dayOfWeekTimeInterval: DayOfWeekTimeInterval;
-  messages: string[];
+  messages: WeekConflictMessageDto[];
   errorType: LessonValidationErrorType;
 }
 

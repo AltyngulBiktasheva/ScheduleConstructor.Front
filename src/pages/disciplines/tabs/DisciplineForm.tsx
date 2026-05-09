@@ -95,9 +95,14 @@ interface Props {
 export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loading }) => {
   const [parentId, setParentId] = useState(initial?.parentId ?? '');
   const [lessonType, setLessonType] = useState<AcademicDisciplineType | undefined>(initial?.lessonType);
-  const [copies, setCopies] = useState<CopyForm[]>([
-    initial ? copyFromDiscipline(initial) : emptyCopy(),
-  ]);
+  const [copies, setCopies] = useState<CopyForm[]>(() => {
+    if (!initial) return [emptyCopy()];
+    const first = copyFromDiscipline(initial);
+    const extra = (initial.extraCopies ?? []).map((ec) =>
+      copyFromDiscipline({ ...initial, ...ec } as Discipline),
+    );
+    return [first, ...extra];
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
@@ -267,7 +272,8 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
     const generatedName = selectedRoot ? `${selectedRoot.name} (${typeLabel})` : typeLabel;
     const first = copies[0];
 
-    const extraCopies: Partial<Discipline>[] = copies.slice(1).map((c) => ({
+    const extraCopies: Partial<Discipline>[] = copies.slice(1).map((c, idx) => ({
+      lessonId: initial?.extraCopies?.[idx]?.lessonId,
       forIds: c.groupIds,
       teachers: c.teachers,
       audiences: c.audiences,
@@ -285,6 +291,7 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
     onSave({
       ...first,
       id: initial?.id ?? crypto.randomUUID(),
+      lessonId: initial?.lessonId,
       name: generatedName,
       parentId,
       lessonType,
@@ -592,6 +599,7 @@ const CopySection: React.FC<CopySectionProps> = ({
 
           {/* Тип + совмещение */}
           <div className={styles.row2}>
+            {/* TODO: Тип дисциплины (isStatic) — ожидаем реализацию на бэке, пока всегда "Непостоянная" */}
             <FormField label="Тип дисциплины" required>
               <div className={styles.radioGroup}>
                 <label className={styles.radioLabel}>
@@ -633,6 +641,7 @@ const CopySection: React.FC<CopySectionProps> = ({
               </select>
             </FormField>
 
+            {/* TODO: Кол-во раз в неделю — ожидаем реализацию на бэке, пока вычисляем из occurrences.length */}
             <FormField label="Кол-во раз в неделю" hint="от 1 до 6">
               <div className={styles.weeklyCountRow}>
                 <input

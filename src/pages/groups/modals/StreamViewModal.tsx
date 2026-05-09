@@ -51,12 +51,7 @@ export const StreamViewModal: React.FC<Props> = ({
         }
       >
         <p className={styles.confirmText}>
-          Действительно хотите удалить поток <strong>«{stream.name}»</strong>?{' '}
-          {streamGroups.length > 0 && (
-            <span className={styles.warning}>
-              Вместе с ним будут удалены {streamGroups.length} групп(ы).
-            </span>
-          )}
+          Действительно хотите удалить поток <strong>«{stream.name}»</strong>?
         </p>
       </Modal>
     );
