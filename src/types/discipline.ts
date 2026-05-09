@@ -72,6 +72,9 @@ export interface Discipline {
   // ── Уровень ошибок валидации ───────────────────────────────────────────
   errorLevel?: 'Warning' | 'Error' | null;
 
+  // ── Дополнительные копии занятия (для lessonBatchInfos[1..N]) ─────────────
+  extraCopies?: Partial<Discipline>[];
+
   // Устаревшие поля (совместимость с DisciplineCard / EditModal)
   building?: BuildingType;
   buildingName?: string;

@@ -92,11 +92,12 @@ export const ClassroomViewModal: React.FC<Props> = ({
             {CLASSROOM_TYPE_LABELS[classroom.type]}
           </Badge>
         </Row>
-        <Row label="Вместимость">до {classroom.capacity} чел.</Row>
+        <Row label="Вместимость">
+          {classroom.capacity ? `до ${classroom.capacity} чел.` : '— Не указано'}
+        </Row>
         <Row label="Тип доски">
           {classroom.boardType === 'chalk' ? '🖊️ Только меловая'
             : classroom.boardType === 'marker' ? '✏️ Только маркерная'
-            : classroom.boardType === 'both' ? '🖊️✏️ Оба вида доски'
             : '— Не указано'}
         </Row>
         <Row label="Проектор">

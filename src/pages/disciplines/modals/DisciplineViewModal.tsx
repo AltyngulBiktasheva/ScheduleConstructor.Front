@@ -99,9 +99,11 @@ export const DisciplineViewModal: React.FC<Props> = ({
       width={560}
       actions={
         <>
-          <Button variant="danger" size="sm" onClick={() => setMode('confirm-delete')}>
-            Удалить
-          </Button>
+          {discipline.isRoot && (
+            <Button variant="danger" size="sm" onClick={() => setMode('confirm-delete')}>
+              Удалить
+            </Button>
+          )}
           <Button variant="primary" size="sm" onClick={() => setMode('edit')}>
             Редактировать
           </Button>

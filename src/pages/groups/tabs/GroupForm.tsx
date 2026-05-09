@@ -16,7 +16,7 @@ export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel,
   const [name, setName] = useState(initial?.name ?? '');
   const [streamIds, setStreamIds] = useState<string[]>(initial?.streamIds ?? []);
   const [subgroups, setSubgroups] = useState<Subgroup[]>(initial?.subgroups ?? []);
-  const [studentCount, setStudentCount] = useState(initial?.studentCount ?? 25);
+  const [studentCount, setStudentCount] = useState<number | null>(initial?.studentCount ?? null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
@@ -50,7 +50,7 @@ export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel,
       name: name.trim(),
       streamIds,
       subgroups,
-      studentCount,
+      studentCount: studentCount ?? 0,
       disciplineIds: initial?.disciplineIds ?? [],
     });
   };
@@ -59,7 +59,7 @@ export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel,
     setName('');
     setStreamIds([]);
     setSubgroups([]);
-    setStudentCount(25);
+    setStudentCount(null);
     setErrors({});
     setShowResetConfirm(false);
   };
@@ -103,8 +103,9 @@ export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel,
             type="number"
             min={0}
             max={999}
-            value={studentCount}
-            onChange={(e) => setStudentCount(parseInt(e.target.value) || 0)}
+            value={studentCount ?? ''}
+            onChange={(e) => setStudentCount(e.target.value === '' ? null : parseInt(e.target.value))}
+            placeholder="0"
             style={{ width: 120 }}
           />
           <span className={styles.unit}>чел.</span>

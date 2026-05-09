@@ -55,15 +55,11 @@ function lessonToDiscipline(lesson: LessonWeekItemDto, weekDates: string[]): Dis
     name: lesson.name || 'Занятие',
     academicDisciplineId: lesson.academicDisciplineId ?? undefined,
     lessonType: lesson.academicDisciplineType ?? undefined,
-    roomId: lesson.roomId ?? undefined,
+    roomId: lesson.rooms[0]?.id ?? undefined,
     forType: 'group',
     forIds: lesson.studentGroups.map((g) => g.id),
-    teachers: lesson.teacherId
-      ? [{ id: lesson.teacherId, name: lesson.teacherName || '' }]
-      : [],
-    audiences: lesson.roomId
-      ? [{ roomId: lesson.roomId, roomName: lesson.roomName ?? undefined }]
-      : [],
+    teachers: lesson.teachers.map((t) => ({ id: t.id, name: t.fullname || '' })),
+    audiences: lesson.rooms.map((r) => ({ roomId: r.id, roomName: r.name ?? undefined })),
     isStatic: lesson.flexibilityType === 'Fixed',
     canOverlap: lesson.allowCombining,
     repeat: 'every-week',
@@ -73,8 +69,8 @@ function lessonToDiscipline(lesson: LessonWeekItemDto, weekDates: string[]): Dis
     timeStart: lesson.dateWithTimeInterval.timeInterval.timeFrom.slice(0, 5),
     timeEnd: lesson.dateWithTimeInterval.timeInterval.timeTo.slice(0, 5),
     errorLevel: lesson.currentErrorsMaxLevel ?? null,
-    teacher: lesson.teacherName ?? undefined,
-    audience: lesson.roomName ?? undefined,
+    teacher: lesson.teachers.map((t) => t.fullname).filter(Boolean).join(', ') || undefined,
+    audience: lesson.rooms.map((r) => r.name).filter(Boolean).join(', ') || undefined,
   };
 }
 
@@ -87,8 +83,8 @@ function filterLessonsByEntity(
     : [selection.entityId];
 
   return lessons.filter((lesson) => {
-    if (selection.type === 'classrooms') return ids.includes(lesson.roomId ?? '');
-    if (selection.type === 'teachers') return ids.includes(lesson.teacherId ?? '');
+    if (selection.type === 'classrooms') return lesson.rooms.some((r) => ids.includes(r.id));
+    if (selection.type === 'teachers') return lesson.teachers.some((t) => ids.includes(t.id));
     if (selection.type === 'groups') return lesson.studentGroups.some((g) => ids.includes(g.id));
     return false;
   });
@@ -226,8 +222,8 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
           academicDisciplineId: existingLesson.academicDisciplineId,
           academicDisciplineType: existingLesson.academicDisciplineType,
           studentGroupIds: existingLesson.studentGroups.map((g) => g.id),
-          teacherId: existingLesson.teacherId,
-          roomId: existingLesson.roomId,
+          teacherIds: existingLesson.teachers.map((t) => t.id),
+          roomIds: existingLesson.rooms.map((r) => r.id),
           dateWithTimeInterval: {
             date,
             timeInterval: { timeFrom: padTime(timeStart), timeTo: padTime(timeEnd) },
@@ -255,10 +251,10 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
           academicDisciplineId: listDiscipline.academicDisciplineId ?? listDiscipline.parentId,
           academicDisciplineType: listDiscipline.lessonType,
           studentGroupIds: groupIds,
-          teacherId: listDiscipline.teachers[0]?.id ?? undefined,
-          roomId: selection.type === 'classrooms'
-            ? (selection.entityId as string)
-            : undefined,
+          teacherIds: listDiscipline.teachers.map((t) => t.id),
+          roomIds: selection.type === 'classrooms'
+            ? [selection.entityId as string]
+            : [],
           dateWithTimeInterval: {
             date,
             timeInterval: { timeFrom: padTime(timeStart), timeTo: padTime(timeEnd) },
@@ -320,8 +316,8 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
         academicDisciplineId: lesson.academicDisciplineId,
         academicDisciplineType: lesson.academicDisciplineType,
         studentGroupIds: lesson.studentGroups.map((g) => g.id),
-        teacherId: updated.teachers?.[0]?.id ?? lesson.teacherId,
-        roomId: updated.roomId ?? lesson.roomId,
+        teacherIds: updated.teachers?.map((t) => t.id) ?? lesson.teachers.map((t) => t.id),
+        roomIds: updated.roomId ? [updated.roomId] : lesson.rooms.map((r) => r.id),
         dateWithTimeInterval: {
           date,
           timeInterval: {

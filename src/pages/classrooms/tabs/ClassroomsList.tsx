@@ -11,6 +11,11 @@ const BUILDING_LABELS: Record<string, string> = {
   other: 'Другой',
 };
 
+const BOARD_LABELS: Record<string, string> = {
+  chalk:  '🖊️ Меловая',
+  marker: '✏️ Маркерная',
+};
+
 const TYPE_BADGE: Record<string, 'blue' | 'green' | 'purple' | 'yellow'> = {
   standard:    'gray' as any,
   computer:    'blue',
@@ -77,6 +82,8 @@ export const ClassroomsList: React.FC<Props> = ({
                 <th>Корпус</th>
                 <th>Тип</th>
                 <th>Вместимость</th>
+                <th>Доска</th>
+                <th>Проектор</th>
               </tr>
             </thead>
             <tbody>
@@ -94,7 +101,15 @@ export const ClassroomsList: React.FC<Props> = ({
                       {CLASSROOM_TYPE_LABELS[c.type]}
                     </Badge>
                   </td>
-                  <td className={styles.secondary}>до {c.capacity} чел.</td>
+                  <td className={styles.secondary}>
+                    {c.capacity ? `до ${c.capacity} чел.` : '—'}
+                  </td>
+                  <td className={styles.secondary}>
+                    {c.boardType ? BOARD_LABELS[c.boardType] : '—'}
+                  </td>
+                  <td className={styles.secondary}>
+                    {c.hasProjector === true ? '📽️ Есть' : c.hasProjector === false ? '🚫 Нет' : '—'}
+                  </td>
                 </tr>
               ))}
             </tbody>

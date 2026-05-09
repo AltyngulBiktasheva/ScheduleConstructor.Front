@@ -63,7 +63,7 @@ function buildLessonBatchInfo(
   dateInterval: { dateFrom: string; dateTo: string },
 ): LessonBatchInfoDto {
   return {
-    id: discipline.lessonId ?? null,
+    id: discipline.lessonId || undefined,
     studentGroupIds: discipline.forIds,
     teacherIds: discipline.teachers.map((t) => t.id),
     roomIds: discipline.roomId ? [discipline.roomId] : [],
@@ -113,19 +113,30 @@ async function saveAsPayload(
   });
   const root = rootDisciplines.find((r) => r.id === parentId);
 
+  // Собираем все батчи: основная дисциплина + extraCopies
+  const allBatchInfos: LessonBatchInfoDto[] = [
+    buildLessonBatchInfo(discipline, dateInterval),
+    ...(discipline.extraCopies ?? []).map((copy) => {
+      const copyDateInterval = resolveDateInterval(
+        copy.dateRange,
+        { dateFrom: dateInterval.dateFrom, dateTo: dateInterval.dateTo },
+      );
+      return buildLessonBatchInfo({ ...discipline, ...copy } as Discipline, copyDateInterval);
+    }),
+  ];
+
   const updatedPayload: AcademicDisciplinePayloadDto = {
     totalHoursCount: discipline.totalHoursCount ?? 0,
-    lessonBatchInfos: [buildLessonBatchInfo(discipline, dateInterval)],
+    lessonBatchInfos: allBatchInfos,
   };
 
   await academicDisciplineApi.saveAcademicDiscipline({
     id: parentId,
     scheduleId,
     name: viewDto.name ?? root?.name,
-    cypher: viewDto.cypher ?? undefined,
-    semesterNumber: viewDto.semester,
+    semesterNumber: viewDto.semesterNumber ?? root?.semesterNumber ?? 1,
     academicDisciplineTargetType: viewDto.academicDisciplineTargetType,
-    allowedLessonTypes: root?.allowedLessonTypes,
+    allowedLessonTypes: viewDto.allowedLessonTypes ?? root?.allowedLessonTypes,
     lecturePayload:  lessonType === 'Lecture'  ? updatedPayload : payloadOrDefault(viewDto.lecturePayload),
     practicePayload: lessonType === 'Practice' ? updatedPayload : payloadOrDefault(viewDto.practicePayload),
     labPayload:      lessonType === 'Lab'      ? updatedPayload : payloadOrDefault(viewDto.labPayload),

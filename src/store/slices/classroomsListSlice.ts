@@ -1,10 +1,14 @@
 /**
  * Хранит список аудиторий для страницы ClassroomsPage.
  *
- * Данные загружаются из GET /room/search-tree.
- * Маппинг RoomTreeDto → Classroom:
- *   campusName → building (для отображения)
- *   campusId   → campusId (для сохранения на бэкенд)
+ * Данные загружаются из POST /room/search.
+ * Маппинг RoomRegistryItemDto → Classroom:
+ *   campusName  → building   (для отображения)
+ *   campusId    → campusId   (для сохранения на бэкенд)
+ *   roomType    → type
+ *   capacity    → capacity
+ *   roomBoardType → boardType
+ *   hasProjector  → hasProjector
  *
  * При создании через форму: campusId берётся из выбранного кампуса.
  */
@@ -16,25 +20,28 @@ import { extractError } from '../../utils/extractError';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-// Расскомментировать при необходимости
-// const ROOM_TYPE_MAP: Record<RoomType, ClassroomType> = {
-//   Standard: 'standard',
-//   Multimedia: 'computer',
-//   Laboratory: 'laboratory',
-//   Amphitheater: 'amphitheater',
-// };
+const ROOM_TYPE_MAP: Record<RoomType, ClassroomType> = {
+  Standard:     'standard',
+  Multimedia:   'computer',
+  Laboratory:   'laboratory',
+  Amphitheater: 'amphitheater',
+};
+
+const BOARD_TYPE_MAP: Record<RoomBoardType, BoardType> = {
+  Chalk:  'chalk',
+  Marker: 'marker',
+};
 
 export const CLASSROOM_TYPE_REVERSE: Record<ClassroomType, RoomType> = {
-  standard: 'Standard',
-  computer: 'Multimedia',
-  laboratory: 'Laboratory',
+  standard:     'Standard',
+  computer:     'Multimedia',
+  laboratory:   'Laboratory',
   amphitheater: 'Amphitheater',
 };
 
 export const BOARD_TYPE_REVERSE: Record<BoardType, RoomBoardType> = {
-  chalk: 'Chalk',
+  chalk:  'Chalk',
   marker: 'Marker',
-  both: 'Both',
 };
 
 // ─── State ───────────────────────────────────────────────────────────────────
@@ -53,24 +60,24 @@ const initialState: ClassroomsListState = {
 
 // ─── Thunks ──────────────────────────────────────────────────────────────────
 
-/** Загружает дерево аудиторий и плоско разворачивает в список */
+/** Загружает все аудитории через /room/search */
 export const fetchClassroomsAll = createAsyncThunk(
   'classroomsList/fetchAll',
   async (_, { rejectWithValue }) => {
     try {
-      const { data } = await roomApi.getRoomTree();
-      return data.flatMap((campus) =>
-        campus.childRooms.map((room): Classroom => ({
-          id: room.id,
-          name: room.name,
-          building: campus.campusName,
-          campusId: campus.campusId,
-          type: 'standard',
-          capacity: 30,
-          boardType: null,
-          hasProjector: null,
-        })),
-      );
+      const { data } = await roomApi.searchRooms({
+        searchParameters: { page: 1, itemsPerPage: 100 },
+      });
+      return data.items.map((room): Classroom => ({
+        id: room.id,
+        name: room.name,
+        building: room.campusName,
+        campusId: room.campusId,
+        type: room.roomType ? (ROOM_TYPE_MAP[room.roomType] ?? 'standard') : 'standard',
+        capacity: room.capacity || null,
+        boardType: room.roomBoardType ? (BOARD_TYPE_MAP[room.roomBoardType] ?? null) : null,
+        hasProjector: room.hasProjector ?? null,
+      }));
     } catch (err: unknown) {
       return rejectWithValue(extractError(err));
     }
