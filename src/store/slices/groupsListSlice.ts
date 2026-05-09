@@ -41,31 +41,35 @@ export const fetchGroupsAll = createAsyncThunk(
         searchParameters: { page: 1, itemsPerPage: 100 },
       });
 
-      const streams: Stream[] = [];
-      const groups: Group[] = [];
+      const streamsMap = new Map<string, Stream>();
+      const groupsMap = new Map<string, Group>();
 
       for (const dto of data.items) {
         if (dto.studentGroupType === 'Thread') {
-          streams.push({
-            id: dto.id,
-            name: dto.name,
-            semesterNumber: dto.semesterNumber,
-            groupIds: dto.children?.map((c) => c.id) ?? [],
-            disciplineIds: [],
-          });
+          if (!streamsMap.has(dto.id)) {
+            streamsMap.set(dto.id, {
+              id: dto.id,
+              name: dto.name,
+              semesterNumber: dto.semesterNumber,
+              groupIds: dto.children?.map((c) => c.id) ?? [],
+              disciplineIds: [],
+            });
+          }
         } else if (dto.studentGroupType === 'Group') {
-          groups.push({
-            id: dto.id,
-            name: dto.name,
-            streamIds: dto.parents?.map((p) => p.id) ?? [],
-            subgroups: dto.children?.map((c) => ({ id: c.id, name: c.name ?? '' })) ?? [],
-            studentCount: dto.studentsCount,
-            disciplineIds: [],
-          });
+          if (!groupsMap.has(dto.id)) {
+            groupsMap.set(dto.id, {
+              id: dto.id,
+              name: dto.name,
+              streamIds: dto.parents?.map((p) => p.id) ?? [],
+              subgroups: dto.children?.map((c) => ({ id: c.id, name: c.name ?? '' })) ?? [],
+              studentCount: dto.studentsCount,
+              disciplineIds: [],
+            });
+          }
         }
       }
 
-      return { groups, streams };
+      return { groups: Array.from(groupsMap.values()), streams: Array.from(streamsMap.values()) };
     } catch (err: unknown) {
       return rejectWithValue(extractError(err));
     }
@@ -83,8 +87,8 @@ export const fetchGroupsTree = createAsyncThunk(
     try {
       const { data: treeItems } = await studentGroupApi.searchStudentGroupTree({ scheduleId });
 
-      const streams: Stream[] = [];
-      const groups: Group[] = [];
+      const streamsMap = new Map<string, Stream>();
+      const groupsMap = new Map<string, Group>();
 
       // Для каждого корневого элемента вызываем /view только чтобы узнать тип (Thread или Group).
       // Данные групп и подгрупп читаем прямо из вложенного дерева — без дополнительных запросов.
@@ -95,21 +99,39 @@ export const fetchGroupsTree = createAsyncThunk(
           });
 
           if (rootDto.studentGroupType === 'Thread') {
-            streams.push({
-              id: treeItem.id,
-              name: treeItem.name,
-              semesterNumber: rootDto.semesterNumber,
-              groupIds: treeItem.children.map((c) => c.id),
-              disciplineIds: [],
-            });
+            if (!streamsMap.has(treeItem.id)) {
+              streamsMap.set(treeItem.id, {
+                id: treeItem.id,
+                name: treeItem.name,
+                semesterNumber: rootDto.semesterNumber,
+                groupIds: treeItem.children.map((c) => c.id),
+                disciplineIds: [],
+              });
+            }
 
             // Группы и подгруппы берём из дерева — ID уже строки, лишних запросов нет
             for (const groupNode of treeItem.children) {
-              groups.push({
-                id: groupNode.id,
-                name: groupNode.name,
-                streamIds: [treeItem.id],
-                subgroups: groupNode.children.map((sg) => ({
+              if (!groupsMap.has(groupNode.id)) {
+                groupsMap.set(groupNode.id, {
+                  id: groupNode.id,
+                  name: groupNode.name,
+                  streamIds: [treeItem.id],
+                  subgroups: groupNode.children.map((sg) => ({
+                    id: sg.id,
+                    name: sg.name,
+                  })),
+                  studentCount: 0,
+                  disciplineIds: [],
+                });
+              }
+            }
+          } else if (rootDto.studentGroupType === 'Group') {
+            if (!groupsMap.has(treeItem.id)) {
+              groupsMap.set(treeItem.id, {
+                id: treeItem.id,
+                name: treeItem.name,
+                streamIds: [],
+                subgroups: treeItem.children.map((sg) => ({
                   id: sg.id,
                   name: sg.name,
                 })),
@@ -117,23 +139,11 @@ export const fetchGroupsTree = createAsyncThunk(
                 disciplineIds: [],
               });
             }
-          } else if (rootDto.studentGroupType === 'Group') {
-            groups.push({
-              id: treeItem.id,
-              name: treeItem.name,
-              streamIds: [],
-              subgroups: treeItem.children.map((sg) => ({
-                id: sg.id,
-                name: sg.name,
-              })),
-              studentCount: 0,
-              disciplineIds: [],
-            });
           }
         }),
       );
 
-      return { groups, streams };
+      return { groups: Array.from(groupsMap.values()), streams: Array.from(streamsMap.values()) };
     } catch (err: unknown) {
       return rejectWithValue(extractError(err));
     }
