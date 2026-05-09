@@ -54,32 +54,16 @@ function getWeekDates(weekOffset: number): string[] {
   });
 }
 
-function lessonToDiscipline(
-  lesson: LessonWeekItemDto,
-  weekDates: string[],
-  allDisciplines?: Discipline[],
-): Discipline {
+function lessonToDiscipline(lesson: LessonWeekItemDto, weekDates: string[]): Discipline {
   const dateIdx = weekDates.indexOf(lesson.dateWithTimeInterval.date);
   const dayId = dateIdx >= 0 ? DAY_IDS[dateIdx] : 'mon';
-
-  // academicDisciplineId может быть null в ответе бэка.
-  // Fallback: ищем по lessonId (= batch ID) в listDisciplines.
-  let acadId = lesson.academicDisciplineId ?? undefined;
-  let acadType = lesson.academicDisciplineType ?? undefined;
-  if (!acadId && allDisciplines) {
-    const match = allDisciplines.find((d) => d.lessonId === lesson.id);
-    if (match) {
-      acadId = match.academicDisciplineId;
-      acadType = acadType ?? match.lessonType;
-    }
-  }
 
   return {
     id: lesson.id,
     name: lesson.name || 'Занятие',
     lessonId: lesson.id,
-    academicDisciplineId: acadId,
-    lessonType: acadType,
+    academicDisciplineId: lesson.academicDisciplineId ?? undefined,
+    lessonType: lesson.academicDisciplineType ?? undefined,
     roomId: lesson.rooms[0]?.id ?? undefined,
     forType: 'group',
     forIds: lesson.studentGroups.map((g) => g.id),
@@ -186,7 +170,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
   // ── Фильтрация занятий по сущности ───────────────────────────────────────
   const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
   const entityLessons = filterLessonsByEntity(weekLessons, selection);
-  const gridDisciplines = entityLessons.map((l) => lessonToDiscipline(l, weekDates, listDisciplines));
+  const gridDisciplines = entityLessons.map((l) => lessonToDiscipline(l, weekDates));
 
   // Дисциплины для списка — только не-корневые (листовые)
   const listItems = listDisciplines.filter((d) => !d.isRoot);
@@ -508,6 +492,8 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
 
     const discipline = gridDisciplines.find((d) => d.id === disciplineId)
       ?? enrichedListItems.find((d) => d.id === disciplineId);
+
+    console.log(discipline);
     if (!discipline?.academicDisciplineId || !discipline.lessonType) return;
 
     setLoadingHighlightId(disciplineId);
