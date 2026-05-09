@@ -1,5 +1,5 @@
 import apiClient from './client';
-import type { SaveScheduleDto, ScheduleDto } from './types';
+import type { ScheduleSaveDto, ScheduleDto } from './types';
 
 export const scheduleApi = {
   /** Получить список проектов расписаний */
@@ -7,6 +7,6 @@ export const scheduleApi = {
     apiClient.get<ScheduleDto[]>('/Schedule/SearchSchedules'),
 
   /** Создать новый проект расписания */
-  saveSchedule: (data: SaveScheduleDto) =>
+  saveSchedule: (data: ScheduleSaveDto) =>
     apiClient.post<string>('/Schedule/SaveSchedule', data),
 };

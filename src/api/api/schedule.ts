@@ -1,5 +1,5 @@
 import apiClient from './client';
-import type { RegistryDto, SaveScheduleDto, ScheduleDto, ScheduleRegistryItemDto, SearchParametersDto } from './types';
+import type { RegistryDto, ScheduleSaveDto, ScheduleDto, ScheduleRegistryItemDto, SearchParametersDto } from './types';
 
 export const scheduleApi = {
   /** Получить список проектов расписаний (краткий) */
@@ -11,7 +11,7 @@ export const scheduleApi = {
     apiClient.post<RegistryDto<ScheduleRegistryItemDto>>('/schedule/search', body),
 
   /** Создать / обновить проект расписания */
-  saveSchedule: (data: SaveScheduleDto) =>
+  saveSchedule: (data: ScheduleSaveDto) =>
     apiClient.post<void>('/schedule/save', data),
 
   /** Удалить проект расписания */

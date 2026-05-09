@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { roomApi } from '../../api';
-import type { RoomTreeDto, RoomViewDto, SaveRoomDto } from '../../api';
+import type { RoomTreeDto, RoomViewDto, RoomSaveDto } from '../../api';
 import { useAppDispatch, useAppSelector } from '../hooks';
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -51,7 +51,7 @@ export const fetchRoomTree = createAsyncThunk(
 
 export const saveRoom = createAsyncThunk(
   'room/save',
-  async (dto: SaveRoomDto, { rejectWithValue }) => {
+  async (dto: RoomSaveDto, { rejectWithValue }) => {
     try {
       await roomApi.saveRoom(dto);
     } catch (err: unknown) {
@@ -127,7 +127,7 @@ export const useRoom = () => {
     ...state,
     fetch: (params: { roomId: string }) => dispatch(fetchRoom(params)),
     fetchTree: () => dispatch(fetchRoomTree()),
-    save: (dto: SaveRoomDto) => dispatch(saveRoom(dto)),
+    save: (dto: RoomSaveDto) => dispatch(saveRoom(dto)),
     clear: () => dispatch(clearRoom()),
   };
 };

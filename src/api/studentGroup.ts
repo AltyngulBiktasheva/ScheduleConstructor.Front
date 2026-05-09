@@ -1,5 +1,5 @@
 import apiClient from './client';
-import type { SaveStudentGroupDto, StudentGroupViewDto } from './types';
+import type { StudentGroupSaveDto, StudentGroupViewDto } from './types';
 
 export const studentGroupApi = {
   /** Получить данные академической группы */
@@ -7,6 +7,6 @@ export const studentGroupApi = {
     apiClient.get<StudentGroupViewDto>('/StudentGroup/GetStudentGroup', { params }),
 
   /** Создать студенческую группу */
-  saveStudentGroup: (data: SaveStudentGroupDto) =>
+  saveStudentGroup: (data: StudentGroupSaveDto) =>
     apiClient.post<string>('/StudentGroup/SaveStudentGroup', data),
 };

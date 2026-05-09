@@ -1,5 +1,5 @@
 import apiClient from './client';
-import type { SaveTeacherPreferenceDto, TeacherPreferencesViewDto } from './types';
+import type { TeacherPreferenceSaveDto, TeacherPreferencesViewDto } from './types';
 
 export const teacherPreferenceApi = {
   /** Получить пожелания преподавателя */
@@ -9,6 +9,6 @@ export const teacherPreferenceApi = {
     }),
 
   /** Сохранить пожелания преподавателя */
-  saveTeacherPreference: (data: SaveTeacherPreferenceDto) =>
+  saveTeacherPreference: (data: TeacherPreferenceSaveDto) =>
     apiClient.post<void>('/TeacherPreference/SaveTeacherPreference', data),
 };

@@ -5,7 +5,7 @@ import { Tabs } from '../../components/Tabs/Tabs';
 import { SchedulesList } from './tabs/SchedulesList';
 import { ScheduleForm } from './tabs/ScheduleForm';
 import { useSchedule } from '../../store/slices/scheduleSlice';
-import type { SaveScheduleDto, ScheduleRegistryItemDto } from '../../api';
+import type { ScheduleSaveDto, ScheduleRegistryItemDto } from '../../api';
 import styles from './Styles.module.scss';
 
 const TABS = [
@@ -37,14 +37,14 @@ export const SchedulesPage: React.FC = () => {
     prevListRef.current = list;
   }, [list]);
 
-  const handleCreate = async (dto: SaveScheduleDto) => {
+  const handleCreate = async (dto: ScheduleSaveDto) => {
     setSaving(true);
     const ok = await save(dto);
     setSaving(false);
     if (ok) setActiveTab('list');
   };
 
-  const handleUpdate = async (dto: SaveScheduleDto) => {
+  const handleUpdate = async (dto: ScheduleSaveDto) => {
     await save(dto);
   };
 

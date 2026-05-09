@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { studentGroupApi } from '../../api';
-import type { SaveStudentGroupDto, StudentGroupViewDto } from '../../api';
+import type { StudentGroupSaveDto, StudentGroupViewDto } from '../../api';
 import { useAppDispatch, useAppSelector } from '../hooks';
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -35,7 +35,7 @@ export const fetchStudentGroup = createAsyncThunk(
 
 export const saveStudentGroup = createAsyncThunk(
   'studentGroup/save',
-  async (dto: SaveStudentGroupDto, { rejectWithValue }) => {
+  async (dto: StudentGroupSaveDto, { rejectWithValue }) => {
     try {
       await studentGroupApi.saveStudentGroup(dto);
     } catch (err: unknown) {
@@ -98,7 +98,7 @@ export const useStudentGroup = () => {
     ...state,
     fetch: (params: { studentGroupId: string }) =>
       dispatch(fetchStudentGroup(params)),
-    save: (dto: SaveStudentGroupDto) => dispatch(saveStudentGroup(dto)),
+    save: (dto: StudentGroupSaveDto) => dispatch(saveStudentGroup(dto)),
     clear: () => dispatch(clearStudentGroup()),
   };
 };

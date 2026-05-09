@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { academicDisciplineApi } from '../../api';
-import type { AcademicDisciplineViewDto, SaveAcademicDisciplineDto } from '../../api';
+import type { AcademicDisciplineViewDto, AcademicDisciplineSaveDto } from '../../api';
 import { useAppDispatch, useAppSelector } from '../hooks';
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -35,7 +35,7 @@ export const fetchAcademicDiscipline = createAsyncThunk(
 
 export const saveAcademicDiscipline = createAsyncThunk(
   'academicDiscipline/save',
-  async (dto: SaveAcademicDisciplineDto, { rejectWithValue }) => {
+  async (dto: AcademicDisciplineSaveDto, { rejectWithValue }) => {
     try {
       await academicDisciplineApi.saveAcademicDiscipline(dto);
     } catch (err: unknown) {
@@ -98,7 +98,7 @@ export const useAcademicDiscipline = () => {
     ...state,
     fetch: (params: { academicDisciplineId: string }) =>
       dispatch(fetchAcademicDiscipline(params)),
-    save: (dto: SaveAcademicDisciplineDto) =>
+    save: (dto: AcademicDisciplineSaveDto) =>
       dispatch(saveAcademicDiscipline(dto)),
     clear: () => dispatch(clearAcademicDiscipline()),
   };

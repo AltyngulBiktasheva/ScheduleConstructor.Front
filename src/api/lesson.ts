@@ -1,5 +1,5 @@
 import apiClient from './client';
-import type { DateInterval, LessonViewDto, LessonWeekConflictDto, SaveLessonRequestDto } from './types';
+import type { DateInterval, LessonViewDto, LessonWeekConflictDto, LessonSaveDto } from './types';
 
 export const lessonApi = {
   /** Получить данные занятия */
@@ -7,7 +7,7 @@ export const lessonApi = {
     apiClient.get<LessonViewDto>('/Lesson/GetLesson', { params }),
 
   /** Добавить / обновить занятие */
-  saveLesson: (data: SaveLessonRequestDto) =>
+  saveLesson: (data: LessonSaveDto) =>
     apiClient.post<string>('/Lesson/SaveLesson', data),
 
   /** Получить временные конфликты занятия по дням недели */

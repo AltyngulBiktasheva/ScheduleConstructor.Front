@@ -10,7 +10,7 @@
  */
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { studentGroupApi } from '../../api';
-import type { SaveStudentGroupDto } from '../../api';
+import type { StudentGroupSaveDto } from '../../api';
 import type { Group, Stream } from '../../types/group';
 import { extractError } from '../../utils/extractError';
 
@@ -148,7 +148,7 @@ export const fetchGroupsTree = createAsyncThunk(
 export const saveStudentGroupOnServer = createAsyncThunk(
   'groupsList/saveGroup',
   async (
-    { entity, dto, isNew }: { entity: Group | Stream; dto: SaveStudentGroupDto; isNew: boolean },
+    { entity, dto, isNew }: { entity: Group | Stream; dto: StudentGroupSaveDto; isNew: boolean },
     { dispatch, rejectWithValue },
   ) => {
     try {

@@ -1,7 +1,7 @@
 import apiClient from './client';
 import type {
   RegistryDto,
-  SaveStudentGroupDto,
+  StudentGroupSaveDto,
   SearchParametersDto,
   StudentGroupRegistryItemDto,
   StudentGroupTreeItemDto,
@@ -22,7 +22,7 @@ export const studentGroupApi = {
     apiClient.get<StudentGroupViewDto>('/student-group/view', { params }),
 
   /** Создать / обновить академическую группу */
-  saveStudentGroup: (data: SaveStudentGroupDto) =>
+  saveStudentGroup: (data: StudentGroupSaveDto) =>
     apiClient.post<void>('/student-group/save', data),
 
   /** Удалить академическую группу / поток */

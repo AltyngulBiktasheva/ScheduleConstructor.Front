@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { FormField } from '../../../components/FormField/FormField';
 import { Button } from '../../../components/Button/Button';
-import type { SaveScheduleDto, ScheduleRegistryItemDto } from '../../../api';
+import type { ScheduleSaveDto, ScheduleRegistryItemDto } from '../../../api';
 import styles from './ScheduleForm.module.scss';
 
 interface Props {
   initial?: ScheduleRegistryItemDto;
-  onSave: (dto: SaveScheduleDto) => void;
+  onSave: (dto: ScheduleSaveDto) => void;
   onCancel?: () => void;
   loading?: boolean;
 }

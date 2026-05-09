@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { scheduleApi } from '../../api';
-import type { SaveScheduleDto, ScheduleRegistryItemDto } from '../../api';
+import type { ScheduleSaveDto, ScheduleRegistryItemDto } from '../../api';
 import { useAppDispatch, useAppSelector } from '../hooks';
 import { extractError } from '../../utils/extractError';
 import { useToast } from '../../components/Toast/ToastContext';
@@ -41,7 +41,7 @@ export const fetchSchedules = createAsyncThunk(
 
 export const saveSchedule = createAsyncThunk(
   'schedule/save',
-  async (dto: SaveScheduleDto, { dispatch, rejectWithValue }) => {
+  async (dto: ScheduleSaveDto, { dispatch, rejectWithValue }) => {
     try {
       await scheduleApi.saveSchedule(dto);
       dispatch(fetchSchedules());
@@ -137,7 +137,7 @@ export const useSchedule = () => {
   return {
     ...state,
     fetchAll: () => dispatch(fetchSchedules()),
-    save: async (dto: SaveScheduleDto): Promise<boolean> => {
+    save: async (dto: ScheduleSaveDto): Promise<boolean> => {
       const result = await dispatch(saveSchedule(dto));
       if (saveSchedule.rejected.match(result)) {
         addToast((result.payload as string) || 'Не удалось сохранить расписание', 'error');
