@@ -136,7 +136,7 @@ async function saveAsPayload(
     name: viewDto.name ?? root?.name,
     semesterNumber: viewDto.semesterNumber ?? root?.semesterNumber ?? 1,
     academicDisciplineTargetType: viewDto.academicDisciplineTargetType,
-    allowedLessonTypes: root?.allowedLessonTypes,
+    allowedLessonTypes: viewDto.allowedLessonTypes ?? root?.allowedLessonTypes,
     lecturePayload:  lessonType === 'Lecture'  ? updatedPayload : payloadOrDefault(viewDto.lecturePayload),
     practicePayload: lessonType === 'Practice' ? updatedPayload : payloadOrDefault(viewDto.practicePayload),
     labPayload:      lessonType === 'Lab'      ? updatedPayload : payloadOrDefault(viewDto.labPayload),

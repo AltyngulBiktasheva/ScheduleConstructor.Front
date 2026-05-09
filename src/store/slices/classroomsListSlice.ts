@@ -73,7 +73,7 @@ export const fetchClassroomsAll = createAsyncThunk(
         name: room.name,
         building: room.campusName,
         campusId: room.campusId,
-        type: ROOM_TYPE_MAP[room.roomType] ?? 'standard',
+        type: room.roomType ? (ROOM_TYPE_MAP[room.roomType] ?? 'standard') : 'standard',
         capacity: room.capacity || null,
         boardType: room.roomBoardType ? (BOARD_TYPE_MAP[room.roomBoardType] ?? null) : null,
         hasProjector: room.hasProjector ?? null,
