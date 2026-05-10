@@ -111,11 +111,11 @@ export interface AcademicDisciplineSaveDto {
   semesterNumber: number;
   academicDisciplineTargetType: AcademicDisciplineTargetType;
   allowedLessonTypes?: AcademicDisciplineType[] | null;
-  lectureLessonBatchInfos?: LessonBatchInfoDto[] | null;
-  practiceLessonBatchInfos?: LessonBatchInfoDto[] | null;
-  labLessonBatchInfos?: LessonBatchInfoDto[] | null;
-  examLessonBatchInfos?: LessonBatchInfoDto[] | null;
-  testLessonBatchInfos?: LessonBatchInfoDto[] | null;
+  lectureLessonBatchInfos?: LessonBatchInfoDto[];
+  practiceLessonBatchInfos?: LessonBatchInfoDto[];
+  labLessonBatchInfos?: LessonBatchInfoDto[];
+  examLessonBatchInfos?: LessonBatchInfoDto[];
+  testLessonBatchInfos?: LessonBatchInfoDto[];
   comment?: string | null;
 }
 

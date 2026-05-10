@@ -46,6 +46,12 @@ export const GroupsList: React.FC<Props> = ({
   const getStreamGroups = (stream: Stream) =>
     groups.filter((g) => stream.groupIds.includes(g.id));
 
+  const handleUpdateStream = (updated: Stream) => {
+    const children = updated.groupIds.map((c) => ({id: c, name: ''}));
+    onUpdateStream({...updated, _children: children});
+    setSelectedStream(updated);
+  }
+
   return (
     <>
       <div className={styles.toolbar}>
@@ -153,7 +159,7 @@ export const GroupsList: React.FC<Props> = ({
           groups={groups}
           streams={streams}
           onClose={() => setSelectedStream(null)}
-          onUpdate={(updated) => { onUpdateStream(updated); setSelectedStream(updated); }}
+          onUpdate={handleUpdateStream}
           onDelete={(id) => { onDeleteStream(id); setSelectedStream(null); }}
         />
       )}

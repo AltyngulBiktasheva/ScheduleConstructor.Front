@@ -71,6 +71,7 @@ export const StreamForm: React.FC<Props> = ({
       semesterNumber,
       groupIds: childIds,
       disciplineIds: initial?.disciplineIds ?? [],
+      _children: childIds.map((c) => ({id: c, name: ''})),
     });
   };
 

@@ -21,4 +21,5 @@ export interface Stream {
   semesterNumber?: number;
   groupIds: string[];
   disciplineIds: string[];
+  _children?: Subgroup[];
 }
