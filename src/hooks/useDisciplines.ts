@@ -20,7 +20,6 @@ import {
 import { academicDisciplineApi } from '../api';
 import { fetchSchedules, saveSchedule } from '../store/slices/scheduleSlice';
 import type {
-  AcademicDisciplinePayloadDto,
   DayOfWeek,
   DisciplineLessonRepeatType,
   LessonBatchInfoDto,
@@ -64,7 +63,7 @@ function buildLessonBatchInfo(
 ): LessonBatchInfoDto {
   return {
     id: discipline.lessonId || undefined,
-    studentGroupIds: discipline.forIds,
+    studentGroups: discipline.forIds.map((i) => ({ id: i, name: '' })),
     teacherIds: discipline.teachers.map((t) => t.id),
     roomIds: discipline.roomId ? [discipline.roomId] : [],
     dayOfWeekTimeIntervals: discipline.occurrences?.length
@@ -77,6 +76,7 @@ function buildLessonBatchInfo(
     dateInterval,
     allowCombining: discipline.canOverlap,
     hoursCost: discipline.totalHoursCount ?? 0,
+    totalHoursCost: discipline.totalHoursCount ?? 0,
   };
 }
 
@@ -94,8 +94,8 @@ function resolveDateInterval(
 }
 
 /** Если payload null — возвращает дефолтный объект с пустым массивом */
-function payloadOrDefault(payload: AcademicDisciplinePayloadDto | null | undefined): AcademicDisciplinePayloadDto {
-  return payload ?? { totalHoursCount: 0, lessonBatchInfos: [] };
+function payloadOrDefault(payload: LessonBatchInfoDto[] | null | undefined): LessonBatchInfoDto[] {
+  return payload ?? [];
 }
 
 /** Собирает и отправляет /academic-discipline/save для Lecture/Practice/Lab */
@@ -125,10 +125,7 @@ async function saveAsPayload(
     }),
   ];
 
-  const updatedPayload: AcademicDisciplinePayloadDto = {
-    totalHoursCount: discipline.totalHoursCount ?? 0,
-    lessonBatchInfos: allBatchInfos,
-  };
+  const updatedPayload: LessonBatchInfoDto[] = allBatchInfos;
 
   await academicDisciplineApi.saveAcademicDiscipline({
     id: parentId,
@@ -137,11 +134,11 @@ async function saveAsPayload(
     semesterNumber: viewDto.semesterNumber ?? root?.semesterNumber ?? 1,
     academicDisciplineTargetType: viewDto.academicDisciplineTargetType,
     allowedLessonTypes: viewDto.allowedLessonTypes ?? root?.allowedLessonTypes,
-    lecturePayload:  lessonType === 'Lecture'  ? updatedPayload : payloadOrDefault(viewDto.lecturePayload),
-    practicePayload: lessonType === 'Practice' ? updatedPayload : payloadOrDefault(viewDto.practicePayload),
-    labPayload:      lessonType === 'Lab'      ? updatedPayload : payloadOrDefault(viewDto.labPayload),
-    examPayload:     lessonType === 'Exam'     ? updatedPayload : payloadOrDefault(viewDto.examPayload),
-    testPayload:     lessonType === 'Test'     ? updatedPayload : payloadOrDefault(viewDto.testPayload),
+    lectureLessonBatchInfos:  lessonType === 'Lecture'  ? updatedPayload : payloadOrDefault(viewDto.lectureLessonBatchInfos),
+    practiceLessonBatchInfos: lessonType === 'Practice' ? updatedPayload : payloadOrDefault(viewDto.practiceLessonBatchInfos),
+    labLessonBatchInfos:      lessonType === 'Lab'      ? updatedPayload : payloadOrDefault(viewDto.labLessonBatchInfos),
+    examLessonBatchInfos:     lessonType === 'Exam'     ? updatedPayload : payloadOrDefault(viewDto.examLessonBatchInfos),
+    testLessonBatchInfos:     lessonType === 'Test'     ? updatedPayload : payloadOrDefault(viewDto.testLessonBatchInfos),
     comment: viewDto.comment ?? undefined,
   });
 }
@@ -269,11 +266,11 @@ export function useDisciplines() {
                 semesterNumber: updated.semesterNumber ?? 1,
                 academicDisciplineTargetType: 'General',
                 allowedLessonTypes: updated.allowedLessonTypes ?? [],
-                lecturePayload:  (updated.allowedLessonTypes ?? []).includes('Lecture')  ? { totalHoursCount: 0, lessonBatchInfos: [] } : null,
-                practicePayload: (updated.allowedLessonTypes ?? []).includes('Practice') ? { totalHoursCount: 0, lessonBatchInfos: [] } : null,
-                labPayload:      (updated.allowedLessonTypes ?? []).includes('Lab')      ? { totalHoursCount: 0, lessonBatchInfos: [] } : null,
-                examPayload:     (updated.allowedLessonTypes ?? []).includes('Exam')     ? { totalHoursCount: 0, lessonBatchInfos: [] } : null,
-                testPayload:     (updated.allowedLessonTypes ?? []).includes('Test')     ? { totalHoursCount: 0, lessonBatchInfos: [] } : null,
+                lectureLessonBatchInfos:  (updated.allowedLessonTypes ?? []).includes('Lecture')  ? [] : null,
+                practiceLessonBatchInfos: (updated.allowedLessonTypes ?? []).includes('Practice') ? [] : null,
+                labLessonBatchInfos:      (updated.allowedLessonTypes ?? []).includes('Lab')      ? [] : null,
+                examLessonBatchInfos:     (updated.allowedLessonTypes ?? []).includes('Exam')     ? [] : null,
+                testLessonBatchInfos:     (updated.allowedLessonTypes ?? []).includes('Test')     ? [] : null,
                 comment: updated.comment,
               },
             }),

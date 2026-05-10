@@ -3,7 +3,7 @@ import type {
   LessonRegistryItemDto,
   LessonViewDto,
   LessonWeekConflictDto,
-  LessonWeekItemDto,
+  LessonShortDto,
   RegistryDto,
   LessonSaveDto,
   SearchParametersDto,
@@ -16,7 +16,7 @@ export const lessonApi = {
 
   /** Получить занятия за неделю для сетки */
   searchWeekLessons: (params: { scheduleId: string; dateFrom: string; dateTo: string }) =>
-    apiClient.get<LessonWeekItemDto[]>('/lesson/search-week', { params }),
+    apiClient.get<LessonShortDto[]>('/lesson/search-week', { params }),
 
   /** Получить данные занятия */
   getLesson: (params: { lessonId: string }) =>

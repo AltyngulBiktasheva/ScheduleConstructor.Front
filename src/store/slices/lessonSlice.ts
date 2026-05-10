@@ -3,7 +3,7 @@ import { lessonApi } from '../../api';
 import type {
   LessonViewDto,
   LessonWeekConflictDto,
-  LessonWeekItemDto,
+  LessonShortDto,
   LessonSaveDto,
 } from '../../api';
 import { useAppDispatch, useAppSelector } from '../hooks';
@@ -13,7 +13,7 @@ import { extractError } from '../../utils/extractError';
 
 interface LessonState {
   current: LessonViewDto | null;
-  weekLessons: LessonWeekItemDto[];
+  weekLessons: LessonShortDto[];
   weekConflicts: LessonWeekConflictDto[];
   loading: boolean;
   weekLessonsLoading: boolean;

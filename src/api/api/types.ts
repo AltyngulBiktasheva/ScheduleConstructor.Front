@@ -64,19 +64,15 @@ export interface RegistryDto<T> {
 
 export interface LessonBatchInfoDto {
   id?: string | null;
-  studentGroupIds: string[];
+  studentGroups: StudentGroupShortDto[];
   teacherIds: string[];
   roomIds: string[];
   dayOfWeekTimeIntervals?: DayOfWeekTimeInterval[] | null;
   repeatType: DisciplineLessonRepeatType;
   dateInterval: DateInterval;
   allowCombining: boolean;
-  hoursCost: number;
-}
-
-export interface AcademicDisciplinePayloadDto {
-  totalHoursCount: number;
-  lessonBatchInfos: LessonBatchInfoDto[];
+  hoursCost?: number | null;
+  totalHoursCost?: number | null;
 }
 
 export interface AcademicDisciplineViewDto {
@@ -84,11 +80,11 @@ export interface AcademicDisciplineViewDto {
   name?: string | null;
   semesterNumber: number;
   academicDisciplineTargetType: AcademicDisciplineTargetType;
-  lecturePayload?: AcademicDisciplinePayloadDto;
-  practicePayload?: AcademicDisciplinePayloadDto;
-  labPayload?: AcademicDisciplinePayloadDto;
-  examPayload?: AcademicDisciplinePayloadDto;
-  testPayload?: AcademicDisciplinePayloadDto;
+  lectureLessonBatchInfos?: LessonBatchInfoDto[] | null;
+  practiceLessonBatchInfos?: LessonBatchInfoDto[] | null;
+  labLessonBatchInfos?: LessonBatchInfoDto[] | null;
+  examLessonBatchInfos?: LessonBatchInfoDto[] | null;
+  testLessonBatchInfos?: LessonBatchInfoDto[] | null;
   allowedLessonTypes?: AcademicDisciplineType[] | null;
   associatedNames?: string[] | null;
   comment?: string | null;
@@ -100,11 +96,11 @@ export interface AcademicDisciplineRegistryItemDto {
   semesterNumber: number;
   academicDisciplineTargetType: AcademicDisciplineTargetType;
   allowedLessonTypes: AcademicDisciplineType[];
-  lecturePayload?: AcademicDisciplinePayloadDto | null;
-  practicePayload?: AcademicDisciplinePayloadDto | null;
-  labPayload?: AcademicDisciplinePayloadDto | null;
-  examPayload?: AcademicDisciplinePayloadDto | null;
-  testPayload?: AcademicDisciplinePayloadDto | null;
+  lectureLessonBatchInfos?: LessonBatchInfoDto[] | null;
+  practiceLessonBatchInfos?: LessonBatchInfoDto[] | null;
+  labLessonBatchInfos?: LessonBatchInfoDto[] | null;
+  examLessonBatchInfos?: LessonBatchInfoDto[] | null;
+  testLessonBatchInfos?: LessonBatchInfoDto[] | null;
   comment?: string | null;
 }
 
@@ -115,11 +111,11 @@ export interface AcademicDisciplineSaveDto {
   semesterNumber: number;
   academicDisciplineTargetType: AcademicDisciplineTargetType;
   allowedLessonTypes?: AcademicDisciplineType[] | null;
-  lecturePayload?: AcademicDisciplinePayloadDto | null;
-  practicePayload?: AcademicDisciplinePayloadDto | null;
-  labPayload?: AcademicDisciplinePayloadDto | null;
-  examPayload?: AcademicDisciplinePayloadDto | null;
-  testPayload?: AcademicDisciplinePayloadDto | null;
+  lectureLessonBatchInfos?: LessonBatchInfoDto[] | null;
+  practiceLessonBatchInfos?: LessonBatchInfoDto[] | null;
+  labLessonBatchInfos?: LessonBatchInfoDto[] | null;
+  examLessonBatchInfos?: LessonBatchInfoDto[] | null;
+  testLessonBatchInfos?: LessonBatchInfoDto[] | null;
   comment?: string | null;
 }
 
@@ -207,17 +203,18 @@ export interface LessonWeekRoomDto {
   name?: string | null;
 }
 
-export interface LessonWeekItemDto {
+export interface LessonShortDto {
   id: string;
   academicDisciplineId?: string | null;
   academicDisciplineType?: AcademicDisciplineType | null;
   name?: string | null;
-  studentGroups: StudentGroupShortViewDto[];
+  studentGroups: StudentGroupShortDto[];
   teachers: LessonWeekTeacherDto[];
   rooms: LessonWeekRoomDto[];
   dateWithTimeInterval: DateWithTimeInterval;
   flexibilityType: LessonFlexibilityType;
   allowCombining: boolean;
+  lessonPolicyViolationDescription?: string | null;
   currentErrorsMaxLevel?: LessonValidationErrorType | null;
 }
 
@@ -310,7 +307,7 @@ export interface ScheduleSaveDto {
 
 // ─── StudentGroup ─────────────────────────────────────────────────────────────
 
-export interface StudentGroupShortViewDto {
+export interface StudentGroupShortDto {
   id: string;
   name?: string | null;
 }
@@ -320,7 +317,7 @@ export interface StudentGroupViewDto {
   name?: string | null;
   semesterNumber: number;
   studentGroupType: StudentGroupType;
-  children?: StudentGroupShortViewDto[] | null;
+  children?: StudentGroupShortDto[] | null;
 }
 
 export interface StudentGroupRegistryItemDto {
@@ -329,14 +326,19 @@ export interface StudentGroupRegistryItemDto {
   semesterNumber: number;
   studentsCount: number;
   studentGroupType: StudentGroupType;
-  parents: StudentGroupShortViewDto[];
-  children: StudentGroupShortViewDto[];
+  parents: StudentGroupShortDto[];
+  children: StudentGroupShortDto[];
 }
 
 export interface StudentGroupTreeItemDto {
   id: string;
   name: string;
   children: StudentGroupTreeItemDto[];
+}
+
+export interface StudentSemiGroupSaveDto {
+  id?: string | null;
+  name: string;
 }
 
 export interface StudentGroupSaveDto {
@@ -347,8 +349,7 @@ export interface StudentGroupSaveDto {
   studentsCount?: number;
   studentGroupType: StudentGroupType;
   parentIds?: string[];
-  childIds?: string[] | null;
-  semiGroupToCreateNames?: string[];
+  children?: StudentSemiGroupSaveDto[];
 }
 
 // ─── Teacher ─────────────────────────────────────────────────────────────────
@@ -373,30 +374,37 @@ export interface TeacherSaveDto {
 
 // ─── TeacherPreference ────────────────────────────────────────────────────────
 
-export interface TeacherTimeAvailabilityDto {
+export interface TeacherTimePreferenceViewDto {
   teacherPreferenceType: TeacherPreferenceType;
   dayOfWeekTimeInterval: DayOfWeekTimeInterval;
 }
 
-export interface TeacherRoomPreferenceDto {
+export interface TeacherRoomPreferenceViewDto {
   roomId: string;
+  roomName: string;
   teacherPreferenceType: TeacherPreferenceType;
 }
 
 export interface TeacherPreferencesViewDto {
-  teacherTimeAvailabilities?: TeacherTimeAvailabilityDto[] | null;
-  teacherRoomPreferences?: TeacherRoomPreferenceDto[] | null;
-  roomBoardTypePreference?: RoomBoardType | null;
-  hasProjectorPreference?: boolean | null;
+  teacherTimePreferences?: TeacherTimePreferenceViewDto[] | null;
+  teacherRoomPreferences?: TeacherRoomPreferenceViewDto[] | null;
   comment?: string | null;
+}
+
+export interface TeacherTimePreferenceSaveDto {
+  teacherPreferenceType: TeacherPreferenceType;
+  dayOfWeekTimeInterval: DayOfWeekTimeInterval;
+}
+
+export interface TeacherRoomPreferenceSaveDto {
+  roomId: string;
+  teacherPreferenceType: TeacherPreferenceType;
 }
 
 export interface TeacherPreferenceSaveDto {
   scheduleId: string;
   teacherId: string;
-  teacherTimeAvailabilities?: TeacherTimeAvailabilityDto[] | null;
-  teacherRoomPreferences?: TeacherRoomPreferenceDto[] | null;
-  roomBoardTypePreference?: RoomBoardType | null;
-  hasProjectorPreference?: boolean | null;
+  teacherTimePreferences?: TeacherTimePreferenceSaveDto[] | null;
+  teacherRoomPreferences?: TeacherRoomPreferenceSaveDto[] | null;
   comment?: string | null;
 }

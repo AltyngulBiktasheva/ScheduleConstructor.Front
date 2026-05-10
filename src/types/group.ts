@@ -12,8 +12,7 @@ export interface Group {
   disciplineIds: string[];
 
   // Транспортные поля — вычисляются в форме, используются при сохранении
-  _childIds?: string[];
-  _semiGroupToCreateNames?: string[];
+  _children?: Subgroup[]
 }
 
 export interface Stream {

@@ -29,7 +29,7 @@ function mapPreferencesToWishes(dto: TeacherPreferencesViewDto): TeacherWishes {
   const wishes = emptyWishes();
   wishes.comment = dto.comment ?? '';
 
-  for (const ta of dto.teacherTimeAvailabilities ?? []) {
+  for (const ta of dto.teacherTimePreferences ?? []) {
     const dayId = DOW_TO_DAY_ID[ta.dayOfWeekTimeInterval.dayOfWeek] ?? 'mon';
     const timeStart = ta.dayOfWeekTimeInterval.timeInterval.timeFrom.slice(0, 5);
     const timeEnd = ta.dayOfWeekTimeInterval.timeInterval.timeTo.slice(0, 5);

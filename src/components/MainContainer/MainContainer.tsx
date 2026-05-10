@@ -14,7 +14,7 @@ import { fetchGroupsAll } from '../../store/slices/groupsListSlice';
 import { fetchTeachersAll } from '../../store/slices/teachersListSlice';
 import { fetchClassroomsAll } from '../../store/slices/classroomsListSlice';
 import { fetchCampuses } from '../../store/slices/campusSlice';
-import type { LessonWeekItemDto, AcademicDisciplineType } from '../../api';
+import type { LessonShortDto, AcademicDisciplineType } from '../../api';
 import { useToast } from '../Toast/ToastContext';
 import styles from './Styles.module.scss';
 
@@ -54,7 +54,7 @@ function getWeekDates(weekOffset: number): string[] {
   });
 }
 
-function lessonToDiscipline(lesson: LessonWeekItemDto, weekDates: string[]): Discipline {
+function lessonToDiscipline(lesson: LessonShortDto, weekDates: string[]): Discipline {
   const dateIdx = weekDates.indexOf(lesson.dateWithTimeInterval.date);
   const dayId = dateIdx >= 0 ? DAY_IDS[dateIdx] : 'mon';
 
@@ -84,9 +84,9 @@ function lessonToDiscipline(lesson: LessonWeekItemDto, weekDates: string[]): Dis
 }
 
 function filterLessonsByEntity(
-  lessons: LessonWeekItemDto[],
+  lessons: LessonShortDto[],
   selection: SliceSelection,
-): LessonWeekItemDto[] {
+): LessonShortDto[] {
   const ids = Array.isArray(selection.entityId)
     ? selection.entityId
     : [selection.entityId];

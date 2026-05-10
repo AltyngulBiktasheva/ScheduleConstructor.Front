@@ -70,7 +70,7 @@ export function useGroups() {
             studentsCount: group.studentCount,
             studentGroupType: 'Group',
             parentIds: group.streamIds ?? [],
-            semiGroupToCreateNames: group.subgroups.map((sg) => sg.name),
+            children: group._children.map((c) => ({ id: c.id, name: c.name })),
           },
         }),
       );
@@ -104,7 +104,7 @@ export function useGroups() {
             studentGroupType: 'Group',
             parentIds: updated.streamIds ?? [],
             childIds: updated._childIds,
-            semiGroupToCreateNames: updated._semiGroupToCreateNames,
+            children: updated._children,
           },
         }),
       );

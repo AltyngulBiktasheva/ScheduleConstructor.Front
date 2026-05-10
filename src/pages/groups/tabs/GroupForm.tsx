@@ -70,9 +70,12 @@ export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel,
     // semiGroupToCreateNames = новые подгруппы + переименованные (новое имя)
     const newSubgroups = subgroups.filter((s) => !originalIds.has(s.id));
     const renamedSubgroups = keptServerSubgroups.filter((s) => renamedIds.has(s.id));
-    const semiGroupToCreateNames = [
-      ...newSubgroups.map((s) => s.name),
-      ...renamedSubgroups.map((s) => s.name),
+    const nonRenamedSubGroups = keptServerSubgroups.filter((s) => !renamedIds.has(s.id))
+    console.log(nonRenamedSubGroups);
+    const children = [
+      ...newSubgroups.map((s) => ({ name: s.name })),
+      ...renamedSubgroups.map((s) => ({ id: s.id, name: s.name })),
+      ...nonRenamedSubGroups.map((s) => ({ id: s.id, name: s.name })),
     ];
 
     onSave({
@@ -82,8 +85,7 @@ export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel,
       subgroups,
       studentCount: studentCount ?? 0,
       disciplineIds: initial?.disciplineIds ?? [],
-      _childIds: childIds,
-      _semiGroupToCreateNames: semiGroupToCreateNames.length > 0 ? semiGroupToCreateNames : undefined,
+      _children: children.length > 0 ? children : undefined,
     });
   };
 
