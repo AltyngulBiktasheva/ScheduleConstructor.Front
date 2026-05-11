@@ -80,6 +80,7 @@ function lessonToDiscipline(lesson: LessonShortDto, weekDates: string[]): Discip
     errorLevel: lesson.currentErrorsMaxLevel ?? null,
     teacher: lesson.teachers.map((t) => t.fullname).filter(Boolean).join(', ') || undefined,
     audience: lesson.rooms.map((r) => r.name).filter(Boolean).join(', ') || undefined,
+    batchId: lesson.lessonBatchInfoId,
   };
 }
 
@@ -504,7 +505,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
       const result = await fetchSlotHighlights({
         academicDisciplineId: discipline.academicDisciplineId,
         academicDisciplineType: discipline.lessonType as AcademicDisciplineType,
-        lessonBatchInfoId: discipline.lessonId,
+        lessonBatchInfoId: discipline.batchId,
       });
       setHighlights(result);
       setHighlightedId(disciplineId);

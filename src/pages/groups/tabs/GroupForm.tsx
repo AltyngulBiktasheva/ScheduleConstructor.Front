@@ -71,7 +71,6 @@ export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel,
     const newSubgroups = subgroups.filter((s) => !originalIds.has(s.id));
     const renamedSubgroups = keptServerSubgroups.filter((s) => renamedIds.has(s.id));
     const nonRenamedSubGroups = keptServerSubgroups.filter((s) => !renamedIds.has(s.id))
-    console.log(nonRenamedSubGroups);
     const children = [
       ...newSubgroups.map((s) => ({ name: s.name })),
       ...renamedSubgroups.map((s) => ({ id: s.id, name: s.name })),

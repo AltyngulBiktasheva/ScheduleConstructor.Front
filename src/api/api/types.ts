@@ -215,6 +215,7 @@ export interface LessonShortDto {
   flexibilityType: LessonFlexibilityType;
   allowCombining: boolean;
   lessonPolicyViolationDescription?: string | null;
+  lessonBatchInfoId?: string | null;
   currentErrorsMaxLevel?: LessonValidationErrorType | null;
 }
 

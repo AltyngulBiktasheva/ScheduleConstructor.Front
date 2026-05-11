@@ -84,6 +84,8 @@ export interface Discipline {
   buildingName?: string;
   audience?: string;
   teacher?: string;
+
+  batchId?: string | null;
 }
 
 export interface DisciplinePosition {
