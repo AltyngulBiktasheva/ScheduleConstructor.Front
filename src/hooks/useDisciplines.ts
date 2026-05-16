@@ -66,6 +66,7 @@ function buildLessonBatchInfo(
     studentGroups: discipline.forIds.map((i) => ({ id: i, name: '' })),
     teacherIds: discipline.teachers.map((t) => t.id),
     roomIds: discipline.roomId ? [discipline.roomId] : [],
+    lessonsPerWeekCount: 2,
     dayOfWeekTimeIntervals: discipline.occurrences?.length
       ? discipline.occurrences.map((occ) => ({
           dayOfWeek: DAY_ID_TO_DOW[occ.dayId] ?? 1,
@@ -75,6 +76,7 @@ function buildLessonBatchInfo(
     repeatType: mapRepeatType(discipline.repeat),
     dateInterval,
     allowCombining: discipline.canOverlap,
+    flexibilityType: 'Flexible',
     hoursCost: discipline.totalHoursCount ?? 0,
     totalHoursCost: discipline.totalHoursCount ?? 0,
   };

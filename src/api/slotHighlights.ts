@@ -1,5 +1,4 @@
 import { academicDisciplineApi } from './api';
-import type { AcademicDisciplineType } from './api';
 
 export interface SlotHighlightMessage {
   timeStart: string;
@@ -26,9 +25,7 @@ const DOW_TO_DAY_ID: Record<number, string> = {
 };
 
 export async function fetchSlotHighlights(params: {
-  academicDisciplineId: string;
-  academicDisciplineType: AcademicDisciplineType;
-  lessonBatchInfoId?: string;
+  lessonId: string;
 }): Promise<SlotHighlight[]> {
   const { data } = await academicDisciplineApi.getWeekConflicts(params);
 

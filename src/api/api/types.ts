@@ -67,10 +67,12 @@ export interface LessonBatchInfoDto {
   studentGroups: StudentGroupShortDto[];
   teacherIds: string[];
   roomIds: string[];
+  lessonsPerWeekCount: number;
   dayOfWeekTimeIntervals?: DayOfWeekTimeInterval[] | null;
   repeatType: DisciplineLessonRepeatType;
   dateInterval: DateInterval;
   allowCombining: boolean;
+  flexibilityType: LessonFlexibilityType;
   hoursCost?: number | null;
   totalHoursCost?: number | null;
 }
@@ -181,9 +183,6 @@ export interface LessonRegistryItemDto {
 
 export interface LessonSaveDto {
   id?: string | null;
-  scheduleId: string;
-  academicDisciplineId?: string | null;
-  academicDisciplineType?: AcademicDisciplineType | null;
   studentGroupIds: string[];
   teacherIds: string[];
   roomIds: string[];
@@ -191,6 +190,7 @@ export interface LessonSaveDto {
   flexibilityType: LessonFlexibilityType;
   allowCombining: boolean;
   hoursCost: number;
+  updateBatch: boolean;
 }
 
 export interface LessonWeekTeacherDto {
@@ -206,6 +206,7 @@ export interface LessonWeekRoomDto {
 export interface LessonShortDto {
   id: string;
   academicDisciplineId?: string | null;
+  academicDisciplineName?: string | null;
   academicDisciplineType?: AcademicDisciplineType | null;
   name?: string | null;
   studentGroups: StudentGroupShortDto[];
@@ -215,7 +216,6 @@ export interface LessonShortDto {
   flexibilityType: LessonFlexibilityType;
   allowCombining: boolean;
   lessonPolicyViolationDescription?: string | null;
-  lessonBatchInfoId?: string | null;
   currentErrorsMaxLevel?: LessonValidationErrorType | null;
 }
 

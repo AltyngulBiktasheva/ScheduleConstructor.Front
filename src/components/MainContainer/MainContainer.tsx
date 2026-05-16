@@ -14,7 +14,7 @@ import { fetchGroupsAll } from '../../store/slices/groupsListSlice';
 import { fetchTeachersAll } from '../../store/slices/teachersListSlice';
 import { fetchClassroomsAll } from '../../store/slices/classroomsListSlice';
 import { fetchCampuses } from '../../store/slices/campusSlice';
-import type { LessonShortDto, AcademicDisciplineType } from '../../api';
+import type { LessonShortDto } from '../../api';
 import { useToast } from '../Toast/ToastContext';
 import styles from './Styles.module.scss';
 
@@ -80,7 +80,6 @@ function lessonToDiscipline(lesson: LessonShortDto, weekDates: string[]): Discip
     errorLevel: lesson.currentErrorsMaxLevel ?? null,
     teacher: lesson.teachers.map((t) => t.fullname).filter(Boolean).join(', ') || undefined,
     audience: lesson.rooms.map((r) => r.name).filter(Boolean).join(', ') || undefined,
-    batchId: lesson.lessonBatchInfoId,
   };
 }
 
@@ -360,9 +359,6 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
         if (existingLesson.flexibilityType === 'Fixed') return;
         const result = await dispatch(saveLesson({
           id: existingLesson.id,
-          scheduleId: selectedScheduleId,
-          academicDisciplineId: existingLesson.academicDisciplineId,
-          academicDisciplineType: existingLesson.academicDisciplineType,
           studentGroupIds: existingLesson.studentGroups.map((g) => g.id),
           teacherIds: existingLesson.teachers.map((t) => t.id),
           roomIds: existingLesson.rooms.map((r) => r.id),
@@ -373,6 +369,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
           flexibilityType: existingLesson.flexibilityType,
           allowCombining: existingLesson.allowCombining,
           hoursCost: 2,
+          updateBatch: true,
         }));
         if (saveLesson.rejected.match(result)) {
           addToast((result.payload as string) || 'Не удалось переместить занятие', 'error');
@@ -389,9 +386,6 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
           : listDiscipline.forIds;
 
         const result = await dispatch(saveLesson({
-          scheduleId: selectedScheduleId,
-          academicDisciplineId: listDiscipline.academicDisciplineId ?? listDiscipline.parentId,
-          academicDisciplineType: listDiscipline.lessonType,
           studentGroupIds: groupIds,
           teacherIds: listDiscipline.teachers.map((t) => t.id),
           roomIds: selection.type === 'classrooms'
@@ -404,6 +398,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
           flexibilityType: 'Flexible',
           allowCombining: false,
           hoursCost: listDiscipline.totalHoursCount ?? 2,
+          updateBatch: true,
         }));
         if (saveLesson.rejected.match(result)) {
           addToast((result.payload as string) || 'Не удалось добавить занятие', 'error');
@@ -454,9 +449,6 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
 
       const result = await dispatch(saveLesson({
         id: lesson.id,
-        scheduleId: selectedScheduleId,
-        academicDisciplineId: lesson.academicDisciplineId,
-        academicDisciplineType: lesson.academicDisciplineType,
         studentGroupIds: lesson.studentGroups.map((g) => g.id),
         teacherIds: updated.teachers?.map((t) => t.id) ?? lesson.teachers.map((t) => t.id),
         roomIds: updated.roomId ? [updated.roomId] : lesson.rooms.map((r) => r.id),
@@ -470,6 +462,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
         flexibilityType: lesson.flexibilityType,
         allowCombining: lesson.allowCombining,
         hoursCost: 2,
+        updateBatch: true,
       }));
 
       if (saveLesson.rejected.match(result)) {
@@ -503,9 +496,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
 
     try {
       const result = await fetchSlotHighlights({
-        academicDisciplineId: discipline.academicDisciplineId,
-        academicDisciplineType: discipline.lessonType as AcademicDisciplineType,
-        lessonBatchInfoId: discipline.batchId,
+        lessonId: discipline.lessonId!,
       });
       setHighlights(result);
       setHighlightedId(disciplineId);
