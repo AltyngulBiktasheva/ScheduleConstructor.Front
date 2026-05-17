@@ -121,16 +121,19 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
       .map((g) => g.name),
   }));
 
-  // Группы с подгруппами (плоский список)
-  const groupOptions = groups.flatMap((g) => [
-    { id: g.id, label: g.name },
-    ...g.subgroups.map((sg) => ({ id: sg.id, label: `${g.name} / ${sg.name}` })),
-  ]);
+  // Только сами группы (Group)
+  const actualGroupOptions = groups.map((g) => ({ id: g.id, label: g.name }));
+
+  // Только подгруппы (SemiGroup) в формате «Группа / Подгруппа»
+  const semiGroupOptions = groups.flatMap((g) =>
+    g.subgroups.map((sg) => ({ id: sg.id, label: `${g.name} / ${sg.name}` })),
+  );
 
   // Общий плоский список для поиска подписей в заголовке копии
   const allGroupsFlat = [
     ...streamOptions.map((s) => ({ id: s.id, label: s.label })),
-    ...groupOptions,
+    ...actualGroupOptions,
+    ...semiGroupOptions,
   ];
 
   useEffect(() => {
@@ -376,7 +379,8 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
           total={batches.length}
           errors={idx === 0 ? errors : {}}
           streamOptions={streamOptions}
-          groupOptions={groupOptions}
+          actualGroupOptions={actualGroupOptions}
+          semiGroupOptions={semiGroupOptions}
           allGroupsFlat={allGroupsFlat}
           teachersList={teachersList}
           roomOptions={roomOptions}
@@ -444,7 +448,8 @@ interface BatchSectionProps {
   total: number;
   errors: Record<string, string>;
   streamOptions: StreamOption[];
-  groupOptions: GroupOption[];
+  actualGroupOptions: GroupOption[];
+  semiGroupOptions: GroupOption[];
   allGroupsFlat: GroupOption[];
   teachersList: { id: string; name: string }[];
   roomOptions: RoomOption[];
@@ -469,7 +474,8 @@ const BatchSection: React.FC<BatchSectionProps> = ({
   total,
   errors,
   streamOptions,
-  groupOptions,
+  actualGroupOptions,
+  semiGroupOptions,
   allGroupsFlat,
   teachersList,
   roomOptions,
@@ -532,7 +538,7 @@ const BatchSection: React.FC<BatchSectionProps> = ({
         <div className={styles.batchBody}>
           {/* Группы (мультиселект) */}
           <FormField label="Группы" required error={errors.group}>
-            {streamOptions.length === 0 && groupOptions.length === 0 ? (
+            {streamOptions.length === 0 && actualGroupOptions.length === 0 && semiGroupOptions.length === 0 ? (
               <span style={{ fontSize: 12, color: '#9ca3af' }}>Нет доступных групп</span>
             ) : (
               <div className={styles.checkList}>
@@ -558,10 +564,10 @@ const BatchSection: React.FC<BatchSectionProps> = ({
                     ))}
                   </>
                 )}
-                {groupOptions.length > 0 && (
+                {actualGroupOptions.length > 0 && (
                   <>
                     <div className={styles.groupSectionLabel}>Группы</div>
-                    {groupOptions.map((g) => (
+                    {actualGroupOptions.map((g) => (
                       <label key={g.id} className={styles.checkLabel}>
                         <input
                           type="checkbox"
@@ -569,6 +575,21 @@ const BatchSection: React.FC<BatchSectionProps> = ({
                           onChange={() => toggleGroup(g.id)}
                         />
                         {g.label}
+                      </label>
+                    ))}
+                  </>
+                )}
+                {semiGroupOptions.length > 0 && (
+                  <>
+                    <div className={styles.groupSectionLabel}>Подгруппы</div>
+                    {semiGroupOptions.map((sg) => (
+                      <label key={sg.id} className={styles.checkLabel}>
+                        <input
+                          type="checkbox"
+                          checked={batch.groupIds.includes(sg.id)}
+                          onChange={() => toggleGroup(sg.id)}
+                        />
+                        {sg.label}
                       </label>
                     ))}
                   </>
