@@ -70,7 +70,7 @@ export function useGroups() {
             studentsCount: group.studentCount,
             studentGroupType: 'Group',
             parentIds: group.streamIds ?? [],
-            children: group._children.map((c) => ({ id: c.id, name: c.name })),
+            children: (group._children ?? []).map((c) => ({ id: c.id, name: c.name })),
           },
         }),
       );
@@ -103,7 +103,7 @@ export function useGroups() {
             studentsCount: updated.studentCount,
             studentGroupType: 'Group',
             parentIds: updated.streamIds ?? [],
-            children: updated._children,
+            children: updated._children ?? [],
           },
         }),
       );
