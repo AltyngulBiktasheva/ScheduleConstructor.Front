@@ -127,6 +127,15 @@ const RootView: React.FC<{ discipline: Discipline }> = ({ discipline }) => (
   <div className={styles.view}>
     <Section title="Основное">
       <Row label="Название">{discipline.name}</Row>
+      {(discipline.associatedNames ?? []).length > 0 && (
+        <Row label="Другие названия">
+          <div className={styles.associatedNames}>
+            {(discipline.associatedNames ?? []).map((n, i) => (
+              <span key={i} className={styles.associatedName}>{n}</span>
+            ))}
+          </div>
+        </Row>
+      )}
       <Row label="Допустимые виды занятий">
         <div className={styles.badgeRow}>
           {(discipline.allowedLessonTypes ?? []).length === 0 ? (

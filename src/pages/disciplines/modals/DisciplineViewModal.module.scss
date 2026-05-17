@@ -69,6 +69,22 @@
   }
 }
 
+.associatedNames {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+}
+
+.associatedName {
+  font-size: $font-size-base;
+  color: $color-gray-700;
+
+  &::before {
+    content: '• ';
+    color: $color-gray-400;
+  }
+}
+
 .comment {
   font-size: $font-size-base;
   color: $color-gray-600;
