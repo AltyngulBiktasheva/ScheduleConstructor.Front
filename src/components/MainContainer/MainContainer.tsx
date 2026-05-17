@@ -14,7 +14,7 @@ import { fetchGroupsAll } from '../../store/slices/groupsListSlice';
 import { fetchTeachersAll } from '../../store/slices/teachersListSlice';
 import { fetchClassroomsAll } from '../../store/slices/classroomsListSlice';
 import { fetchCampuses } from '../../store/slices/campusSlice';
-import type { LessonShortDto, AcademicDisciplineType } from '../../api';
+import type { LessonShortDto } from '../../api';
 import { useToast } from '../Toast/ToastContext';
 import styles from './Styles.module.scss';
 
@@ -60,8 +60,8 @@ function lessonToDiscipline(lesson: LessonShortDto, weekDates: string[]): Discip
 
   return {
     id: lesson.id,
-    name: lesson.name || 'Занятие',
-    lessonId: lesson.lessonBatchInfoId ?? lesson.id,
+    name: lesson.academicDisciplineName || 'Занятие',
+    lessonId: lesson.id,
     academicDisciplineId: lesson.academicDisciplineId ?? undefined,
     lessonType: lesson.academicDisciplineType ?? undefined,
     roomId: lesson.rooms[0]?.id ?? undefined,
@@ -359,9 +359,6 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
         if (existingLesson.flexibilityType === 'Fixed') return;
         const result = await dispatch(saveLesson({
           id: existingLesson.id,
-          scheduleId: selectedScheduleId,
-          academicDisciplineId: existingLesson.academicDisciplineId,
-          academicDisciplineType: existingLesson.academicDisciplineType,
           studentGroupIds: existingLesson.studentGroups.map((g) => g.id),
           teacherIds: existingLesson.teachers.map((t) => t.id),
           roomIds: existingLesson.rooms.map((r) => r.id),
@@ -372,6 +369,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
           flexibilityType: existingLesson.flexibilityType,
           allowCombining: existingLesson.allowCombining,
           hoursCost: 2,
+          updateBatch: false,
         }));
         if (saveLesson.rejected.match(result)) {
           addToast((result.payload as string) || 'Не удалось переместить занятие', 'error');
@@ -388,9 +386,6 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
           : listDiscipline.forIds;
 
         const result = await dispatch(saveLesson({
-          scheduleId: selectedScheduleId,
-          academicDisciplineId: listDiscipline.academicDisciplineId ?? listDiscipline.parentId,
-          academicDisciplineType: listDiscipline.lessonType,
           studentGroupIds: groupIds,
           teacherIds: listDiscipline.teachers.map((t) => t.id),
           roomIds: selection.type === 'classrooms'
@@ -403,6 +398,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
           flexibilityType: 'Flexible',
           allowCombining: false,
           hoursCost: listDiscipline.totalHoursCount ?? 2,
+          updateBatch: false,
         }));
         if (saveLesson.rejected.match(result)) {
           addToast((result.payload as string) || 'Не удалось добавить занятие', 'error');
@@ -422,7 +418,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
       const lesson = weekLessons.find((l) => l.id === disciplineId);
       if (!lesson || lesson.flexibilityType === 'Fixed') return;
 
-      const result = await dispatch(deleteWeekLesson({ scheduleId: selectedScheduleId, lessonId: disciplineId }));
+      const result = await dispatch(deleteWeekLesson({ lessonId: disciplineId }));
       if (deleteWeekLesson.rejected.match(result)) {
         addToast((result.payload as string) || 'Не удалось удалить занятие', 'error');
         refetchWeek(); // откат: восстанавливаем занятие в сетке
@@ -453,9 +449,6 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
 
       const result = await dispatch(saveLesson({
         id: lesson.id,
-        scheduleId: selectedScheduleId,
-        academicDisciplineId: lesson.academicDisciplineId,
-        academicDisciplineType: lesson.academicDisciplineType,
         studentGroupIds: lesson.studentGroups.map((g) => g.id),
         teacherIds: updated.teachers?.map((t) => t.id) ?? lesson.teachers.map((t) => t.id),
         roomIds: updated.roomId ? [updated.roomId] : lesson.rooms.map((r) => r.id),
@@ -469,6 +462,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
         flexibilityType: lesson.flexibilityType,
         allowCombining: lesson.allowCombining,
         hoursCost: 2,
+        updateBatch: true,
       }));
 
       if (saveLesson.rejected.match(result)) {
@@ -493,8 +487,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
     const discipline = gridDisciplines.find((d) => d.id === disciplineId)
       ?? enrichedListItems.find((d) => d.id === disciplineId);
 
-    console.log(discipline);
-    if (!discipline?.academicDisciplineId || !discipline.lessonType) return;
+    if (!discipline) return;
 
     setLoadingHighlightId(disciplineId);
     setHighlightedId(null);
@@ -502,9 +495,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
 
     try {
       const result = await fetchSlotHighlights({
-        academicDisciplineId: discipline.academicDisciplineId,
-        academicDisciplineType: discipline.lessonType as AcademicDisciplineType,
-        lessonBatchInfoId: discipline.lessonId,
+        lessonId: discipline.lessonId ?? discipline.id,
       });
       setHighlights(result);
       setHighlightedId(disciplineId);

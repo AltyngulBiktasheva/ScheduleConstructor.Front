@@ -1,9 +1,8 @@
 import apiClient from './client';
 import type {
   AcademicDisciplineRegistryItemDto,
-  AcademicDisciplineType,
   AcademicDisciplineViewDto,
-  AcademicDisciplineWeekConflictDto,
+  LessonSeriesConflictDto,
   RegistryDto,
   AcademicDisciplineSaveDto,
   SearchParametersDto,
@@ -22,9 +21,9 @@ export const academicDisciplineApi = {
   saveAcademicDiscipline: (data: AcademicDisciplineSaveDto) =>
     apiClient.post<void>('/academic-discipline/save', data),
 
-  /** Получить конфликтные временные слоты дисциплины за неделю */
-  getWeekConflicts: (params: { academicDisciplineId: string; academicDisciplineType: AcademicDisciplineType; lessonBatchInfoId?: string }) =>
-    apiClient.get<AcademicDisciplineWeekConflictDto[]>('/academic-discipline/week-conflicts', { params }),
+  /** Получить конфликтные временные слоты занятий */
+  getWeekConflicts: (params: { lessonId: string }) =>
+    apiClient.get<LessonSeriesConflictDto[]>('/academic-discipline/week-conflicts', { params }),
 
   /** Удалить академическую дисциплину */
   deleteAcademicDiscipline: (params: { academicDisciplineId: string }) =>

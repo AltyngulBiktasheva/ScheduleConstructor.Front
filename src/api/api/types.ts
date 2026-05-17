@@ -6,13 +6,17 @@ export type DisciplineLessonRepeatType = 'Weekly' | 'EvenWeeks' | 'OddWeeks' | '
 export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 export type LessonFlexibilityType = 'Fixed' | 'Flexible';
 export type LessonValidationErrorType = 'Warning' | 'Error';
-export type LessonValidationCode =
+export type LessonPolicyViolationCode =
   | 'MismatchedSemesterNumber'
   | 'MismatchedAcademicDisciplineType'
   | 'FixedLessonTypeConflictByGroup'
   | 'FlexibleLessonTypeConflictByGroup'
-  | 'RestrictedTeacherPreferenceTypeConflict'
-  | 'FlexibleTeacherPreferenceTypeConflict'
+  | 'FixedLessonTypeConflictByTeacher'
+  | 'FlexibleLessonTypeConflictByTeacher'
+  | 'RestrictedTimeTeacherPreferenceTypeConflict'
+  | 'UndesirableTimeTeacherPreferenceTypeConflict'
+  | 'RestrictedRoomTeacherPreferenceTypeConflict'
+  | 'UndesirableRoomTeacherPreferenceTypeConflict'
   | 'FixedLessonTypeConflictByRoom'
   | 'FlexibleLessonTypeConflictByRoom'
   | 'MismatchedAcademicDisciplineTypeTotalHoursCount'
@@ -67,12 +71,14 @@ export interface LessonBatchInfoDto {
   studentGroups: StudentGroupShortDto[];
   teacherIds: string[];
   roomIds: string[];
+  lessonsPerWeekCount: number;
   dayOfWeekTimeIntervals?: DayOfWeekTimeInterval[] | null;
   repeatType: DisciplineLessonRepeatType;
   dateInterval: DateInterval;
   allowCombining: boolean;
+  flexibilityType: LessonFlexibilityType;
   hoursCost?: number | null;
-  totalHoursCost?: number | null;
+  totalHoursCount?: number | null;
 }
 
 export interface AcademicDisciplineViewDto {
@@ -135,16 +141,20 @@ export interface CampusSaveDto {
 
 export interface LessonValidationPayload {
   affectedByAcademicDisciplineId?: string | null;
+  affectedByAcademicDisciplineType?: AcademicDisciplineType | null;
+  affectedByLessonBatchInfoId?: string | null;
   affectedByStudentGroupId?: string | null;
   affectedByLessonId?: string | null;
-  affectedByTeacherPreferenceId?: string | null;
   affectedByTeacherId?: string | null;
+  affectedByRoomId?: string | null;
+  affectedByTeacherPreferenceId?: string | null;
+  dayOfWeekTimeInterval?: DayOfWeekTimeInterval | null;
 }
 
 export interface LessonPolicyViolation {
   id?: string | null;
   errorType: LessonValidationErrorType;
-  code: LessonValidationCode;
+  code: LessonPolicyViolationCode;
   payload: LessonValidationPayload;
   message?: string | null;
 }
@@ -160,7 +170,6 @@ export interface LessonViewDto {
   flexibilityType: LessonFlexibilityType;
   allowCombining: boolean;
   hoursCost: number;
-  createdFromDiscipline: boolean;
   violations?: LessonPolicyViolation[] | null;
 }
 
@@ -175,15 +184,11 @@ export interface LessonRegistryItemDto {
   flexibilityType: LessonFlexibilityType;
   allowCombining: boolean;
   hoursCost: number;
-  createdFromDiscipline: boolean;
   violations: LessonPolicyViolation[];
 }
 
 export interface LessonSaveDto {
   id?: string | null;
-  scheduleId: string;
-  academicDisciplineId?: string | null;
-  academicDisciplineType?: AcademicDisciplineType | null;
   studentGroupIds: string[];
   teacherIds: string[];
   roomIds: string[];
@@ -191,6 +196,7 @@ export interface LessonSaveDto {
   flexibilityType: LessonFlexibilityType;
   allowCombining: boolean;
   hoursCost: number;
+  updateBatch: boolean;
 }
 
 export interface LessonWeekTeacherDto {
@@ -206,29 +212,28 @@ export interface LessonWeekRoomDto {
 export interface LessonShortDto {
   id: string;
   academicDisciplineId?: string | null;
+  academicDisciplineName?: string | null;
   academicDisciplineType?: AcademicDisciplineType | null;
-  name?: string | null;
   studentGroups: StudentGroupShortDto[];
   teachers: LessonWeekTeacherDto[];
   rooms: LessonWeekRoomDto[];
   dateWithTimeInterval: DateWithTimeInterval;
   flexibilityType: LessonFlexibilityType;
   allowCombining: boolean;
-  hoursCost: number;
   lessonPolicyViolationDescription?: string | null;
-  lessonBatchInfoId?: string | null;
   currentErrorsMaxLevel?: LessonValidationErrorType | null;
 }
 
-export interface WeekConflictMessageDto {
+export interface LessonSeriesConflictMessageDto {
   timeInterval: TimeInterval;
   message: string;
 }
 
-export interface AcademicDisciplineWeekConflictDto {
+export interface LessonSeriesConflictDto {
+  lessonIds: string[];
   dayOfWeekTimeInterval: DayOfWeekTimeInterval;
-  messages: WeekConflictMessageDto[];
-  errorType: LessonValidationErrorType;
+  messages: LessonSeriesConflictMessageDto[];
+  maxErrorType: LessonValidationErrorType;
 }
 
 export interface LessonWeekConflictDto {
@@ -317,7 +322,8 @@ export interface StudentGroupShortDto {
 export interface StudentGroupViewDto {
   id: string;
   name?: string | null;
-  semesterNumber: number;
+  semesterNumber?: number | null;
+  studentsCount?: number | null;
   studentGroupType: StudentGroupType;
   children?: StudentGroupShortDto[] | null;
 }
@@ -325,8 +331,8 @@ export interface StudentGroupViewDto {
 export interface StudentGroupRegistryItemDto {
   id: string;
   name: string;
-  semesterNumber: number;
-  studentsCount: number;
+  semesterNumber?: number | null;
+  studentsCount?: number | null;
   studentGroupType: StudentGroupType;
   parents: StudentGroupShortDto[];
   children: StudentGroupShortDto[];

@@ -1,5 +1,4 @@
 import { academicDisciplineApi } from './api';
-import type { AcademicDisciplineType } from './api';
 
 export interface SlotHighlightMessage {
   timeStart: string;
@@ -26,9 +25,7 @@ const DOW_TO_DAY_ID: Record<number, string> = {
 };
 
 export async function fetchSlotHighlights(params: {
-  academicDisciplineId: string;
-  academicDisciplineType: AcademicDisciplineType;
-  lessonBatchInfoId?: string;
+  lessonId: string;
 }): Promise<SlotHighlight[]> {
   const { data } = await academicDisciplineApi.getWeekConflicts(params);
 
@@ -38,7 +35,7 @@ export async function fetchSlotHighlights(params: {
       dayId: DOW_TO_DAY_ID[c.dayOfWeekTimeInterval.dayOfWeek],
       timeStart: c.dayOfWeekTimeInterval.timeInterval.timeFrom.slice(0, 5),
       timeEnd: c.dayOfWeekTimeInterval.timeInterval.timeTo.slice(0, 5),
-      color: c.errorType === 'Warning' ? 'yellow' as const : 'red' as const,
+      color: c.maxErrorType === 'Warning' ? 'yellow' as const : 'red' as const,
       messages: c.messages.map((m) => ({
         timeStart: m.timeInterval.timeFrom.slice(0, 5),
         timeEnd: m.timeInterval.timeTo.slice(0, 5),

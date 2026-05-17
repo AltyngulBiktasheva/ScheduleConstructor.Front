@@ -77,7 +77,7 @@ export const saveLesson = createAsyncThunk(
 
 export const deleteWeekLesson = createAsyncThunk(
   'lesson/delete',
-  async (params: { scheduleId: string; lessonId: string }, { rejectWithValue }) => {
+  async (params: { lessonId: string }, { rejectWithValue }) => {
     try {
       await lessonApi.deleteLesson(params);
       return params.lessonId;

@@ -27,7 +27,7 @@ export const lessonApi = {
     apiClient.post<void>('/lesson/save', data),
 
   /** Удалить занятие из расписания */
-  deleteLesson: (params: { scheduleId: string; lessonId: string }) =>
+  deleteLesson: (params: { lessonId: string }) =>
     apiClient.delete<void>('/lesson/delete', { params }),
 
   /** Получить временные конфликты занятия по дням недели */

@@ -77,7 +77,8 @@ function mapBatchToFields(batch: LessonBatchInfoDto) {
       timeStart: dwt.timeInterval.timeFrom.slice(0, 5),
       timeEnd: dwt.timeInterval.timeTo.slice(0, 5),
     })),
-    weeklyCount: (batch.dayOfWeekTimeIntervals ?? []).length || 1,
+    weeklyCount: batch.lessonsPerWeekCount ?? ((batch.dayOfWeekTimeIntervals ?? []).length || 1),
+    isStatic: batch.flexibilityType === 'Fixed',
     dateRange: batch.dateInterval?.dateFrom
       ? { from: apiToDisplayDate(batch.dateInterval.dateFrom), to: apiToDisplayDate(batch.dateInterval.dateTo) }
       : undefined,
@@ -125,7 +126,7 @@ function mapDto(dto: AcademicDisciplineRegistryItemDto): { root: Discipline; chi
           parentId: dto.id,
           academicDisciplineId: dto.id,
           lessonType: type,
-          totalHoursCount: batch.hoursCost ?? batch.totalHoursCost ?? undefined,
+          totalHoursCount: batch.hoursCost ?? batch.totalHoursCount ?? undefined,
           forType: 'group',
           isStatic: false,   // TODO: Тип дисциплины (isStatic) — ожидаем реализацию на бэке
           comment: dto.comment ?? undefined,
