@@ -36,6 +36,7 @@ export const DisciplineViewModal: React.FC<Props> = ({
           name: data.name,
           allowedLessonTypes: data.allowedLessonTypes,
           semesterNumber: data.semesterNumber,
+          associatedNames: data.associatedNames,
         });
         setMode('view');
       };
@@ -47,6 +48,7 @@ export const DisciplineViewModal: React.FC<Props> = ({
               name: discipline.name,
               semesterNumber: discipline.semesterNumber ?? 1,
               allowedLessonTypes: discipline.allowedLessonTypes ?? [],
+              associatedNames: discipline.associatedNames ?? [],
             }}
             onSave={handleRootSave}
             onCancel={() => setMode('view')}

@@ -211,6 +211,7 @@ export function useDisciplines() {
             semesterNumber: data.semesterNumber,
             academicDisciplineTargetType: 'General',
             allowedLessonTypes: data.allowedLessonTypes,
+            associatedNames: data.associatedNames,
           },
         }),
       );
@@ -288,6 +289,7 @@ export function useDisciplines() {
                 semesterNumber: updated.semesterNumber ?? 1,
                 academicDisciplineTargetType: 'General',
                 allowedLessonTypes: newTypes,
+                associatedNames: updated.associatedNames ?? [],
                 lectureLessonBatchInfos:  resolveBatches('Lecture',  'lectureLessonBatchInfos'),
                 practiceLessonBatchInfos: resolveBatches('Practice', 'practiceLessonBatchInfos'),
                 labLessonBatchInfos:      resolveBatches('Lab',      'labLessonBatchInfos'),

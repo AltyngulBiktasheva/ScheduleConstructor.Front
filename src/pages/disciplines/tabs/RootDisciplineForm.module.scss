@@ -63,6 +63,58 @@
   line-height: 1.6;
 }
 
+.associatedList {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.associatedRow {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+
+  .field-input,
+  input.field-input {
+    flex: 1;
+  }
+}
+
+.removeBtn {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-sm;
+  color: $color-gray-500;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color $transition-fast, border-color $transition-fast;
+
+  &:hover {
+    color: $color-danger;
+    border-color: $color-danger;
+  }
+}
+
+.addBtn {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: $font-size-sm;
+  color: $color-primary;
+  cursor: pointer;
+  transition: opacity $transition-fast;
+
+  &:hover { opacity: 0.75; }
+}
+
 .actions {
   display: flex;
   justify-content: flex-end;

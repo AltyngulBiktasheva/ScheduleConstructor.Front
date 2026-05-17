@@ -99,6 +99,7 @@ export interface AcademicDisciplineViewDto {
 export interface AcademicDisciplineRegistryItemDto {
   id: string;
   name: string;
+  associatedNames?: string[] | null;
   semesterNumber: number;
   academicDisciplineTargetType: AcademicDisciplineTargetType;
   allowedLessonTypes: AcademicDisciplineType[];
@@ -115,6 +116,7 @@ export interface AcademicDisciplineSaveDto {
   scheduleId: string;
   name?: string | null;
   semesterNumber: number;
+  associatedNames?: string[];
   academicDisciplineTargetType: AcademicDisciplineTargetType;
   allowedLessonTypes?: AcademicDisciplineType[] | null;
   lectureLessonBatchInfos?: LessonBatchInfoDto[] | null;

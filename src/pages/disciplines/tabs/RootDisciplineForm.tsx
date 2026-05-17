@@ -22,6 +22,7 @@ export interface RootDisciplineFormData {
   name: string;
   semesterNumber: number;
   allowedLessonTypes: AcademicDisciplineType[];
+  associatedNames: string[];
 }
 
 interface Props {
@@ -36,7 +37,20 @@ interface Props {
 export const RootDisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loading }) => {
   const [name, setName] = useState(initial?.name ?? '');
   const [allowedLessonTypes, setAllowedLessonTypes] = useState<AcademicDisciplineType[]>(initial?.allowedLessonTypes ?? []);
+  const [associatedNames, setAssociatedNames] = useState<string[]>(initial?.associatedNames ?? ['']);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const setAssociatedName = (index: number, value: string) => {
+    setAssociatedNames((prev) => prev.map((n, i) => (i === index ? value : n)));
+  };
+
+  const addAssociatedName = () => {
+    setAssociatedNames((prev) => [...prev, '']);
+  };
+
+  const removeAssociatedName = (index: number) => {
+    setAssociatedNames((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const toggleType = (type: AcademicDisciplineType) => {
     setAllowedLessonTypes((prev) =>
@@ -58,6 +72,7 @@ export const RootDisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel,
       name: name.trim(),
       semesterNumber: 1,
       allowedLessonTypes,
+      associatedNames: associatedNames.map((n) => n.trim()).filter(Boolean),
     });
   };
 
@@ -97,6 +112,36 @@ export const RootDisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel,
               {LESSON_TYPE_LABELS[type]}
             </label>
           ))}
+        </div>
+      </FormField>
+
+      {/* Другие названия */}
+      <FormField
+        label="Другие названия дисциплины"
+        hint="Альтернативные названия, под которыми известна дисциплина"
+      >
+        <div className={styles.associatedList}>
+          {associatedNames.map((n, i) => (
+            <div key={i} className={styles.associatedRow}>
+              <input
+                className="field-input"
+                value={n}
+                onChange={(e) => setAssociatedName(i, e.target.value)}
+                placeholder={`Альтернативное название ${i + 1}`}
+              />
+              {associatedNames.length > 1 && (
+                <button
+                  type="button"
+                  className={styles.removeBtn}
+                  onClick={() => removeAssociatedName(i)}
+                  title="Удалить"
+                >×</button>
+              )}
+            </div>
+          ))}
+          <button type="button" className={styles.addBtn} onClick={addAssociatedName}>
+            + Добавить название
+          </button>
         </div>
       </FormField>
 

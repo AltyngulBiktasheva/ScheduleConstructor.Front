@@ -33,6 +33,7 @@ export interface Discipline {
   isRoot?: boolean;
   semesterNumber?: number;
   allowedLessonTypes?: AcademicDisciplineType[];
+  associatedNames?: string[];
 
   // ── Дочерняя дисциплина (занятие) ─────────────────────────────────────
   parentId?: string;               // id корневой дисциплины

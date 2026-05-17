@@ -104,6 +104,7 @@ function mapDto(dto: AcademicDisciplineRegistryItemDto): { root: Discipline; chi
     repeat: 'every-week',
     weeklyCount: 1,
     comment: dto.comment ?? undefined,
+    associatedNames: dto.associatedNames ?? undefined,
   };
 
   const children: Discipline[] = [];
@@ -128,7 +129,6 @@ function mapDto(dto: AcademicDisciplineRegistryItemDto): { root: Discipline; chi
           lessonType: type,
           totalHoursCount: batch.hoursCost ?? batch.totalHoursCount ?? undefined,
           forType: 'group',
-          isStatic: false,   // TODO: Тип дисциплины (isStatic) — ожидаем реализацию на бэке
           comment: dto.comment ?? undefined,
           batchIndex,
           batchTotal,
