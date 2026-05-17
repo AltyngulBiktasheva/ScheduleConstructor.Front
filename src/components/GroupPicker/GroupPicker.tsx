@@ -21,23 +21,17 @@ export const GroupPicker: React.FC<Props> = ({ groups, streams, onSelect }) => {
   };
 
   const selectStream = (stream: Stream) => {
-    const streamGroups = groups.filter((g) => stream.groupIds.includes(g.id));
-    const allIds = [stream.id, ...streamGroups.map((g) => g.id),
-      ...streamGroups.flatMap((g) => g.subgroups.map((s) => s.id))];
-    const isSelected = selected.has(stream.id);
     setSelected((prev) => {
       const next = new Set(prev);
-      allIds.forEach((id) => isSelected ? next.delete(id) : next.add(id));
+      next.has(stream.id) ? next.delete(stream.id) : next.add(stream.id);
       return next;
     });
   };
 
   const selectGroup = (group: Group) => {
-    const allIds = [group.id, ...group.subgroups.map((s) => s.id)];
-    const isSelected = selected.has(group.id);
     setSelected((prev) => {
       const next = new Set(prev);
-      allIds.forEach((id) => isSelected ? next.delete(id) : next.add(id));
+      next.has(group.id) ? next.delete(group.id) : next.add(group.id);
       return next;
     });
   };

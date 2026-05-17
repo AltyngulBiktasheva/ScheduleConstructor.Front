@@ -219,7 +219,7 @@ export interface LessonShortDto {
   studentGroups: StudentGroupShortDto[];
   teachers: LessonWeekTeacherDto[];
   rooms: LessonWeekRoomDto[];
-  dateWithTimeInterval: DateWithTimeInterval;
+  dateWithTimeInterval?: DateWithTimeInterval | null;
   flexibilityType: LessonFlexibilityType;
   allowCombining: boolean;
   lessonPolicyViolationDescription?: string | null;

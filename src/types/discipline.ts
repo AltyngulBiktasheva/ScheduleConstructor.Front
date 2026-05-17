@@ -47,6 +47,7 @@ export interface Discipline {
 
   forType: ForType;
   forIds: string[];                // id групп/потоков
+  forNames?: string[];             // display names групп/потоков
 
   teachers: DisciplineTeacher[];
   audiences: DisciplineAudience[];

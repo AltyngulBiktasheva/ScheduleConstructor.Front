@@ -142,7 +142,9 @@ export const DisciplinesList: React.FC<Props> = ({
                         )}
                       </td>
                       <td className={styles.secondary}>
-                        {d.forIds.length > 0 ? d.forIds.join(', ') : '—'}
+                        {(d.forNames ?? []).filter(Boolean).length > 0
+                          ? d.forNames!.filter(Boolean).join(', ')
+                          : d.forIds.length > 0 ? d.forIds.join(', ') : '—'}
                       </td>
                     </tr>
                   ))}

@@ -70,6 +70,7 @@ function mapRepeatTypeReverse(rt: DisciplineLessonRepeatType): RepeatType {
 function mapBatchToFields(batch: LessonBatchInfoDto) {
   return {
     forIds: (batch.studentGroups ?? []).map((s) => s.id),
+    forNames: (batch.studentGroups ?? []).map((s) => s.name ?? ''),
     canOverlap: batch.allowCombining ?? false,
     repeat: mapRepeatTypeReverse(batch.repeatType) as RepeatType,
     occurrences: (batch.dayOfWeekTimeIntervals ?? []).map((dwt) => ({

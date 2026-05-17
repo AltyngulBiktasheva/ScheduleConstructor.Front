@@ -9,13 +9,13 @@ import type { SlotHighlight } from '../../api/slotHighlights';
 import { fetchSlotHighlights } from '../../api/slotHighlights';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { fetchWeekLessons, saveLesson, deleteWeekLesson } from '../../store/slices/lessonSlice';
-import { fetchDisciplinesAll } from '../../store/slices/disciplinesListSlice';
 import { fetchGroupsAll } from '../../store/slices/groupsListSlice';
 import { fetchTeachersAll } from '../../store/slices/teachersListSlice';
 import { fetchClassroomsAll } from '../../store/slices/classroomsListSlice';
 import { fetchCampuses } from '../../store/slices/campusSlice';
 import type { LessonShortDto } from '../../api';
 import { useToast } from '../Toast/ToastContext';
+import { formatLocalDate } from '../../utils/dateUtils';
 import styles from './Styles.module.scss';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -50,12 +50,13 @@ function getWeekDates(weekOffset: number): string[] {
   return Array.from({ length: 6 }, (_, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
-    return d.toISOString().split('T')[0];
+    return formatLocalDate(d);
   });
 }
 
 function lessonToDiscipline(lesson: LessonShortDto, weekDates: string[]): Discipline {
-  const dateIdx = weekDates.indexOf(lesson.dateWithTimeInterval.date);
+  const dt = lesson.dateWithTimeInterval!; // гарантировано фильтром lessonsWithTime
+  const dateIdx = weekDates.indexOf(dt.date);
   const dayId = dateIdx >= 0 ? DAY_IDS[dateIdx] : 'mon';
 
   return {
@@ -67,6 +68,7 @@ function lessonToDiscipline(lesson: LessonShortDto, weekDates: string[]): Discip
     roomId: lesson.rooms[0]?.id ?? undefined,
     forType: 'group',
     forIds: lesson.studentGroups.map((g) => g.id),
+    forNames: lesson.studentGroups.map((g) => g.name ?? ''),
     teachers: lesson.teachers.map((t) => ({ id: t.id, name: t.fullname || '' })),
     audiences: lesson.rooms.map((r) => ({ roomId: r.id, roomName: r.name ?? undefined })),
     isStatic: lesson.flexibilityType === 'Fixed',
@@ -75,9 +77,32 @@ function lessonToDiscipline(lesson: LessonShortDto, weekDates: string[]): Discip
     weeklyCount: 1,
     isInGrid: true,
     dayId,
-    timeStart: lesson.dateWithTimeInterval.timeInterval.timeFrom.slice(0, 5),
-    timeEnd: lesson.dateWithTimeInterval.timeInterval.timeTo.slice(0, 5),
+    timeStart: dt.timeInterval.timeFrom.slice(0, 5),
+    timeEnd: dt.timeInterval.timeTo.slice(0, 5),
     errorLevel: lesson.currentErrorsMaxLevel ?? null,
+    teacher: lesson.teachers.map((t) => t.fullname).filter(Boolean).join(', ') || undefined,
+    audience: lesson.rooms.map((r) => r.name).filter(Boolean).join(', ') || undefined,
+  };
+}
+
+function lessonToListDiscipline(lesson: LessonShortDto): Discipline {
+  return {
+    id: lesson.id,
+    name: lesson.academicDisciplineName || 'Занятие',
+    lessonId: lesson.id,
+    academicDisciplineId: lesson.academicDisciplineId ?? undefined,
+    lessonType: lesson.academicDisciplineType ?? undefined,
+    roomId: lesson.rooms[0]?.id ?? undefined,
+    forType: 'group',
+    forIds: lesson.studentGroups.map((g) => g.id),
+    forNames: lesson.studentGroups.map((g) => g.name ?? ''),
+    teachers: lesson.teachers.map((t) => ({ id: t.id, name: t.fullname || '' })),
+    audiences: lesson.rooms.map((r) => ({ roomId: r.id, roomName: r.name ?? undefined })),
+    isStatic: lesson.flexibilityType === 'Fixed',
+    canOverlap: lesson.allowCombining,
+    repeat: 'every-week',
+    weeklyCount: 1,
+    isInGrid: false,
     teacher: lesson.teachers.map((t) => t.fullname).filter(Boolean).join(', ') || undefined,
     audience: lesson.rooms.map((r) => r.name).filter(Boolean).join(', ') || undefined,
   };
@@ -109,12 +134,6 @@ function padTime(t: string): string {
 export const MainContainer: React.FC<Props> = ({ selection }) => {
   const dispatch = useAppDispatch();
   const { weekLessons, weekLessonsLoading } = useAppSelector((s) => s.lesson);
-  const rootDisciplineList = useAppSelector((s) => s.disciplinesList.rootDisciplines);
-  const childDisciplineList = useAppSelector((s) => s.disciplinesList.disciplines);
-  const listDisciplines = useMemo(
-    () => [...rootDisciplineList, ...childDisciplineList],
-    [rootDisciplineList, childDisciplineList],
-  );
   const selectedScheduleId = useAppSelector((s) => s.schedule.selectedScheduleId);
   const scheduleStartDate = useAppSelector((s) =>
     s.schedule.list.find((sc) => sc.id === s.schedule.selectedScheduleId)?.dateInterval.dateFrom ?? null
@@ -149,10 +168,6 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
     }));
   }, [dispatch, selectedScheduleId, weekOffset]);
 
-  // ── Загрузка дисциплин для списка ────────────────────────────────────────
-  useEffect(() => {
-    if (listDisciplines.length === 0) dispatch(fetchDisciplinesAll());
-  }, [dispatch, listDisciplines.length]);
 
   // ── Загрузка групп для транспонированного режима ──────────────────────────
   useEffect(() => {
@@ -170,10 +185,12 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
   // ── Фильтрация занятий по сущности ───────────────────────────────────────
   const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
   const entityLessons = filterLessonsByEntity(weekLessons, selection);
-  const gridDisciplines = entityLessons.map((l) => lessonToDiscipline(l, weekDates));
+  const lessonsWithTime = entityLessons.filter((l) => l.dateWithTimeInterval != null);
+  const lessonsWithoutTime = entityLessons.filter((l) => l.dateWithTimeInterval == null);
+  const gridDisciplines = lessonsWithTime.map((l) => lessonToDiscipline(l, weekDates));
 
-  // Дисциплины для списка — только не-корневые (листовые)
-  const listItems = listDisciplines.filter((d) => !d.isRoot);
+  // Дисциплины для списка — занятия без назначенного времени из search-week
+  const listItems = lessonsWithoutTime.map(lessonToListDiscipline);
 
   // ── Обогащение карточек именами преподавателей, аудиторий, групп ─────────
   const enrichedListItems = useMemo(() => {
@@ -378,26 +395,27 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
         }
       } else {
         // Создаём новое занятие из дисциплины в списке
-        const listDiscipline = listDisciplines.find((d) => d.id === disciplineId);
-        if (!listDiscipline) return;
+        const unscheduledLesson = weekLessons.find((l) => l.id === disciplineId);
+        if (!unscheduledLesson) return;
 
         const groupIds = selection.type === 'groups'
           ? (Array.isArray(selection.entityId) ? selection.entityId : [selection.entityId])
-          : listDiscipline.forIds;
+          : unscheduledLesson.studentGroups.map((g) => g.id);
 
         const result = await dispatch(saveLesson({
+          id: unscheduledLesson.id,
           studentGroupIds: groupIds,
-          teacherIds: listDiscipline.teachers.map((t) => t.id),
+          teacherIds: unscheduledLesson.teachers.map((t) => t.id),
           roomIds: selection.type === 'classrooms'
             ? [selection.entityId as string]
-            : [],
+            : unscheduledLesson.rooms.map((r) => r.id),
           dateWithTimeInterval: {
             date,
             timeInterval: { timeFrom: padTime(timeStart), timeTo: padTime(timeEnd) },
           },
-          flexibilityType: 'Flexible',
-          allowCombining: false,
-          hoursCost: listDiscipline.totalHoursCount ?? 2,
+          flexibilityType: unscheduledLesson.flexibilityType,
+          allowCombining: unscheduledLesson.allowCombining,
+          hoursCost: 2,
           updateBatch: false,
         }));
         if (saveLesson.rejected.match(result)) {
@@ -408,7 +426,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
 
       refetchWeek();
     },
-    [dispatch, selectedScheduleId, weekOffset, weekLessons, listDisciplines, selection, refetchWeek, addToast],
+    [dispatch, selectedScheduleId, weekOffset, weekLessons, selection, refetchWeek, addToast],
   );
 
   // ── DnD: возврат занятия в список (удаление) ─────────────────────────────
