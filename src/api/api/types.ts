@@ -214,7 +214,9 @@ export interface LessonShortDto {
   dateWithTimeInterval: DateWithTimeInterval;
   flexibilityType: LessonFlexibilityType;
   allowCombining: boolean;
+  hoursCost: number;
   lessonPolicyViolationDescription?: string | null;
+  lessonBatchInfoId?: string | null;
   currentErrorsMaxLevel?: LessonValidationErrorType | null;
 }
 

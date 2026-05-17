@@ -61,7 +61,7 @@ function lessonToDiscipline(lesson: LessonShortDto, weekDates: string[]): Discip
   return {
     id: lesson.id,
     name: lesson.name || 'Занятие',
-    lessonId: lesson.id,
+    lessonId: lesson.lessonBatchInfoId ?? lesson.id,
     academicDisciplineId: lesson.academicDisciplineId ?? undefined,
     lessonType: lesson.academicDisciplineType ?? undefined,
     roomId: lesson.rooms[0]?.id ?? undefined,

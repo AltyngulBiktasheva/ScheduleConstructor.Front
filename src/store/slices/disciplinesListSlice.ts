@@ -2,7 +2,7 @@
  * Хранит список дисциплин для страницы DisciplinesPage.
  *
  * Корневые дисциплины (isRoot=true): шаблоны, загружаются напрямую из DTO.
- * Дочерние дисциплины (isRoot=false): извлекаются из lecturePayload / practicePayload / labPayload.
+ * Дочерние дисциплины (isRoot=false): извлекаются из lectureLessonBatchInfos / practiceLessonBatchInfos / labLessonBatchInfos.
  *
  * Корневые сохраняются через /academic-discipline/save.
  * Дочерние сохраняются через /lesson/save.
@@ -39,13 +39,13 @@ const initialState: DisciplinesListState = {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/** Маппинг типов с payload-полем */
-const PAYLOAD_KEY_MAP: Partial<Record<AcademicDisciplineType, 'lecturePayload' | 'practicePayload' | 'labPayload' | 'examPayload' | 'testPayload'>> = {
-  Lecture:  'lecturePayload',
-  Practice: 'practicePayload',
-  Lab:      'labPayload',
-  Exam:     'examPayload',
-  Test:     'testPayload',
+/** Маппинг типов с полем batches */
+const BATCH_KEY_MAP: Partial<Record<AcademicDisciplineType, 'lectureLessonBatchInfos' | 'practiceLessonBatchInfos' | 'labLessonBatchInfos' | 'examLessonBatchInfos' | 'testLessonBatchInfos'>> = {
+  Lecture:  'lectureLessonBatchInfos',
+  Practice: 'practiceLessonBatchInfos',
+  Lab:      'labLessonBatchInfos',
+  Exam:     'examLessonBatchInfos',
+  Test:     'testLessonBatchInfos',
 };
 
 /** YYYY-MM-DD → DD.MM.YYYY */
@@ -109,13 +109,13 @@ function mapDto(dto: AcademicDisciplineRegistryItemDto): { root: Discipline; chi
 
   for (const type of dto.allowedLessonTypes) {
     const childName = `${dto.name} (${LESSON_TYPE_LABELS[type] ?? type})`;
-    const payloadKey = PAYLOAD_KEY_MAP[type];
-    const payload = payloadKey ? dto[payloadKey] : undefined;
+    const batchKey = BATCH_KEY_MAP[type];
+    const batches = batchKey ? (dto[batchKey] ?? []) : [];
 
-    if (payload?.lessonBatchInfos?.length) {
-      // Есть сохранённый payload — создаём отдельную карточку для каждого batch
-      const batchTotal = payload.lessonBatchInfos.length;
-      payload.lessonBatchInfos.forEach((batch, batchIndex) => {
+    if (batches.length) {
+      // Есть сохранённые batches — создаём отдельную карточку для каждого batch
+      const batchTotal = batches.length;
+      batches.forEach((batch, batchIndex) => {
         const fields = mapBatchToFields(batch);
         children.push({
           id: batch.id ?? `${dto.id}_${type}_${batchIndex}`,
@@ -125,7 +125,7 @@ function mapDto(dto: AcademicDisciplineRegistryItemDto): { root: Discipline; chi
           parentId: dto.id,
           academicDisciplineId: dto.id,
           lessonType: type,
-          totalHoursCount: batch.hoursCost ?? payload.totalHoursCount,
+          totalHoursCount: batch.hoursCost ?? batch.totalHoursCost ?? undefined,
           forType: 'group',
           isStatic: false,   // TODO: Тип дисциплины (isStatic) — ожидаем реализацию на бэке
           comment: dto.comment ?? undefined,

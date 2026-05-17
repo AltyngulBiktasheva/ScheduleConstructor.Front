@@ -103,7 +103,6 @@ export function useGroups() {
             studentsCount: updated.studentCount,
             studentGroupType: 'Group',
             parentIds: updated.streamIds ?? [],
-            childIds: updated._childIds,
             children: updated._children,
           },
         }),
@@ -146,7 +145,7 @@ export function useGroups() {
             name: stream.name,
             semesterNumber: stream.semesterNumber ?? 1,
             studentGroupType: 'Thread',
-            childIds: stream.groupIds,
+            children: stream.groupIds.map((id) => ({ id, name: '' })),
           },
         }),
       );
@@ -176,7 +175,7 @@ export function useGroups() {
             name: updated.name,
             semesterNumber: updated.semesterNumber ?? 1,
             studentGroupType: 'Thread',
-            childIds: updated.groupIds,
+            children: updated.groupIds.map((id) => ({ id, name: '' })),
           },
         }),
       );

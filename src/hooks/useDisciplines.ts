@@ -255,6 +255,26 @@ export function useDisciplines() {
 
       try {
         if (updated.isRoot) {
+          // Загружаем актуальное состояние дисциплины с бэка, чтобы сохранить
+          // существующие batches для типов, которые не менялись
+          const { data: viewDto } = await academicDisciplineApi.getAcademicDiscipline({
+            academicDisciplineId: updated.id,
+          });
+          const oldTypes = viewDto.allowedLessonTypes ?? [];
+          const newTypes = updated.allowedLessonTypes ?? [];
+
+          // Для каждого типа: null если удалён, [] если новый, иначе — текущие данные с бэка
+          const resolveBatches = (
+            type: import('../api').AcademicDisciplineType,
+            batchKey: 'lectureLessonBatchInfos' | 'practiceLessonBatchInfos' | 'labLessonBatchInfos' | 'examLessonBatchInfos' | 'testLessonBatchInfos',
+          ): import('../api').LessonBatchInfoDto[] | null => {
+            const isAllowed = newTypes.includes(type);
+            if (!isAllowed) return null;           // тип удалён
+            const wasAllowed = oldTypes.includes(type);
+            if (!wasAllowed) return [];            // тип добавлен — пустой список
+            return viewDto[batchKey] ?? [];        // тип не менялся — сохраняем
+          };
+
           const result = await dispatch(
             saveDisciplineOnServer({
               discipline: updated,
@@ -265,12 +285,12 @@ export function useDisciplines() {
                 name: updated.name,
                 semesterNumber: updated.semesterNumber ?? 1,
                 academicDisciplineTargetType: 'General',
-                allowedLessonTypes: updated.allowedLessonTypes ?? [],
-                lectureLessonBatchInfos:  (updated.allowedLessonTypes ?? []).includes('Lecture')  ? [] : null,
-                practiceLessonBatchInfos: (updated.allowedLessonTypes ?? []).includes('Practice') ? [] : null,
-                labLessonBatchInfos:      (updated.allowedLessonTypes ?? []).includes('Lab')      ? [] : null,
-                examLessonBatchInfos:     (updated.allowedLessonTypes ?? []).includes('Exam')     ? [] : null,
-                testLessonBatchInfos:     (updated.allowedLessonTypes ?? []).includes('Test')     ? [] : null,
+                allowedLessonTypes: newTypes,
+                lectureLessonBatchInfos:  resolveBatches('Lecture',  'lectureLessonBatchInfos'),
+                practiceLessonBatchInfos: resolveBatches('Practice', 'practiceLessonBatchInfos'),
+                labLessonBatchInfos:      resolveBatches('Lab',      'labLessonBatchInfos'),
+                examLessonBatchInfos:     resolveBatches('Exam',     'examLessonBatchInfos'),
+                testLessonBatchInfos:     resolveBatches('Test',     'testLessonBatchInfos'),
                 comment: updated.comment,
               },
             }),
