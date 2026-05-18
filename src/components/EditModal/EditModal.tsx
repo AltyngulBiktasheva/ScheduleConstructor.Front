@@ -24,9 +24,11 @@ const REPEAT_LABELS: Record<string, string> = {
   'odd-weeks': 'По нечётным неделям',
 };
 
+export type EditMode = 'lesson' | 'batch';
+
 interface Props {
   discipline: Discipline;
-  onSave: (discipline: Discipline) => void;
+  onSave: (discipline: Discipline, mode: EditMode) => void;
   onClose: () => void;
 }
 
@@ -52,6 +54,7 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
   const classrooms = useAppSelector((s) => s.classroomsList.classrooms);
   const { groups, streams } = useAppSelector((s) => s.groupsList);
 
+  const [editMode, setEditMode] = useState<EditMode>('batch');
   const [formData, setFormData] = useState<Discipline>(() => ({
     ...discipline,
     occurrences: normalizeToOccurrences(discipline),
@@ -158,7 +161,7 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
       dayId: firstOcc?.dayId ?? formData.dayId,
       timeStart: firstOcc?.timeStart ?? formData.timeStart,
       timeEnd: firstOcc?.timeEnd ?? formData.timeEnd,
-    });
+    }, editMode);
   };
 
   const canAddOccurrence = !isStatic && occurrences.length < weeklyCount;
@@ -184,6 +187,32 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
           <button className={styles.closeBtn} onClick={onClose}>✕</button>
         </div>
 
+        {!isStatic && (
+          <>
+            <div className={styles.modeSelector}>
+              <button
+                className={`${styles.modeBtn} ${editMode === 'batch' ? styles.modeBtnActive : ''}`}
+                onClick={() => setEditMode('batch')}
+                type="button"
+              >
+                Шаблон
+              </button>
+              <button
+                className={`${styles.modeBtn} ${editMode === 'lesson' ? styles.modeBtnActive : ''}`}
+                onClick={() => setEditMode('lesson')}
+                type="button"
+              >
+                Занятие
+              </button>
+            </div>
+            <p className={styles.modeHint}>
+              {editMode === 'batch'
+                ? 'Изменения применятся ко всем занятиям этого шаблона'
+                : 'Изменения затронут только это конкретное занятие'}
+            </p>
+          </>
+        )}
+
         <div className={styles.form}>
           {/* ── Read-only: Название ── */}
           <Field label="Название">
@@ -199,36 +228,36 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
             </Field>
           )}
 
-          {/* ── Read-only: Группы ── */}
-          {groupNames.length > 0 && (
-            <Field label="Группы">
-              <span className={styles.readOnlyValue}>{groupNames.join(', ')}</span>
-            </Field>
+          {/* ── Read-only поля шаблона (скрываются в режиме «Занятие») ── */}
+          {editMode === 'batch' && (
+            <>
+              {groupNames.length > 0 && (
+                <Field label="Группы">
+                  <span className={styles.readOnlyValue}>{groupNames.join(', ')}</span>
+                </Field>
+              )}
+
+              <Field label="Часы">
+                <span className={styles.readOnlyValue}>{discipline.totalHoursCount ?? '—'}</span>
+              </Field>
+
+              <Field label="Совмещение">
+                <span className={styles.readOnlyValue}>
+                  {discipline.canOverlap ? 'По выбору' : 'Обязательная'}
+                </span>
+              </Field>
+
+              <Field label="Повторение">
+                <span className={styles.readOnlyValue}>
+                  {REPEAT_LABELS[discipline.repeat] ?? discipline.repeat}
+                </span>
+              </Field>
+
+              <Field label="Кол-во раз в неделю">
+                <span className={styles.readOnlyValue}>{discipline.weeklyCount ?? 1}</span>
+              </Field>
+            </>
           )}
-
-          {/* ── Read-only: Часы ── */}
-          <Field label="Часы">
-            <span className={styles.readOnlyValue}>{discipline.totalHoursCount ?? '—'}</span>
-          </Field>
-
-          {/* ── Read-only: Совмещение ── */}
-          <Field label="Совмещение">
-            <span className={styles.readOnlyValue}>
-              {discipline.canOverlap ? 'По выбору' : 'Обязательная'}
-            </span>
-          </Field>
-
-          {/* ── Read-only: Повторение ── */}
-          <Field label="Повторение">
-            <span className={styles.readOnlyValue}>
-              {REPEAT_LABELS[discipline.repeat] ?? discipline.repeat}
-            </span>
-          </Field>
-
-          {/* ── Read-only: Кол-во раз в неделю ── */}
-          <Field label="Кол-во раз в неделю">
-            <span className={styles.readOnlyValue}>{discipline.weeklyCount ?? 1}</span>
-          </Field>
 
           {/* ── Преподаватель (editable / read-only for static) ── */}
           <Field label="Преподаватель">

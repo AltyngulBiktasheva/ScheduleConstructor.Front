@@ -17,6 +17,7 @@ import type { LessonShortDto } from '../../api';
 import { useToast } from '../Toast/ToastContext';
 import { formatLocalDate } from '../../utils/dateUtils';
 import { LESSON_TYPE_LABELS } from '../../pages/disciplines/tabs/RootDisciplineForm';
+import type { EditMode } from '../EditModal/EditModal';
 import styles from './Styles.module.scss';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -474,7 +475,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
 
   // ── Сохранение из EditModal → POST /lesson/save ───────────────────────────
   const handleSaveDiscipline = useCallback(
-    async (updated: Discipline) => {
+    async (updated: Discipline, editMode: EditMode) => {
       if (!selectedScheduleId) return;
 
       const lesson = weekLessons.find((l) => l.id === updated.id);
@@ -502,7 +503,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
         flexibilityType: lesson.flexibilityType,
         allowCombining: lesson.allowCombining,
         hoursCost: 2,
-        updateBatch: true,
+        updateBatch: editMode === 'batch',
       }));
 
       if (saveLesson.rejected.match(result)) {
