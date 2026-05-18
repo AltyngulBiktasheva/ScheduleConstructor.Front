@@ -33,6 +33,7 @@ const REPEAT_OPTIONS: { value: RepeatType; label: string }[] = [
 // ─── Batch state ──────────────────────────────────────────────────────────────
 
 interface BatchForm {
+  lessonId?: string;             // UUID урока (для обновления существующих batch-ей)
   totalHoursCount?: number;
   groupIds: string[];
   isStatic: boolean;
@@ -66,6 +67,7 @@ function emptyBatch(): BatchForm {
 
 function batchFromDiscipline(d: Discipline): BatchForm {
   return {
+    lessonId: d.lessonId,
     totalHoursCount: d.totalHoursCount,
     groupIds: d.forIds ?? [],
     isStatic: d.isStatic,
@@ -280,6 +282,7 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
 
     // Первый batch — основной, остальные передаются как _extraBatches (транспортное поле)
     const extraBatches: Partial<Discipline>[] = batches.slice(1).map((c) => ({
+      lessonId: c.lessonId,
       forIds: c.groupIds,
       teachers: c.teachers,
       audiences: c.audiences,
@@ -297,7 +300,7 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
     onSave({
       ...first,
       id: initial?.id ?? crypto.randomUUID(),
-      lessonId: initial?.lessonId,
+      lessonId: first.lessonId ?? initial?.lessonId,
       name: generatedName,
       parentId,
       lessonType,

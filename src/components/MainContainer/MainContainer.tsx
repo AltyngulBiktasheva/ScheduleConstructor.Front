@@ -8,7 +8,7 @@ import type { Discipline } from '../../types';
 import type { SlotHighlight } from '../../api/slotHighlights';
 import { fetchSlotHighlights } from '../../api/slotHighlights';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { fetchWeekLessons, saveLesson, deleteWeekLesson } from '../../store/slices/lessonSlice';
+import { fetchWeekLessons, saveLesson } from '../../store/slices/lessonSlice';
 import { fetchGroupsAll } from '../../store/slices/groupsListSlice';
 import { fetchTeachersAll } from '../../store/slices/teachersListSlice';
 import { fetchClassroomsAll } from '../../store/slices/classroomsListSlice';
@@ -16,6 +16,7 @@ import { fetchCampuses } from '../../store/slices/campusSlice';
 import type { LessonShortDto } from '../../api';
 import { useToast } from '../Toast/ToastContext';
 import { formatLocalDate } from '../../utils/dateUtils';
+import { LESSON_TYPE_LABELS } from '../../pages/disciplines/tabs/RootDisciplineForm';
 import styles from './Styles.module.scss';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -61,7 +62,7 @@ function lessonToDiscipline(lesson: LessonShortDto, weekDates: string[]): Discip
 
   return {
     id: lesson.id,
-    name: lesson.academicDisciplineName || 'Занятие',
+    name: formatDisciplineName(lesson),
     lessonId: lesson.id,
     academicDisciplineId: lesson.academicDisciplineId ?? undefined,
     lessonType: lesson.academicDisciplineType ?? undefined,
@@ -88,7 +89,7 @@ function lessonToDiscipline(lesson: LessonShortDto, weekDates: string[]): Discip
 function lessonToListDiscipline(lesson: LessonShortDto): Discipline {
   return {
     id: lesson.id,
-    name: lesson.academicDisciplineName || 'Занятие',
+    name: formatDisciplineName(lesson),
     lessonId: lesson.id,
     academicDisciplineId: lesson.academicDisciplineId ?? undefined,
     lessonType: lesson.academicDisciplineType ?? undefined,
@@ -122,6 +123,15 @@ function filterLessonsByEntity(
     if (selection.type === 'groups') return lesson.studentGroups.some((g) => ids.includes(g.id));
     return false;
   });
+}
+
+/** Формирует название карточки: «Название (вид занятия)» */
+function formatDisciplineName(lesson: LessonShortDto): string {
+  const base = lesson.academicDisciplineName || 'Занятие';
+  const typeLabel = lesson.academicDisciplineType
+    ? LESSON_TYPE_LABELS[lesson.academicDisciplineType]
+    : undefined;
+  return typeLabel ? `${base} (${typeLabel})` : base;
 }
 
 function padTime(t: string): string {
@@ -429,18 +439,30 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
     [dispatch, selectedScheduleId, weekOffset, weekLessons, selection, refetchWeek, addToast],
   );
 
-  // ── DnD: возврат занятия в список (удаление) ─────────────────────────────
+  // ── DnD: возврат занятия в список (снятие времени) ────────────────────────
   const handleDisciplineReturn = useCallback(
     async (disciplineId: string) => {
       if (!selectedScheduleId) return;
       const lesson = weekLessons.find((l) => l.id === disciplineId);
       if (!lesson || lesson.flexibilityType === 'Fixed') return;
 
-      const result = await dispatch(deleteWeekLesson({ lessonId: disciplineId }));
-      if (deleteWeekLesson.rejected.match(result)) {
-        addToast((result.payload as string) || 'Не удалось удалить занятие', 'error');
+      const result = await dispatch(saveLesson({
+        id: lesson.id,
+        studentGroupIds: lesson.studentGroups.map((g) => g.id),
+        teacherIds: lesson.teachers.map((t) => t.id),
+        roomIds: lesson.rooms.map((r) => r.id),
+        dateWithTimeInterval: null,
+        flexibilityType: lesson.flexibilityType,
+        allowCombining: lesson.allowCombining,
+        hoursCost: 2,
+        updateBatch: false,
+      }));
+      if (saveLesson.rejected.match(result)) {
+        addToast((result.payload as string) || 'Не удалось снять время с занятия', 'error');
         refetchWeek(); // откат: восстанавливаем занятие в сетке
+        return;
       }
+      refetchWeek();
     },
     [dispatch, selectedScheduleId, weekLessons, addToast, refetchWeek],
   );
