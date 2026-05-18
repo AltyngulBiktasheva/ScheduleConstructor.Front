@@ -72,7 +72,7 @@ function buildLessonBatchInfo(
           dayOfWeek: DAY_ID_TO_DOW[occ.dayId] ?? 1,
           timeInterval: { timeFrom: padTime(occ.timeStart), timeTo: padTime(occ.timeEnd) },
         }))
-      : null,
+      : [],
     repeatType: mapRepeatType(discipline.repeat),
     dateInterval,
     allowCombining: discipline.canOverlap,
