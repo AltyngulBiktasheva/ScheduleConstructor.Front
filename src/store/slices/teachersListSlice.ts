@@ -33,10 +33,8 @@ export const fetchTeachersAll = createAsyncThunk(
   'teachersList/fetchAll',
   async (_, { rejectWithValue }) => {
     try {
-      const { data } = await teacherApi.searchTeachers({
-        searchParameters: { page: 1, itemsPerPage: 100 },
-      });
-      return data.items.map((dto) => ({
+      const { data } = await teacherApi.searchTeachersShort();
+      return data.map((dto) => ({
         id: dto.id,
         name: dto.fullname,
         contacts: dto.contacts ?? undefined,
