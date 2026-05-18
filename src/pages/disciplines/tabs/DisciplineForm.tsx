@@ -88,16 +88,23 @@ interface Props {
   onSave: (d: Discipline) => void;
   onCancel?: () => void;
   loading?: boolean;
+  /** Режим редактирования одного занятия (без кнопки «Добавить ещё») */
+  singleBatch?: boolean;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loading }) => {
+export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loading, singleBatch }) => {
   const [parentId, setParentId] = useState(initial?.parentId ?? '');
   const [lessonType, setLessonType] = useState<AcademicDisciplineType | undefined>(initial?.lessonType);
   const [batches, setBatches] = useState<BatchForm[]>(() => {
     if (!initial) return [emptyBatch()];
-    return [batchFromDiscipline(initial)];
+    // Если есть _extraBatches (редактирование всего batch-а) — загружаем все
+    const mainBatch = batchFromDiscipline(initial);
+    const extras = (initial._extraBatches ?? []).map((extra) =>
+      batchFromDiscipline({ ...initial, ...extra } as Discipline),
+    );
+    return [mainBatch, ...extras];
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -400,9 +407,11 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
         />
       ))}
 
-      <button className={styles.addBtn} onClick={addBatch} type="button">
-        + Добавить занятие
-      </button>
+      {!singleBatch && (
+        <button className={styles.addBtn} onClick={addBatch} type="button">
+          + Добавить занятие
+        </button>
+      )}
 
       {/* ── Actions ── */}
       <div className={styles.actions}>

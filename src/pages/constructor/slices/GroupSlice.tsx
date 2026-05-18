@@ -40,24 +40,11 @@ export const GroupSlice: React.FC<Props> = ({ onSelect }) => {
     stream.groupIds.map((id) => groups.find((g) => g.id === id)!).filter(Boolean);
 
   const selectStream = (stream: Stream) => {
-    const streamGroups = getStreamGroups(stream);
-    const allIds = [stream.id, ...streamGroups.flatMap((g) => [g.id, ...g.subgroups.map((s) => s.id)])];
-    const wasOn = Boolean(selected[stream.id]);
-    setSelected((prev) => {
-      const next = { ...prev };
-      allIds.forEach((id) => { next[id] = !wasOn; });
-      return next;
-    });
+    setSelected((prev) => ({ ...prev, [stream.id]: !prev[stream.id] }));
   };
 
   const selectGroup = (group: Group) => {
-    const allIds = [group.id, ...group.subgroups.map((s) => s.id)];
-    const wasOn = Boolean(selected[group.id]);
-    setSelected((prev) => {
-      const next = { ...prev };
-      allIds.forEach((id) => { next[id] = !wasOn; });
-      return next;
-    });
+    setSelected((prev) => ({ ...prev, [group.id]: !prev[group.id] }));
   };
 
   const selectSubgroup = (id: string) =>

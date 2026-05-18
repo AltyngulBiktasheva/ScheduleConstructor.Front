@@ -100,6 +100,15 @@ function payloadOrDefault(payload: LessonBatchInfoDto[] | null | undefined): Les
   return payload ?? [];
 }
 
+/** Маппинг lessonType → ключ в DTO */
+const BATCH_KEY_MAP: Record<string, 'lectureLessonBatchInfos' | 'practiceLessonBatchInfos' | 'labLessonBatchInfos' | 'examLessonBatchInfos' | 'testLessonBatchInfos'> = {
+  Lecture:  'lectureLessonBatchInfos',
+  Practice: 'practiceLessonBatchInfos',
+  Lab:      'labLessonBatchInfos',
+  Exam:     'examLessonBatchInfos',
+  Test:     'testLessonBatchInfos',
+};
+
 /** Собирает и отправляет /academic-discipline/save для Lecture/Practice/Lab */
 async function saveAsPayload(
   discipline: Discipline,
@@ -141,6 +150,46 @@ async function saveAsPayload(
     labLessonBatchInfos:      lessonType === 'Lab'      ? updatedPayload : payloadOrDefault(viewDto.labLessonBatchInfos),
     examLessonBatchInfos:     lessonType === 'Exam'     ? updatedPayload : payloadOrDefault(viewDto.examLessonBatchInfos),
     testLessonBatchInfos:     lessonType === 'Test'     ? updatedPayload : payloadOrDefault(viewDto.testLessonBatchInfos),
+    comment: viewDto.comment ?? undefined,
+  });
+}
+
+/** Сохраняет одно занятие из batch-а, не трогая остальные batch-и того же типа */
+async function saveSingleBatch(
+  discipline: Discipline,
+  scheduleId: string,
+  rootDisciplines: Discipline[],
+  dateInterval: { dateFrom: string; dateTo: string },
+): Promise<void> {
+  const parentId = (discipline.parentId ?? discipline.academicDisciplineId)!;
+  const lessonType = discipline.lessonType!;
+  const batchKey = BATCH_KEY_MAP[lessonType];
+
+  const { data: viewDto } = await academicDisciplineApi.getAcademicDiscipline({
+    academicDisciplineId: parentId,
+  });
+  const root = rootDisciplines.find((r) => r.id === parentId);
+  const existingBatches: LessonBatchInfoDto[] = viewDto[batchKey] ?? [];
+
+  // Заменяем только редактируемый batch по id, остальные оставляем
+  const updatedBatches = existingBatches.map((b) =>
+    b.id === discipline.lessonId
+      ? buildLessonBatchInfo(discipline, dateInterval)
+      : b,
+  );
+
+  await academicDisciplineApi.saveAcademicDiscipline({
+    id: parentId,
+    scheduleId,
+    name: viewDto.name ?? root?.name,
+    semesterNumber: viewDto.semesterNumber ?? root?.semesterNumber ?? 1,
+    academicDisciplineTargetType: viewDto.academicDisciplineTargetType,
+    allowedLessonTypes: viewDto.allowedLessonTypes ?? root?.allowedLessonTypes,
+    lectureLessonBatchInfos:  batchKey === 'lectureLessonBatchInfos'  ? updatedBatches : payloadOrDefault(viewDto.lectureLessonBatchInfos),
+    practiceLessonBatchInfos: batchKey === 'practiceLessonBatchInfos' ? updatedBatches : payloadOrDefault(viewDto.practiceLessonBatchInfos),
+    labLessonBatchInfos:      batchKey === 'labLessonBatchInfos'      ? updatedBatches : payloadOrDefault(viewDto.labLessonBatchInfos),
+    examLessonBatchInfos:     batchKey === 'examLessonBatchInfos'     ? updatedBatches : payloadOrDefault(viewDto.examLessonBatchInfos),
+    testLessonBatchInfos:     batchKey === 'testLessonBatchInfos'     ? updatedBatches : payloadOrDefault(viewDto.testLessonBatchInfos),
     comment: viewDto.comment ?? undefined,
   });
 }
@@ -303,6 +352,12 @@ export function useDisciplines() {
             addToast((result.payload as string) || 'Не удалось сохранить дисциплину', 'error');
             return false;
           }
+        } else if (updated._singleBatchEdit) {
+          // Редактирование одного занятия — обновить только этот batch
+          const selectedSchedule = scheduleList.find((sc) => sc.id === selectedScheduleId);
+          const dateInterval = resolveDateInterval(updated.dateRange, selectedSchedule?.dateInterval);
+          await saveSingleBatch(updated, scheduleId, rootDisciplines, dateInterval);
+          dispatch(fetchDisciplinesAll());
         } else {
           const selectedSchedule = scheduleList.find((sc) => sc.id === selectedScheduleId);
           const dateInterval = resolveDateInterval(updated.dateRange, selectedSchedule?.dateInterval);

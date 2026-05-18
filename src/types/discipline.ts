@@ -78,8 +78,13 @@ export interface Discipline {
   batchIndex?: number;   // порядковый номер batch внутри payload (0, 1, 2...)
   batchTotal?: number;   // сколько всего batches в этом payload
 
+  // ── Группировка batch-ей (для аккордеона в реестре) ─────────────────────
+  childBatches?: Discipline[];
+
   // ── Транспортное поле для сохранения нескольких batches из формы ────────
   _extraBatches?: Partial<Discipline>[];
+  /** Флаг: при сохранении обновить только этот batch, а остальные оставить без изменений */
+  _singleBatchEdit?: boolean;
 
   // Устаревшие поля (совместимость с DisciplineCard / EditModal)
   building?: BuildingType;

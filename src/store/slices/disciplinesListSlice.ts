@@ -16,7 +16,7 @@ import type {
   LessonBatchInfoDto,
   DisciplineLessonRepeatType,
 } from '../../api';
-import type { Discipline } from '../../types/discipline';
+import type { Discipline, DisciplineTeacher, DisciplineAudience } from '../../types/discipline';
 import type { RepeatType } from '../../types/discipline';
 import { LESSON_TYPE_LABELS } from '../../pages/disciplines/tabs/RootDisciplineForm';
 import { extractError } from '../../utils/extractError';
@@ -89,6 +89,32 @@ function mapBatchToFields(batch: LessonBatchInfoDto) {
   };
 }
 
+// ─── Dedupe helpers ─────────────────────────────────────────────────────────
+
+function dedupe(arr: string[]): string[] {
+  return [...new Set(arr)];
+}
+
+function dedupeTeachers(teachers: DisciplineTeacher[]): DisciplineTeacher[] {
+  const seen = new Set<string>();
+  return teachers.filter((t) => {
+    if (seen.has(t.id)) return false;
+    seen.add(t.id);
+    return true;
+  });
+}
+
+function dedupeAudiences(audiences: DisciplineAudience[]): DisciplineAudience[] {
+  const seen = new Set<string>();
+  return audiences.filter((a) => {
+    if (seen.has(a.roomId)) return false;
+    seen.add(a.roomId);
+    return true;
+  });
+}
+
+// ─── mapDto ─────────────────────────────────────────────────────────────────
+
 function mapDto(dto: AcademicDisciplineRegistryItemDto): { root: Discipline; children: Discipline[] } {
   const root: Discipline = {
     id: dto.id,
@@ -115,28 +141,7 @@ function mapDto(dto: AcademicDisciplineRegistryItemDto): { root: Discipline; chi
     const batchKey = BATCH_KEY_MAP[type];
     const batches = batchKey ? (dto[batchKey] ?? []) : [];
 
-    if (batches.length) {
-      // Есть сохранённые batches — создаём отдельную карточку для каждого batch
-      const batchTotal = batches.length;
-      batches.forEach((batch, batchIndex) => {
-        const fields = mapBatchToFields(batch);
-        children.push({
-          id: batch.id ?? `${dto.id}_${type}_${batchIndex}`,
-          lessonId: batch.id ?? undefined,
-          name: childName,
-          isRoot: false,
-          parentId: dto.id,
-          academicDisciplineId: dto.id,
-          lessonType: type,
-          totalHoursCount: batch.hoursCost ?? batch.totalHoursCount ?? undefined,
-          forType: 'group',
-          comment: dto.comment ?? undefined,
-          batchIndex,
-          batchTotal,
-          ...fields,
-        });
-      });
-    } else {
+    if (batches.length === 0) {
       // Payload пуст или отсутствует — показываем placeholder
       children.push({
         id: `${dto.id}_${type}`,
@@ -154,9 +159,68 @@ function mapDto(dto: AcademicDisciplineRegistryItemDto): { root: Discipline; chi
         canOverlap: false,
         repeat: 'every-week',
         weeklyCount: 1,
+        batchTotal: 0,
         comment: dto.comment ?? undefined,
       });
+      continue;
     }
+
+    // Создаём Discipline для каждого batch
+    const batchDisciplines: Discipline[] = batches.map((batch, idx) => {
+      const fields = mapBatchToFields(batch);
+      return {
+        id: batch.id ?? `${dto.id}_${type}_${idx}`,
+        lessonId: batch.id ?? undefined,
+        name: childName,
+        isRoot: false,
+        parentId: dto.id,
+        academicDisciplineId: dto.id,
+        lessonType: type,
+        totalHoursCount: batch.hoursCost ?? batch.totalHoursCount ?? undefined,
+        forType: 'group' as const,
+        comment: dto.comment ?? undefined,
+        batchIndex: idx,
+        batchTotal: batches.length,
+        ...fields,
+      };
+    });
+
+    // Одна строка-группа со сводной информацией
+    const grouped: Discipline = {
+      id: `${dto.id}_${type}`,
+      name: childName,
+      isRoot: false,
+      parentId: dto.id,
+      academicDisciplineId: dto.id,
+      lessonType: type,
+      forType: 'group',
+      // Сводка: уникальные группы из всех batch-ей
+      forIds: dedupe(batchDisciplines.flatMap((d) => d.forIds)),
+      forNames: dedupe(batchDisciplines.flatMap((d) => d.forNames ?? []).filter(Boolean)),
+      // Сводные поля от первого batch (для просмотра)
+      isStatic: batchDisciplines[0].isStatic,
+      canOverlap: batchDisciplines[0].canOverlap,
+      repeat: batchDisciplines[0].repeat,
+      weeklyCount: batchDisciplines[0].weeklyCount,
+      teachers: dedupeTeachers(batchDisciplines.flatMap((d) => d.teachers)),
+      audiences: dedupeAudiences(batchDisciplines.flatMap((d) => d.audiences)),
+      comment: dto.comment ?? undefined,
+      batchTotal: batchDisciplines.length,
+    };
+
+    if (batchDisciplines.length === 1) {
+      // Один batch — копируем его данные напрямую (без аккордеона)
+      grouped.lessonId = batchDisciplines[0].lessonId;
+      grouped.roomId = batchDisciplines[0].roomId;
+      grouped.occurrences = batchDisciplines[0].occurrences;
+      grouped.dateRange = batchDisciplines[0].dateRange;
+      grouped.totalHoursCount = batchDisciplines[0].totalHoursCount;
+    } else {
+      // Несколько batch-ей — аккордеон
+      grouped.childBatches = batchDisciplines;
+    }
+
+    children.push(grouped);
   }
 
   return { root, children };

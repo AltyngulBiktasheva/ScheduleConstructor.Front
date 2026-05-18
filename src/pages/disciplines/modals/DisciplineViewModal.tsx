@@ -57,11 +57,35 @@ export const DisciplineViewModal: React.FC<Props> = ({
       );
     }
 
+    if (discipline.childBatches) {
+      // Редактирование всего batch-а: первый batch = initial, остальные = _extraBatches
+      const firstBatch = discipline.childBatches[0];
+      const initialForForm: Discipline = {
+        ...firstBatch,
+        _extraBatches: discipline.childBatches.slice(1),
+      };
+      return (
+        <Modal title="Редактирование дисциплины" onClose={onClose} width={640}>
+          <DisciplineForm
+            initial={initialForForm}
+            onSave={(updated) => { onUpdate(updated); setMode('view'); }}
+            onCancel={() => setMode('view')}
+          />
+        </Modal>
+      );
+    }
+
+    const isSingleBatchEdit = discipline.batchIndex != null && !!discipline.lessonId;
     return (
       <Modal title="Редактирование дисциплины" onClose={onClose} width={640}>
         <DisciplineForm
           initial={discipline}
-          onSave={(updated) => { onUpdate(updated); setMode('view'); }}
+          singleBatch={isSingleBatchEdit}
+          onSave={(updated) => {
+            const withFlag = isSingleBatchEdit ? { ...updated, _singleBatchEdit: true } : updated;
+            onUpdate(withFlag);
+            setMode('view');
+          }}
           onCancel={() => setMode('view')}
         />
       </Modal>
@@ -156,45 +180,83 @@ const RootView: React.FC<{ discipline: Discipline }> = ({ discipline }) => (
   </div>
 );
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Собирает уникальные значения для сводки по нескольким batch-ям */
+function mergeSummaryDisplay(values: (string | number | undefined | null)[]): string {
+  const unique = [...new Set(values.filter((v) => v != null).map(String))];
+  return unique.join(', ') || '—';
+}
+
 // ─── Child view ───────────────────────────────────────────────────────────────
 
-const ChildView: React.FC<{ discipline: Discipline }> = ({ discipline }) => (
-  <div className={styles.view}>
-    <Section title="Основное">
-      {discipline.lessonType && (
-        <Row label="Вид занятия">
-          <Badge variant="purple">{LESSON_TYPE_LABELS[discipline.lessonType] ?? discipline.lessonType}</Badge>
-        </Row>
-      )}
-      {discipline.totalHoursCount != null && (
-        <Row label="Количество часов">{discipline.totalHoursCount} ч.</Row>
-      )}
-      <Row label="Тип">
-        <div className={styles.badgeRow}>
-          <Badge variant={discipline.isStatic ? 'blue' : 'gray'}>
-            {discipline.isStatic ? 'Постоянная' : 'Непостоянная'}
-          </Badge>
-          <Badge variant={discipline.canOverlap ? 'purple' : 'gray'}>
-            {discipline.canOverlap ? 'По выбору' : 'Обязательная'}
-          </Badge>
-        </div>
-      </Row>
-      {discipline.forIds.length > 0 && (
-        <Row label="Группа">{discipline.forIds.join(', ')}</Row>
-      )}
-      {discipline.dateRange && (
-        <Row label="Период">
-          {discipline.dateRange.from} — {discipline.dateRange.to}
-        </Row>
-      )}
-    </Section>
-    {discipline.comment && (
-      <Section title="Комментарий">
-        <p className={styles.comment}>{discipline.comment}</p>
+const ChildView: React.FC<{ discipline: Discipline }> = ({ discipline }) => {
+  const batches = discipline.childBatches;
+
+  return (
+    <div className={styles.view}>
+      <Section title="Основное">
+        {discipline.lessonType && (
+          <Row label="Вид занятия">
+            <Badge variant="purple">{LESSON_TYPE_LABELS[discipline.lessonType] ?? discipline.lessonType}</Badge>
+          </Row>
+        )}
+        {batches ? (
+          // Сводная информация по нескольким batch-ям
+          <>
+            <Row label="Занятий">{batches.length}</Row>
+            <Row label="Количество часов">
+              {mergeSummaryDisplay(batches.map((b) => b.totalHoursCount))}
+            </Row>
+            <Row label="Тип">
+              <div className={styles.badgeRow}>
+                <Badge variant={discipline.isStatic ? 'blue' : 'gray'}>
+                  {discipline.isStatic ? 'Постоянная' : 'Непостоянная'}
+                </Badge>
+                <Badge variant={discipline.canOverlap ? 'purple' : 'gray'}>
+                  {discipline.canOverlap ? 'По выбору' : 'Обязательная'}
+                </Badge>
+              </div>
+            </Row>
+            {discipline.forIds.length > 0 && (
+              <Row label="Группы">{(discipline.forNames ?? []).filter(Boolean).join(', ') || '—'}</Row>
+            )}
+          </>
+        ) : (
+          // Одно занятие
+          <>
+            {discipline.totalHoursCount != null && (
+              <Row label="Количество часов">{discipline.totalHoursCount} ч.</Row>
+            )}
+            <Row label="Тип">
+              <div className={styles.badgeRow}>
+                <Badge variant={discipline.isStatic ? 'blue' : 'gray'}>
+                  {discipline.isStatic ? 'Постоянная' : 'Непостоянная'}
+                </Badge>
+                <Badge variant={discipline.canOverlap ? 'purple' : 'gray'}>
+                  {discipline.canOverlap ? 'По выбору' : 'Обязательная'}
+                </Badge>
+              </div>
+            </Row>
+            {discipline.forIds.length > 0 && (
+              <Row label="Группа">{(discipline.forNames ?? []).filter(Boolean).join(', ') || '—'}</Row>
+            )}
+            {discipline.dateRange && (
+              <Row label="Период">
+                {discipline.dateRange.from} — {discipline.dateRange.to}
+              </Row>
+            )}
+          </>
+        )}
       </Section>
-    )}
-  </div>
-);
+      {discipline.comment && (
+        <Section title="Комментарий">
+          <p className={styles.comment}>{discipline.comment}</p>
+        </Section>
+      )}
+    </div>
+  );
+};
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
