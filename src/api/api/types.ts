@@ -43,6 +43,17 @@ export interface DayOfWeekTimeInterval {
   timeInterval: TimeInterval;
 }
 
+export interface DayOfWeekTimeIntervalAssignmentShortDto {
+    id: string;
+    lessonBatchInfoId: string;
+    dayOfWeekTimeInterval: DayOfWeekTimeInterval;
+}
+
+export interface DayOfWeekTimeIntervalAssignmentSaveDto {
+    id?: string | null;
+    dayOfWeekTimeInterval: DayOfWeekTimeInterval;
+}
+
 export interface DateWithTimeInterval {
   date: string; // format: date
   timeInterval: TimeInterval;
@@ -72,13 +83,30 @@ export interface LessonBatchInfoDto {
   teacherIds: string[];
   roomIds: string[];
   lessonsPerWeekCount: number;
-  dayOfWeekTimeIntervals?: DayOfWeekTimeInterval[] | null;
+  dayOfWeekTimeIntervals?: DayOfWeekTimeIntervalAssignmentShortDto[] | null;
   repeatType: DisciplineLessonRepeatType;
   dateInterval: DateInterval;
   allowCombining: boolean;
   flexibilityType: LessonFlexibilityType;
   hoursCost?: number | null;
   totalHoursCount?: number | null;
+  comment?: string | null;
+}
+
+export interface LessonBatchInfoSaveDto {
+  id?: string | null;
+  studentGroupIds: string[];
+  teacherIds: string[];
+  roomIds: string[];
+  lessonsPerWeekCount: number;
+  dayOfWeekTimeIntervals?: DayOfWeekTimeIntervalAssignmentSaveDto[] | null;
+  repeatType: DisciplineLessonRepeatType;
+  dateInterval: DateInterval;
+  allowCombining: boolean;
+  flexibilityType: LessonFlexibilityType;
+  hoursCost?: number | null;
+  totalHoursCount?: number | null;
+  comment?: string | null;
 }
 
 export interface AcademicDisciplineViewDto {
@@ -119,11 +147,11 @@ export interface AcademicDisciplineSaveDto {
   associatedNames?: string[];
   academicDisciplineTargetType: AcademicDisciplineTargetType;
   allowedLessonTypes?: AcademicDisciplineType[] | null;
-  lectureLessonBatchInfos?: LessonBatchInfoDto[] | null;
-  practiceLessonBatchInfos?: LessonBatchInfoDto[] | null;
-  labLessonBatchInfos?: LessonBatchInfoDto[] | null;
-  examLessonBatchInfos?: LessonBatchInfoDto[] | null;
-  testLessonBatchInfos?: LessonBatchInfoDto[] | null;
+  lectureLessonBatchInfos?: LessonBatchInfoSaveDto[] | null;
+  practiceLessonBatchInfos?: LessonBatchInfoSaveDto[] | null;
+  labLessonBatchInfos?: LessonBatchInfoSaveDto[] | null;
+  examLessonBatchInfos?: LessonBatchInfoSaveDto[] | null;
+  testLessonBatchInfos?: LessonBatchInfoSaveDto[] | null;
   comment?: string | null;
 }
 

@@ -44,7 +44,7 @@ interface BatchForm {
   occurrences: WeeklyOccurrence[];
   teachers: DisciplineTeacher[];
   audiences: DisciplineAudience[];
-  comment: string;
+  comment?: string | null;
   collapsed: boolean;
 }
 
@@ -60,7 +60,6 @@ function emptyBatch(): BatchForm {
     occurrences: [],
     teachers: [],
     audiences: [],
-    comment: '',
     collapsed: false,
   };
 }
@@ -78,7 +77,7 @@ function batchFromDiscipline(d: Discipline): BatchForm {
     occurrences: d.occurrences ?? [],
     teachers: d.teachers ?? [],
     audiences: d.audiences ?? [],
-    comment: d.comment ?? '',
+    comment: d.comment,
     collapsed: false,
   };
 }
@@ -175,7 +174,7 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
     const last = batches[batches.length - 1];
     setBatches((prev) => [
       ...prev.map((c) => ({ ...c, collapsed: true })),
-      { ...last, groupIds: [], collapsed: false },
+      { ...last, lessonId: undefined, groupIds: [], collapsed: false },
     ]);
   };
 
@@ -286,7 +285,7 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
       forIds: c.groupIds,
       teachers: c.teachers,
       audiences: c.audiences,
-      roomId: c.audiences[0]?.roomId || undefined,
+      roomIds: c.audiences.map((x) => x.roomId),
       occurrences: c.occurrences,
       repeat: c.repeat,
       canOverlap: c.canOverlap,
@@ -309,7 +308,7 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
       forIds: first.groupIds,
       semesterNumber: selectedRoot?.semesterNumber,
       allowedLessonTypes: undefined,
-      roomId: first.audiences[0]?.roomId || undefined,
+      roomIds: first.audiences.map((x) => x.roomId),
       _extraBatches: extraBatches.length > 0 ? extraBatches : undefined,
     } as Discipline);
   };
@@ -381,34 +380,37 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
       </FormField>
 
       {/* ── Batches ── */}
-      {batches.map((batch, idx) => (
-        <BatchSection
-          key={idx}
-          index={idx}
-          batch={batch}
-          total={batches.length}
-          errors={idx === 0 ? errors : {}}
-          streamOptions={streamOptions}
-          actualGroupOptions={actualGroupOptions}
-          semiGroupOptions={semiGroupOptions}
-          allGroupsFlat={allGroupsFlat}
-          teachersList={teachersList}
-          roomOptions={roomOptions}
-          onUpdate={(patch) => updateBatch(idx, patch)}
-          onRemove={() => removeBatch(idx)}
-          onToggleCollapse={() => toggleCollapse(idx)}
-          onAddOccurrence={() => addOccurrence(idx)}
-          onRemoveOccurrence={(i) => removeOccurrence(idx, i)}
-          onUpdateOccurrence={(i, patch) => updateOccurrence(idx, i, patch)}
-          onToggleTeacher={(t) => toggleTeacher(idx, t)}
-          onAddAudience={() => addAudience(idx)}
-          onRemoveAudience={(i) => removeAudience(idx, i)}
-          onUpdateAudience={(i, patch) => updateAudience(idx, i, patch)}
-          handleTimeInput={handleTimeInput}
-          normalizeTime={normalizeTime}
-          handleDateInput={handleDateInput}
-        />
-      ))}
+      {batches.map((batch, idx) => {
+          console.log(batches);
+          return (
+              <BatchSection
+                  key={idx}
+                  index={idx}
+                  batch={batch}
+                  total={batches.length}
+                  errors={idx === 0 ? errors : {}}
+                  streamOptions={streamOptions}
+                  actualGroupOptions={actualGroupOptions}
+                  semiGroupOptions={semiGroupOptions}
+                  allGroupsFlat={allGroupsFlat}
+                  teachersList={teachersList}
+                  roomOptions={roomOptions}
+                  onUpdate={(patch) => updateBatch(idx, patch)}
+                  onRemove={() => removeBatch(idx)}
+                  onToggleCollapse={() => toggleCollapse(idx)}
+                  onAddOccurrence={() => addOccurrence(idx)}
+                  onRemoveOccurrence={(i) => removeOccurrence(idx, i)}
+                  onUpdateOccurrence={(i, patch) => updateOccurrence(idx, i, patch)}
+                  onToggleTeacher={(t) => toggleTeacher(idx, t)}
+                  onAddAudience={() => addAudience(idx)}
+                  onRemoveAudience={(i) => removeAudience(idx, i)}
+                  onUpdateAudience={(i, patch) => updateAudience(idx, i, patch)}
+                  handleTimeInput={handleTimeInput}
+                  normalizeTime={normalizeTime}
+                  handleDateInput={handleDateInput}
+              />
+          );
+      })}
 
       {!singleBatch && (
         <button className={styles.addBtn} onClick={addBatch} type="button">
@@ -818,7 +820,7 @@ const BatchSection: React.FC<BatchSectionProps> = ({
           <FormField label="Комментарий">
             <textarea
               className="field-input"
-              value={batch.comment}
+              value={batch.comment ?? ''}
               onChange={(e) => onUpdate({ comment: e.target.value })}
               rows={2}
               placeholder="Дополнительная информация..."

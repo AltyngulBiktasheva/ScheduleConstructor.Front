@@ -17,7 +17,7 @@ import {
   removeDisciplineLocally,
   saveDisciplineOnServer,
 } from '../store/slices/disciplinesListSlice';
-import { academicDisciplineApi } from '../api';
+import {academicDisciplineApi, type LessonBatchInfoSaveDto} from '../api';
 import { fetchSchedules, saveSchedule } from '../store/slices/scheduleSlice';
 import type {
   DayOfWeek,
@@ -57,20 +57,23 @@ function mapRepeatType(repeat: string | undefined): DisciplineLessonRepeatType {
   }
 }
 
-function buildLessonBatchInfo(
+function buildSaveLessonBatchInfo(
   discipline: Discipline,
   dateInterval: { dateFrom: string; dateTo: string },
-): LessonBatchInfoDto {
+): LessonBatchInfoSaveDto {
   return {
     id: discipline.lessonId || undefined,
-    studentGroups: discipline.forIds.map((i) => ({ id: i, name: '' })),
+    studentGroupIds: discipline.forIds,
     teacherIds: discipline.teachers.map((t) => t.id),
-    roomIds: discipline.roomId ? [discipline.roomId] : [],
+    roomIds: discipline.roomIds,
     lessonsPerWeekCount: discipline.weeklyCount ?? 1,
     dayOfWeekTimeIntervals: discipline.occurrences?.length
       ? discipline.occurrences.map((occ) => ({
-          dayOfWeek: DAY_ID_TO_DOW[occ.dayId] ?? 1,
-          timeInterval: { timeFrom: padTime(occ.timeStart), timeTo: padTime(occ.timeEnd) },
+          id: occ.id,
+          dayOfWeekTimeInterval: {
+            dayOfWeek: DAY_ID_TO_DOW[occ.dayId] ?? 1,
+            timeInterval: { timeFrom: padTime(occ.timeStart), timeTo: padTime(occ.timeEnd) },
+          },
         }))
       : [],
     repeatType: mapRepeatType(discipline.repeat),
@@ -79,6 +82,7 @@ function buildLessonBatchInfo(
     flexibilityType: discipline.isStatic ? 'Fixed' as const : 'Flexible' as const,
     hoursCost: discipline.totalHoursCount ?? 0,
     totalHoursCount: discipline.totalHoursCount ?? 0,
+    comment: discipline.comment,
   };
 }
 
@@ -96,8 +100,9 @@ function resolveDateInterval(
 }
 
 /** Если payload null — возвращает дефолтный объект с пустым массивом */
-function payloadOrDefault(payload: LessonBatchInfoDto[] | null | undefined): LessonBatchInfoDto[] {
-  return payload ?? [];
+function payloadOrDefault(payload: LessonBatchInfoDto[] | null | undefined): LessonBatchInfoSaveDto[] {
+  return payload?.map((x) =>
+      ({ ...x, studentGroupIds: x.studentGroups.map((sg) => sg.id) })) ?? [];
 }
 
 /** Маппинг lessonType → ключ в DTO */
@@ -125,18 +130,18 @@ async function saveAsPayload(
   const root = rootDisciplines.find((r) => r.id === parentId);
 
   // Основной batch + дополнительные из _extraBatches (транспортное поле формы)
-  const allBatchInfos: LessonBatchInfoDto[] = [
-    buildLessonBatchInfo(discipline, dateInterval),
+  const allBatchInfos: LessonBatchInfoSaveDto[] = [
+    buildSaveLessonBatchInfo(discipline, dateInterval),
     ...(discipline._extraBatches ?? []).map((extra) => {
       const extraDateInterval = resolveDateInterval(
         extra.dateRange,
         { dateFrom: dateInterval.dateFrom, dateTo: dateInterval.dateTo },
       );
-      return buildLessonBatchInfo({ ...discipline, ...extra } as Discipline, extraDateInterval);
+      return buildSaveLessonBatchInfo({ ...discipline, ...extra } as Discipline, extraDateInterval);
     }),
   ];
 
-  const updatedPayload: LessonBatchInfoDto[] = allBatchInfos;
+  const updatedPayload: LessonBatchInfoSaveDto[] = allBatchInfos;
 
   await academicDisciplineApi.saveAcademicDiscipline({
     id: parentId,
@@ -174,8 +179,8 @@ async function saveSingleBatch(
   // Заменяем только редактируемый batch по id, остальные оставляем
   const updatedBatches = existingBatches.map((b) =>
     b.id === discipline.lessonId
-      ? buildLessonBatchInfo(discipline, dateInterval)
-      : b,
+      ? buildSaveLessonBatchInfo(discipline, dateInterval)
+      : ({ ...b, studentGroupIds: b.studentGroups.map((sg) => sg.id) }),
   );
 
   await academicDisciplineApi.saveAcademicDiscipline({
@@ -237,6 +242,7 @@ export function useDisciplines() {
         isRoot: true,
         semesterNumber: data.semesterNumber,
         allowedLessonTypes: data.allowedLessonTypes,
+        roomIds: [],
         forType: 'group',
         forIds: [],
         teachers: [],
@@ -319,12 +325,14 @@ export function useDisciplines() {
           const resolveBatches = (
             type: import('../api').AcademicDisciplineType,
             batchKey: 'lectureLessonBatchInfos' | 'practiceLessonBatchInfos' | 'labLessonBatchInfos' | 'examLessonBatchInfos' | 'testLessonBatchInfos',
-          ): import('../api').LessonBatchInfoDto[] | null => {
+          ): import('../api').LessonBatchInfoSaveDto[] | null => {
             const isAllowed = newTypes.includes(type);
             if (!isAllowed) return null;           // тип удалён
             const wasAllowed = oldTypes.includes(type);
             if (!wasAllowed) return [];            // тип добавлен — пустой список
-            return viewDto[batchKey] ?? [];        // тип не менялся — сохраняем
+            const views = viewDto[batchKey]; // тип не менялся — сохраняем
+            return (views ?? []).map((view) =>
+                ({ ...view, studentGroupIds: view.studentGroups.map((sg) => sg.id) }));
           };
 
           const result = await dispatch(

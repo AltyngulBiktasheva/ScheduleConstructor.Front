@@ -74,9 +74,10 @@ function mapBatchToFields(batch: LessonBatchInfoDto) {
     canOverlap: batch.allowCombining ?? false,
     repeat: mapRepeatTypeReverse(batch.repeatType) as RepeatType,
     occurrences: (batch.dayOfWeekTimeIntervals ?? []).map((dwt) => ({
-      dayId: DOW_TO_DAY[dwt.dayOfWeek] ?? 'mon',
-      timeStart: dwt.timeInterval.timeFrom.slice(0, 5),
-      timeEnd: dwt.timeInterval.timeTo.slice(0, 5),
+      id: dwt.id,
+      dayId: DOW_TO_DAY[dwt.dayOfWeekTimeInterval.dayOfWeek] ?? 'mon',
+      timeStart: dwt.dayOfWeekTimeInterval.timeInterval.timeFrom.slice(0, 5),
+      timeEnd: dwt.dayOfWeekTimeInterval.timeInterval.timeTo.slice(0, 5),
     })),
     weeklyCount: batch.lessonsPerWeekCount ?? ((batch.dayOfWeekTimeIntervals ?? []).length || 1),
     isStatic: batch.flexibilityType === 'Fixed',
@@ -85,7 +86,7 @@ function mapBatchToFields(batch: LessonBatchInfoDto) {
       : undefined,
     teachers: (batch.teacherIds ?? []).map((id) => ({ id, name: '' })),
     audiences: (batch.roomIds ?? []).map((id) => ({ roomId: id })),
-    roomId: batch.roomIds?.[0] ?? undefined,
+    roomIds: batch.roomIds,
   };
 }
 
@@ -122,6 +123,7 @@ function mapDto(dto: AcademicDisciplineRegistryItemDto): { root: Discipline; chi
     isRoot: true,
     semesterNumber: dto.semesterNumber,
     allowedLessonTypes: dto.allowedLessonTypes,
+    roomIds: [],
     forType: 'group',
     forIds: [],
     teachers: [],
@@ -151,6 +153,7 @@ function mapDto(dto: AcademicDisciplineRegistryItemDto): { root: Discipline; chi
         academicDisciplineId: dto.id,
         lessonType: type,
         totalHoursCount: undefined,
+        roomIds: [],
         forType: 'group',
         forIds: [],
         teachers: [],
@@ -178,7 +181,7 @@ function mapDto(dto: AcademicDisciplineRegistryItemDto): { root: Discipline; chi
         lessonType: type,
         totalHoursCount: batch.hoursCost ?? batch.totalHoursCount ?? undefined,
         forType: 'group' as const,
-        comment: dto.comment ?? undefined,
+        comment: batch.comment ?? undefined,
         batchIndex: idx,
         batchTotal: batches.length,
         ...fields,
@@ -193,6 +196,7 @@ function mapDto(dto: AcademicDisciplineRegistryItemDto): { root: Discipline; chi
       parentId: dto.id,
       academicDisciplineId: dto.id,
       lessonType: type,
+      roomIds: dedupe(batchDisciplines.flatMap((d) => d.roomIds)),
       forType: 'group',
       // Сводка: уникальные группы из всех batch-ей
       forIds: dedupe(batchDisciplines.flatMap((d) => d.forIds)),
@@ -211,7 +215,7 @@ function mapDto(dto: AcademicDisciplineRegistryItemDto): { root: Discipline; chi
     if (batchDisciplines.length === 1) {
       // Один batch — копируем его данные напрямую (без аккордеона)
       grouped.lessonId = batchDisciplines[0].lessonId;
-      grouped.roomId = batchDisciplines[0].roomId;
+      grouped.roomIds = batchDisciplines[0].roomIds;
       grouped.occurrences = batchDisciplines[0].occurrences;
       grouped.dateRange = batchDisciplines[0].dateRange;
       grouped.totalHoursCount = batchDisciplines[0].totalHoursCount;

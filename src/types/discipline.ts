@@ -5,6 +5,7 @@ export type RepeatType = 'every-week' | 'once' | 'even-weeks' | 'odd-weeks';
 export type ForType = 'group' | 'stream';
 
 export interface WeeklyOccurrence {
+  id?: string | null;
   dayId: string;
   timeStart: string;
   timeEnd: string;
@@ -43,7 +44,7 @@ export interface Discipline {
   // ── Связанные сущности ─────────────────────────────────────────────────
   academicDisciplineId?: string;   // UUID академической дисциплины (для дочерних = parentId)
   lessonId?: string;               // UUID урока из lessonBatchInfo (для обновления через /lesson/save)
-  roomId?: string;                 // UUID аудитории
+  roomIds: string[];                 // UUID аудитории
 
   forType: ForType;
   forIds: string[];                // id групп/потоков
@@ -61,7 +62,7 @@ export interface Discipline {
   occurrences?: WeeklyOccurrence[];
   dateRange?: DisciplineDateRange;
 
-  comment?: string;
+  comment?: string | null;
 
   // ── Поля для сетки расписания ──────────────────────────────────────────
   isInGrid?: boolean;
