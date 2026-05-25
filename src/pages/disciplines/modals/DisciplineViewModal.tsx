@@ -301,6 +301,23 @@ const ChildView: React.FC<{ discipline: Discipline }> = ({ discipline }) => {
                 </Row>
               );
             })()}
+            {/* Комментарии batch-ей */}
+            {(() => {
+              const comments = batches
+                .map((b, i) => ({ idx: i + 1, text: b.comment }))
+                .filter((c) => c.text);
+              if (comments.length === 0) return null;
+              return (
+                <Row label="Комментарии">
+                  {comments.map((c) => (
+                    <div key={c.idx}>
+                      {batches.length > 1 && <strong>#{c.idx}: </strong>}
+                      {c.text}
+                    </div>
+                  ))}
+                </Row>
+              );
+            })()}
           </>
         ) : (
           // Одно занятие
