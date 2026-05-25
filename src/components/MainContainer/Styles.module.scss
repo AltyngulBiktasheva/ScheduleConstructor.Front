@@ -24,3 +24,72 @@
   z-index: 10;
   pointer-events: none;
 }
+
+// ─── Detached warning modal ──────────────────────────────────────────────────
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: $z-modal;
+  backdrop-filter: blur(2px);
+}
+
+.detachedModal {
+  background: $color-white;
+  border-radius: $border-radius-xl;
+  padding: $space-6;
+  max-width: 420px;
+  width: 90%;
+  box-shadow: $shadow-xl;
+
+  p {
+    margin: 0 0 $space-3;
+    font-size: $font-size-base;
+    color: $color-gray-700;
+  }
+}
+
+.detachedHint {
+  font-size: $font-size-sm !important;
+  color: $color-gray-500 !important;
+}
+
+.detachedActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: $space-3;
+  margin-top: $space-4;
+}
+
+.detachedCancel {
+  padding: $space-2 $space-4;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  background: $color-white;
+  color: $color-gray-600;
+  cursor: pointer;
+  font-size: $font-size-sm;
+
+  &:hover {
+    background: $color-gray-100;
+  }
+}
+
+.detachedConfirm {
+  padding: $space-2 $space-4;
+  border: none;
+  border-radius: $border-radius;
+  background: $color-primary;
+  color: $color-white;
+  cursor: pointer;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+
+  &:hover {
+    background: $color-primary-hover;
+  }
+}

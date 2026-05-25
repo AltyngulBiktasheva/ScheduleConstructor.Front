@@ -1,0 +1,108 @@
+@use '../../styles/variables' as *;
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: $z-modal;
+  backdrop-filter: blur(2px);
+  animation: fadeIn $transition-fast;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0 }
+  to { opacity: 1 }
+}
+
+.modal {
+  background: $color-white;
+  border-radius: $border-radius-xl;
+  width: 440px;
+  max-width: calc(100vw - 32px);
+  max-height: 70vh;
+  overflow-y: auto;
+  box-shadow: $shadow-xl;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $space-4 $space-5;
+  border-bottom: 1px solid $border-color;
+}
+
+.title {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-gray-800;
+}
+
+.closeBtn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: $color-gray-100;
+  color: $color-gray-500;
+  border-radius: $border-radius;
+  cursor: pointer;
+  font-size: $font-size-sm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: $color-gray-200;
+    color: $color-gray-700;
+  }
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+  padding: $space-4 $space-5;
+}
+
+.item {
+  display: flex;
+  gap: $space-3;
+  padding: $space-2 $space-3;
+  border-radius: $border-radius;
+  font-size: $font-size-sm;
+  align-items: baseline;
+}
+
+.itemError {
+  background: $slot-red;
+  border: 1px solid $slot-red-border;
+  color: $color-danger;
+}
+
+.itemWarning {
+  background: #fef9c3;
+  border: 1px solid #fde68a;
+  color: #92400e;
+}
+
+.time {
+  font-family: monospace;
+  font-weight: $font-weight-medium;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.message {
+  flex: 1;
+}
+
+.empty {
+  text-align: center;
+  color: $color-gray-400;
+  font-size: $font-size-sm;
+  padding: $space-4;
+}

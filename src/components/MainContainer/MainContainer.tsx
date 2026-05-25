@@ -4,6 +4,7 @@ import { TransposedScheduleGrid } from '../ScheduleGrid/TransposedScheduleGrid';
 import type { GridColumn } from '../ScheduleGrid/TransposedScheduleGrid';
 import { DisciplineList } from '../DisciplineList/DisciplineList';
 import { EditModal } from '../EditModal/EditModal';
+import { HighlightModal } from '../HighlightModal/HighlightModal';
 import type { Discipline } from '../../types';
 import type { SlotHighlight } from '../../api/slotHighlights';
 import { fetchSlotHighlights } from '../../api/slotHighlights';
@@ -82,6 +83,7 @@ function lessonToDiscipline(lesson: LessonShortDto, weekDates: string[]): Discip
     timeStart: dt.timeInterval.timeFrom.slice(0, 5),
     timeEnd: dt.timeInterval.timeTo.slice(0, 5),
     errorLevel: lesson.currentErrorsMaxLevel ?? null,
+    errorMessage: lesson.lessonPolicyViolationDescription ?? undefined,
     teacher: lesson.teachers.map((t) => t.fullname).filter(Boolean).join(', ') || undefined,
     audience: lesson.rooms.map((r) => r.name).filter(Boolean).join(', ') || undefined,
   };
@@ -105,6 +107,8 @@ function lessonToListDiscipline(lesson: LessonShortDto): Discipline {
     repeat: 'every-week',
     weeklyCount: 1,
     isInGrid: false,
+    errorLevel: lesson.currentErrorsMaxLevel ?? null,
+    errorMessage: lesson.lessonPolicyViolationDescription ?? undefined,
     teacher: lesson.teachers.map((t) => t.fullname).filter(Boolean).join(', ') || undefined,
     audience: lesson.rooms.map((r) => r.name).filter(Boolean).join(', ') || undefined,
   };
@@ -146,8 +150,8 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
   const dispatch = useAppDispatch();
   const { weekLessons, weekLessonsLoading } = useAppSelector((s) => s.lesson);
   const selectedScheduleId = useAppSelector((s) => s.schedule.selectedScheduleId);
-  const scheduleStartDate = useAppSelector((s) =>
-    s.schedule.list.find((sc) => sc.id === s.schedule.selectedScheduleId)?.dateInterval.dateFrom ?? null
+  const scheduleDateInterval = useAppSelector((s) =>
+    s.schedule.list.find((sc) => sc.id === s.schedule.selectedScheduleId)?.dateInterval ?? null
   );
   const { groups, streams } = useAppSelector((s) => s.groupsList);
   const teachersList = useAppSelector((s) => s.teachersList.teachers);
@@ -162,11 +166,32 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
 
   const { addToast } = useToast();
 
-  const [weekOffset, setWeekOffset] = useState(0);
+  // Вычисляем начальный offset: если текущая дата вне рамок расписания — показываем первую неделю
+  const [weekOffset, setWeekOffset] = useState(() => {
+    if (!scheduleDateInterval) return 0;
+    const now = new Date();
+    const schedStart = new Date(scheduleDateInterval.dateFrom);
+    const schedEnd = new Date(scheduleDateInterval.dateTo);
+    if (now >= schedStart && now <= schedEnd) return 0;
+    // Текущая дата вне расписания → сдвигаем к началу расписания
+    const dow = now.getDay();
+    const diffToMonday = dow === 0 ? -6 : 1 - dow;
+    const currentMonday = new Date(now);
+    currentMonday.setDate(now.getDate() + diffToMonday);
+    currentMonday.setHours(0, 0, 0, 0);
+    const startDow = schedStart.getDay();
+    const startDiffToMonday = startDow === 0 ? -6 : 1 - startDow;
+    const schedMonday = new Date(schedStart);
+    schedMonday.setDate(schedStart.getDate() + startDiffToMonday);
+    schedMonday.setHours(0, 0, 0, 0);
+    return Math.round((schedMonday.getTime() - currentMonday.getTime()) / (7 * 24 * 60 * 60 * 1000));
+  });
   const [editingDiscipline, setEditingDiscipline] = useState<Discipline | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [loadingHighlightId, setLoadingHighlightId] = useState<string | null>(null);
   const [highlights, setHighlights] = useState<SlotHighlight[]>([]);
+  const [highlightModal, setHighlightModal] = useState<SlotHighlight | null>(null);
+  const [detachedWarning, setDetachedWarning] = useState<{ message: string; dto: any } | null>(null);
 
   // ── Загрузка занятий недели ───────────────────────────────────────────────
   useEffect(() => {
@@ -397,7 +422,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
           flexibilityType: existingLesson.flexibilityType,
           allowCombining: existingLesson.allowCombining,
           hoursCost: 2,
-          updateBatch: false,
+          updateBatch: true,
         }));
         if (saveLesson.rejected.match(result)) {
           addToast((result.payload as string) || 'Не удалось переместить занятие', 'error');
@@ -427,7 +452,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
           flexibilityType: unscheduledLesson.flexibilityType,
           allowCombining: unscheduledLesson.allowCombining,
           hoursCost: 2,
-          updateBatch: false,
+          updateBatch: true,
         }));
         if (saveLesson.rejected.match(result)) {
           addToast((result.payload as string) || 'Не удалось добавить занятие', 'error');
@@ -486,7 +511,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
 
       const date = updated.dayId
         ? weekDates[DAY_IDS.indexOf(updated.dayId as typeof DAY_IDS[number])] ?? weekDates[0]
-        : lesson.dateWithTimeInterval.date;
+        : lesson.dateWithTimeInterval?.date ?? weekDates[0];
 
       const result = await dispatch(saveLesson({
         id: lesson.id,
@@ -496,8 +521,8 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
         dateWithTimeInterval: {
           date,
           timeInterval: {
-            timeFrom: padTime(updated.timeStart ?? lesson.dadateWithTimeInterval.timeInterval.timeFrom.slice(0, 5)),
-            timeTo: padTime(updated.timeEnd ?? lesson.dateWithTimeInterval.timeInterval.timeTo.slice(0, 5)),
+            timeFrom: padTime(updated.timeStart ?? lesson.dateWithTimeInterval?.timeInterval?.timeFrom?.slice(0, 5) ?? '09:00'),
+            timeTo: padTime(updated.timeEnd ?? lesson.dateWithTimeInterval?.timeInterval?.timeTo?.slice(0, 5) ?? '10:30'),
           },
         },
         flexibilityType: lesson.flexibilityType,
@@ -507,7 +532,32 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
       }));
 
       if (saveLesson.rejected.match(result)) {
-        addToast((result.payload as string) || 'Не удалось сохранить занятие', 'error');
+        const errorMsg = (result.payload as string) || '';
+        // Если занятие откреплено от шаблона — уведомляем и ретраим без batch
+        if (editMode === 'batch' && errorMsg.toLowerCase().includes('откреплено')) {
+          setDetachedWarning({
+            message: errorMsg,
+            dto: {
+              id: lesson.id,
+              studentGroupIds: lesson.studentGroups.map((g) => g.id),
+              teacherIds: updated.teachers?.map((t) => t.id) ?? lesson.teachers.map((t) => t.id),
+              roomIds: updated.roomIds || lesson.rooms.map((r) => r.id),
+              dateWithTimeInterval: {
+                date,
+                timeInterval: {
+                  timeFrom: padTime(updated.timeStart ?? lesson.dateWithTimeInterval?.timeInterval?.timeFrom?.slice(0, 5) ?? '09:00'),
+                  timeTo: padTime(updated.timeEnd ?? lesson.dateWithTimeInterval?.timeInterval?.timeTo?.slice(0, 5) ?? '10:30'),
+                },
+              },
+              flexibilityType: lesson.flexibilityType,
+              allowCombining: lesson.allowCombining,
+              hoursCost: 2,
+              updateBatch: false,
+            },
+          });
+          return;
+        }
+        addToast(errorMsg || 'Не удалось сохранить занятие', 'error');
         return; // модальное окно остаётся открытым
       }
 
@@ -552,11 +602,12 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
     onMove: handleDisciplineMove,
     onDisciplineClick: handleDisciplineClick,
     onToggleHighlight: handleToggleHighlight,
+    onHighlightClick: (hl: SlotHighlight) => setHighlightModal(hl),
     highlightedDisciplineId: highlightedId,
     loadingHighlightId: loadingHighlightId,
     weekOffset,
     onWeekOffsetChange: setWeekOffset,
-    scheduleStartDate,
+    scheduleDateInterval,
   };
 
   return (
@@ -581,6 +632,41 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
           onSave={handleSaveDiscipline}
           onClose={() => setEditingDiscipline(null)}
         />
+      )}
+      {highlightModal && (
+        <HighlightModal
+          messages={highlightModal.messages}
+          color={highlightModal.color}
+          onClose={() => setHighlightModal(null)}
+        />
+      )}
+      {detachedWarning && (
+        <div className={styles.overlay} onClick={() => setDetachedWarning(null)}>
+          <div className={styles.detachedModal} onClick={(e) => e.stopPropagation()}>
+            <p>{detachedWarning.message}</p>
+            <p className={styles.detachedHint}>Изменения будут применены только к этому занятию.</p>
+            <div className={styles.detachedActions}>
+              <button className={styles.detachedCancel} onClick={() => setDetachedWarning(null)}>Отмена</button>
+              <button
+                className={styles.detachedConfirm}
+                onClick={async () => {
+                  const dto = detachedWarning.dto;
+                  setDetachedWarning(null);
+                  const retryResult = await dispatch(saveLesson(dto));
+                  if (saveLesson.fulfilled.match(retryResult)) {
+                    setEditingDiscipline(null);
+                    refetchWeek();
+                    addToast('Занятие сохранено (как отдельное)', 'success');
+                  } else {
+                    addToast((retryResult.payload as string) || 'Не удалось сохранить', 'error');
+                  }
+                }}
+              >
+                Сохранить как отдельное
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

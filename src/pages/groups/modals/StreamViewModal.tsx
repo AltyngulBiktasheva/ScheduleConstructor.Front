@@ -86,7 +86,6 @@ export const StreamViewModal: React.FC<Props> = ({
             <span className={styles.none}>Нет групп</span>
           )}
         </Row>
-        <Row label="Дисциплин">{stream.disciplineIds.length} шт.</Row>
       </div>
     </Modal>
   );

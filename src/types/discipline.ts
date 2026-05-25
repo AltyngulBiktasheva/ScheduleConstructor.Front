@@ -74,6 +74,7 @@ export interface Discipline {
 
   // ── Уровень ошибок валидации ───────────────────────────────────────────
   errorLevel?: 'Warning' | 'Error' | null;
+  errorMessage?: string;
 
   // ── Batch-метаданные (для sidebar: один batch = одна карточка) ───────────
   batchIndex?: number;   // порядковый номер batch внутри payload (0, 1, 2...)

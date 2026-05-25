@@ -141,7 +141,13 @@ async function saveAsPayload(
     }),
   ];
 
-  const updatedPayload: LessonBatchInfoSaveDto[] = allBatchInfos;
+  // Загружаем существующие batch-и того же типа и добавляем новые к ним
+  const batchKey = BATCH_KEY_MAP[lessonType];
+  const existingBatches: LessonBatchInfoSaveDto[] = (viewDto[batchKey] ?? []).map((b: any) => ({
+    ...b,
+    studentGroupIds: b.studentGroups?.map((sg: any) => sg.id) ?? b.studentGroupIds ?? [],
+  }));
+  const updatedPayload: LessonBatchInfoSaveDto[] = [...existingBatches, ...allBatchInfos];
 
   await academicDisciplineApi.saveAcademicDiscipline({
     id: parentId,
@@ -325,9 +331,9 @@ export function useDisciplines() {
           const resolveBatches = (
             type: import('../api').AcademicDisciplineType,
             batchKey: 'lectureLessonBatchInfos' | 'practiceLessonBatchInfos' | 'labLessonBatchInfos' | 'examLessonBatchInfos' | 'testLessonBatchInfos',
-          ): import('../api').LessonBatchInfoSaveDto[] | null => {
+          ): import('../api').LessonBatchInfoSaveDto[] => {
             const isAllowed = newTypes.includes(type);
-            if (!isAllowed) return null;           // тип удалён
+            if (!isAllowed) return [];             // тип удалён — пустой массив
             const wasAllowed = oldTypes.includes(type);
             if (!wasAllowed) return [];            // тип добавлен — пустой список
             const views = viewDto[batchKey]; // тип не менялся — сохраняем

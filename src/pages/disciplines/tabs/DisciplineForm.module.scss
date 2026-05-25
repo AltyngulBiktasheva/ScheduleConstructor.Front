@@ -318,3 +318,61 @@
   margin-bottom: $space-1;
   line-height: 1.3;
 }
+
+// ─── Group tree select ───────────────────────────────────────────────────────
+
+.groupTree {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  padding: $space-2;
+}
+
+.treeNode {
+  display: flex;
+  flex-direction: column;
+}
+
+.treeRow {
+  display: flex;
+  align-items: center;
+  gap: $space-1;
+  padding: 2px 0;
+}
+
+.treeExpandBtn {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.treeArrow {
+  font-size: 10px;
+  color: $color-gray-400;
+  transition: transform $transition-fast;
+  display: inline-block;
+}
+
+.treeArrowOpen {
+  transform: rotate(90deg);
+}
+
+.treeSpacer {
+  width: 20px;
+  flex-shrink: 0;
+}
+
+.treeChildren {
+  padding-left: 20px;
+}

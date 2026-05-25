@@ -53,6 +53,7 @@ export const DisciplineCard: React.FC<Props> = ({
       draggable={isDraggable}
       onDragStart={isDraggable ? onDragStart : undefined}
       onClick={onClick}
+      title={discipline.errorMessage || undefined}
     >
       {onToggleHighlight && (
         <button

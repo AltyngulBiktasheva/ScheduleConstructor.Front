@@ -264,6 +264,26 @@
   gap: $space-1;
 }
 
+// ─── Validation banners ──────────────────────────────────────────────────────
+
+.errorBanner {
+  padding: $space-2 $space-3;
+  background: $slot-red;
+  color: $color-danger;
+  border-radius: $border-radius;
+  font-size: $font-size-sm;
+  border: 1px solid $slot-red-border;
+}
+
+.warningBanner {
+  padding: $space-2 $space-3;
+  background: #fef9c3;
+  color: #92400e;
+  border-radius: $border-radius;
+  font-size: $font-size-sm;
+  border: 1px solid #fde68a;
+}
+
 // ─── Error & Actions ──────────────────────────────────────────────────────────
 
 .error {

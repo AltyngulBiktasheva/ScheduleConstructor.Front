@@ -40,7 +40,7 @@ interface Props {
   loadingHighlightId?: string | null;
   weekOffset?: number;
   onWeekOffsetChange?: (offset: number) => void;
-  scheduleStartDate?: string | null;
+  scheduleDateInterval?: { dateFrom: string; dateTo: string } | null;
 }
 
 // ─── Pure helpers ─────────────────────────────────────────────────────────────
@@ -88,7 +88,7 @@ export const TransposedScheduleGrid: React.FC<Props> = ({
   loadingHighlightId,
   weekOffset = 0,
   onWeekOffsetChange,
-  scheduleStartDate,
+  scheduleDateInterval,
 }) => {
   const [zoomIndex, setZoomIndex] = useState(DEFAULT_ZOOM_INDEX);
   const [bellScheduleId, setBellScheduleId] = useState('');
@@ -126,27 +126,63 @@ export const TransposedScheduleGrid: React.FC<Props> = ({
     [colDisciplines],
   );
 
-  const getWeekLabel = () => {
+  // Вычислить понедельник недели по offset
+  const getMondayForOffset = (offset: number) => {
     const now = new Date();
     const dow = now.getDay();
     const diff = dow === 0 ? -6 : 1 - dow;
     const mon = new Date(now);
-    mon.setDate(now.getDate() + diff + weekOffset * 7);
+    mon.setDate(now.getDate() + diff + offset * 7);
+    mon.setHours(0, 0, 0, 0);
+    return mon;
+  };
+
+  const canGoPrev = (() => {
+    if (!scheduleDateInterval) return true;
+    const prevMonday = getMondayForOffset(weekOffset - 1);
+    const prevSaturday = new Date(prevMonday);
+    prevSaturday.setDate(prevMonday.getDate() + 5);
+    const scheduleStart = new Date(scheduleDateInterval.dateFrom);
+    scheduleStart.setHours(0, 0, 0, 0);
+    return prevSaturday >= scheduleStart;
+  })();
+
+  const canGoNext = (() => {
+    if (!scheduleDateInterval) return true;
+    const nextMonday = getMondayForOffset(weekOffset + 1);
+    const scheduleEnd = new Date(scheduleDateInterval.dateTo);
+    scheduleEnd.setHours(0, 0, 0, 0);
+    return nextMonday <= scheduleEnd;
+  })();
+
+  const isCurrentWeekInRange = (() => {
+    if (!scheduleDateInterval) return true;
+    const currentMonday = getMondayForOffset(0);
+    const currentSaturday = new Date(currentMonday);
+    currentSaturday.setDate(currentMonday.getDate() + 5);
+    const scheduleStart = new Date(scheduleDateInterval.dateFrom);
+    const scheduleEnd = new Date(scheduleDateInterval.dateTo);
+    scheduleStart.setHours(0, 0, 0, 0);
+    scheduleEnd.setHours(0, 0, 0, 0);
+    return currentSaturday >= scheduleStart && currentMonday <= scheduleEnd;
+  })();
+
+  const getWeekLabel = () => {
+    const mon = getMondayForOffset(weekOffset);
     const sat = new Date(mon);
     sat.setDate(mon.getDate() + 5);
     const fmt = (d: Date) =>
       String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0');
     const dateRange = fmt(mon) + ' – ' + fmt(sat);
 
-    if (!scheduleStartDate) return dateRange;
+    if (!scheduleDateInterval) return dateRange;
 
-    const start = new Date(scheduleStartDate);
+    const start = new Date(scheduleDateInterval.dateFrom);
     const startDow = start.getDay();
     const startDiffToMonday = startDow === 0 ? -6 : 1 - startDow;
     const scheduleMonday = new Date(start);
     scheduleMonday.setDate(start.getDate() + startDiffToMonday);
     scheduleMonday.setHours(0, 0, 0, 0);
-    mon.setHours(0, 0, 0, 0);
 
     const weeksDiff = Math.round((mon.getTime() - scheduleMonday.getTime()) / (7 * 24 * 60 * 60 * 1000));
     const isOdd = weeksDiff % 2 === 0;
@@ -202,6 +238,7 @@ export const TransposedScheduleGrid: React.FC<Props> = ({
             className={styles.navBtn}
             onClick={() => onWeekOffsetChange?.(weekOffset - 1)}
             title="Предыдущая неделя"
+            disabled={!canGoPrev}
           >
             <ChevronLeft />
           </button>
@@ -210,10 +247,11 @@ export const TransposedScheduleGrid: React.FC<Props> = ({
             className={styles.navBtn}
             onClick={() => onWeekOffsetChange?.(weekOffset + 1)}
             title="Следующая неделя"
+            disabled={!canGoNext}
           >
             <ChevronRight />
           </button>
-          {weekOffset !== 0 && (
+          {weekOffset !== 0 && isCurrentWeekInRange && (
             <button className={styles.todayBtn} onClick={() => onWeekOffsetChange?.(0)}>
               Текущая неделя
             </button>

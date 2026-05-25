@@ -22,11 +22,12 @@ interface Props {
   onMove?: (disciplineId: string, dayId: string, timeStart: string, timeEnd: string) => void;
   onDisciplineClick?: (discipline: Discipline) => void;
   onToggleHighlight?: (disciplineId: string) => void;
+  onHighlightClick?: (highlight: SlotHighlight) => void;
   highlightedDisciplineId?: string | null;
   loadingHighlightId?: string | null;
   weekOffset?: number;
   onWeekOffsetChange?: (offset: number) => void;
-  scheduleStartDate?: string | null;
+  scheduleDateInterval?: { dateFrom: string; dateTo: string } | null;
 }
 
 export const ScheduleGrid: React.FC<Props> = ({
@@ -35,11 +36,12 @@ export const ScheduleGrid: React.FC<Props> = ({
   onMove,
   onDisciplineClick,
   onToggleHighlight,
+  onHighlightClick,
   highlightedDisciplineId,
   loadingHighlightId,
   weekOffset = 0,
   onWeekOffsetChange,
-  scheduleStartDate,
+  scheduleDateInterval,
 }) => {
   const [zoomIndex, setZoomIndex] = useState(DEFAULT_ZOOM_INDEX);
   const [bellScheduleId, setBellScheduleId] = useState('');
@@ -98,28 +100,65 @@ export const ScheduleGrid: React.FC<Props> = ({
 
   const handleDragOver = (e: React.DragEvent) => e.preventDefault();
 
-  const getWeekLabel = () => {
+  // Вычислить понедельник недели по offset
+  const getMondayForOffset = (offset: number) => {
     const now = new Date();
     const dayOfWeek = now.getDay();
     const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
     const monday = new Date(now);
-    monday.setDate(now.getDate() + diffToMonday + weekOffset * 7);
+    monday.setDate(now.getDate() + diffToMonday + offset * 7);
+    monday.setHours(0, 0, 0, 0);
+    return monday;
+  };
+
+  // Проверка допустимости навигации по границам расписания
+  const canGoPrev = (() => {
+    if (!scheduleDateInterval) return true;
+    const prevMonday = getMondayForOffset(weekOffset - 1);
+    const prevSaturday = new Date(prevMonday);
+    prevSaturday.setDate(prevMonday.getDate() + 5);
+    const scheduleStart = new Date(scheduleDateInterval.dateFrom);
+    scheduleStart.setHours(0, 0, 0, 0);
+    return prevSaturday >= scheduleStart;
+  })();
+
+  const canGoNext = (() => {
+    if (!scheduleDateInterval) return true;
+    const nextMonday = getMondayForOffset(weekOffset + 1);
+    const scheduleEnd = new Date(scheduleDateInterval.dateTo);
+    scheduleEnd.setHours(0, 0, 0, 0);
+    return nextMonday <= scheduleEnd;
+  })();
+
+  const isCurrentWeekInRange = (() => {
+    if (!scheduleDateInterval) return true;
+    const currentMonday = getMondayForOffset(0);
+    const currentSaturday = new Date(currentMonday);
+    currentSaturday.setDate(currentMonday.getDate() + 5);
+    const scheduleStart = new Date(scheduleDateInterval.dateFrom);
+    const scheduleEnd = new Date(scheduleDateInterval.dateTo);
+    scheduleStart.setHours(0, 0, 0, 0);
+    scheduleEnd.setHours(0, 0, 0, 0);
+    return currentSaturday >= scheduleStart && currentMonday <= scheduleEnd;
+  })();
+
+  const getWeekLabel = () => {
+    const monday = getMondayForOffset(weekOffset);
     const saturday = new Date(monday);
     saturday.setDate(monday.getDate() + 5);
     const fmt = (d: Date) =>
       String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0');
     const dateRange = fmt(monday) + ' – ' + fmt(saturday);
 
-    if (!scheduleStartDate) return dateRange;
+    if (!scheduleDateInterval) return dateRange;
 
     // Понедельник недели начала расписания
-    const start = new Date(scheduleStartDate);
+    const start = new Date(scheduleDateInterval.dateFrom);
     const startDow = start.getDay();
     const startDiffToMonday = startDow === 0 ? -6 : 1 - startDow;
     const scheduleMonday = new Date(start);
     scheduleMonday.setDate(start.getDate() + startDiffToMonday);
     scheduleMonday.setHours(0, 0, 0, 0);
-    monday.setHours(0, 0, 0, 0);
 
     const weeksDiff = Math.round((monday.getTime() - scheduleMonday.getTime()) / (7 * 24 * 60 * 60 * 1000));
     // Первая неделя расписания = нечётная (индекс 0 → нечётная)
@@ -137,6 +176,7 @@ export const ScheduleGrid: React.FC<Props> = ({
             className={styles.navBtn}
             onClick={() => onWeekOffsetChange?.(weekOffset - 1)}
             title="Предыдущая неделя"
+            disabled={!canGoPrev}
           >
             <ChevronLeft />
           </button>
@@ -145,10 +185,11 @@ export const ScheduleGrid: React.FC<Props> = ({
             className={styles.navBtn}
             onClick={() => onWeekOffsetChange?.(weekOffset + 1)}
             title="Следующая неделя"
+            disabled={!canGoNext}
           >
             <ChevronRight />
           </button>
-          {weekOffset !== 0 && (
+          {weekOffset !== 0 && isCurrentWeekInRange && (
             <button className={styles.todayBtn} onClick={() => onWeekOffsetChange?.(0)}>
               Текущая неделя
             </button>
@@ -235,6 +276,7 @@ export const ScheduleGrid: React.FC<Props> = ({
                 onDragStart={handleDragStart}
                 onDisciplineClick={onDisciplineClick}
                 onToggleHighlight={onToggleHighlight}
+                onHighlightClick={onHighlightClick}
               />
             ))}
           </div>
@@ -283,6 +325,7 @@ interface DayColumnProps {
   onDragStart: (e: React.DragEvent, d: Discipline, occ?: { timeStart: string; timeEnd: string }) => void;
   onDisciplineClick?: (d: Discipline) => void;
   onToggleHighlight?: (id: string) => void;
+  onHighlightClick?: (highlight: SlotHighlight) => void;
 }
 
 const DayColumn: React.FC<DayColumnProps> = ({
@@ -301,6 +344,7 @@ const DayColumn: React.FC<DayColumnProps> = ({
   onDragStart,
   onDisciplineClick,
   onToggleHighlight,
+  onHighlightClick,
 }) => {
   const { positioned, maxColumns } = useOverlapLayout(disciplines, dayId);
   const dayHighlights = highlights.filter((h) => h.dayId === dayId);
@@ -345,8 +389,9 @@ const DayColumn: React.FC<DayColumnProps> = ({
           <div
             key={i}
             className={`${styles.highlight} ${styles[`highlight_${hl.color}`]}`}
-            style={{ top, height }}
+            style={{ top, height, cursor: onHighlightClick ? 'pointer' : undefined }}
             title={hl.messages.map((m) => `${m.timeStart}–${m.timeEnd}: ${m.message}`).join('\n')}
+            onClick={() => onHighlightClick?.(hl)}
           />
         );
       })}

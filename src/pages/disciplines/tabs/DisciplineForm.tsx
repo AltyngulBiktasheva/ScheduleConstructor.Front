@@ -12,6 +12,7 @@ import { DAYS } from '../../../constants/days';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchTeachersAll } from '../../../store/slices/teachersListSlice';
 import { fetchGroupsAll } from '../../../store/slices/groupsListSlice';
+import type { Group } from '../../../types/group';
 import { LESSON_TYPE_LABELS } from './RootDisciplineForm';
 import type { AcademicDisciplineType } from '../../../api';
 import { roomApi } from '../../../api';
@@ -114,6 +115,9 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
   const { teachers: teachersList } = useAppSelector((s) => s.teachersList);
   const { groups, streams } = useAppSelector((s) => s.groupsList);
   const { rootDisciplines: allDisciplines } = useAppSelector((s) => s.disciplinesList);
+  const scheduleDateInterval = useAppSelector((s) =>
+    s.schedule.list.find((sc) => sc.id === s.schedule.selectedScheduleId)?.dateInterval ?? null
+  );
   const [roomOptions, setRoomOptions] = useState<RoomOption[]>([]);
 
   const rootDisciplines = allDisciplines.filter((d) => d.isRoot);
@@ -341,6 +345,36 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
     return digits;
   };
 
+  /** DD.MM.YYYY → Date | null */
+  const parseDDMMYYYY = (s: string): Date | null => {
+    const m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+    if (!m) return null;
+    return new Date(+m[3], +m[2] - 1, +m[1]);
+  };
+
+  /** Date → DD.MM.YYYY */
+  const formatDDMMYYYY = (d: Date): string =>
+    `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
+
+  /** Ограничить дату рамками расписания */
+  const clampDateFrom = (val: string): string => {
+    if (!scheduleDateInterval || !val) return val;
+    const d = parseDDMMYYYY(val);
+    if (!d) return val;
+    const schedEnd = new Date(scheduleDateInterval.dateTo);
+    if (d > schedEnd) return formatDDMMYYYY(schedEnd);
+    return val;
+  };
+
+  const clampDateTo = (val: string): string => {
+    if (!scheduleDateInterval || !val) return val;
+    const d = parseDDMMYYYY(val);
+    if (!d) return val;
+    const schedStart = new Date(scheduleDateInterval.dateFrom);
+    if (d < schedStart) return formatDDMMYYYY(schedStart);
+    return val;
+  };
+
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -352,6 +386,7 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
           className="field-input"
           value={parentId}
           onChange={(e) => setParentId(e.target.value)}
+          disabled={!!initial}
         >
           <option value="">— выберите дисциплину —</option>
           {rootDisciplines.map((d) => (
@@ -370,7 +405,7 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
           className="field-input"
           value={lessonType ?? ''}
           onChange={(e) => setLessonType((e.target.value as AcademicDisciplineType) || undefined)}
-          disabled={availableLessonTypes.length === 0}
+          disabled={!!initial || availableLessonTypes.length === 0}
         >
           <option value="">— выберите тип —</option>
           {availableLessonTypes.map((t) => (
@@ -393,6 +428,7 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
                   actualGroupOptions={actualGroupOptions}
                   semiGroupOptions={semiGroupOptions}
                   allGroupsFlat={allGroupsFlat}
+                  allGroupsFull={groups}
                   teachersList={teachersList}
                   roomOptions={roomOptions}
                   onUpdate={(patch) => updateBatch(idx, patch)}
@@ -408,6 +444,9 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
                   handleTimeInput={handleTimeInput}
                   normalizeTime={normalizeTime}
                   handleDateInput={handleDateInput}
+                  clampDateFrom={clampDateFrom}
+                  clampDateTo={clampDateTo}
+                  scheduleDateInterval={scheduleDateInterval}
               />
           );
       })}
@@ -465,6 +504,7 @@ interface BatchSectionProps {
   actualGroupOptions: GroupOption[];
   semiGroupOptions: GroupOption[];
   allGroupsFlat: GroupOption[];
+  allGroupsFull: Group[];
   teachersList: { id: string; name: string }[];
   roomOptions: RoomOption[];
   onUpdate: (patch: Partial<BatchForm>) => void;
@@ -480,6 +520,9 @@ interface BatchSectionProps {
   handleTimeInput: (raw: string) => string;
   normalizeTime: (val: string) => string;
   handleDateInput: (raw: string) => string;
+  clampDateFrom: (val: string) => string;
+  clampDateTo: (val: string) => string;
+  scheduleDateInterval?: { dateFrom: string; dateTo: string } | null;
 }
 
 const BatchSection: React.FC<BatchSectionProps> = ({
@@ -491,6 +534,7 @@ const BatchSection: React.FC<BatchSectionProps> = ({
   actualGroupOptions,
   semiGroupOptions,
   allGroupsFlat,
+  allGroupsFull,
   teachersList,
   roomOptions,
   onUpdate,
@@ -506,6 +550,9 @@ const BatchSection: React.FC<BatchSectionProps> = ({
   handleTimeInput,
   normalizeTime,
   handleDateInput,
+  clampDateFrom,
+  clampDateTo,
+  scheduleDateInterval,
 }) => {
   const selectedGroupLabels = batch.groupIds
     .map((id) => allGroupsFlat.find((g) => g.id === id)?.label ?? id);
@@ -550,66 +597,16 @@ const BatchSection: React.FC<BatchSectionProps> = ({
       {/* Accordion body */}
       {!batch.collapsed && (
         <div className={styles.batchBody}>
-          {/* Группы (мультиселект) */}
+          {/* Группы (иерархический мультиселект) */}
           <FormField label="Группы" required error={errors.group}>
-            {streamOptions.length === 0 && actualGroupOptions.length === 0 && semiGroupOptions.length === 0 ? (
-              <span style={{ fontSize: 12, color: '#9ca3af' }}>Нет доступных групп</span>
-            ) : (
-              <div className={styles.checkList}>
-                {streamOptions.length > 0 && (
-                  <>
-                    <div className={styles.groupSectionLabel}>Потоки</div>
-                    {streamOptions.map((s) => (
-                      <div key={s.id}>
-                        <label className={styles.checkLabel}>
-                          <input
-                            type="checkbox"
-                            checked={batch.groupIds.includes(s.id)}
-                            onChange={() => toggleGroup(s.id)}
-                          />
-                          {s.label}
-                        </label>
-                        {s.childGroupNames.length > 0 && (
-                          <span className={styles.groupHint}>
-                            Группы: {s.childGroupNames.join(', ')}
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </>
-                )}
-                {actualGroupOptions.length > 0 && (
-                  <>
-                    <div className={styles.groupSectionLabel}>Группы</div>
-                    {actualGroupOptions.map((g) => (
-                      <label key={g.id} className={styles.checkLabel}>
-                        <input
-                          type="checkbox"
-                          checked={batch.groupIds.includes(g.id)}
-                          onChange={() => toggleGroup(g.id)}
-                        />
-                        {g.label}
-                      </label>
-                    ))}
-                  </>
-                )}
-                {semiGroupOptions.length > 0 && (
-                  <>
-                    <div className={styles.groupSectionLabel}>Подгруппы</div>
-                    {semiGroupOptions.map((sg) => (
-                      <label key={sg.id} className={styles.checkLabel}>
-                        <input
-                          type="checkbox"
-                          checked={batch.groupIds.includes(sg.id)}
-                          onChange={() => toggleGroup(sg.id)}
-                        />
-                        {sg.label}
-                      </label>
-                    ))}
-                  </>
-                )}
-              </div>
-            )}
+            <GroupTreeSelect
+              streams={streamOptions}
+              groups={actualGroupOptions}
+              semiGroups={semiGroupOptions}
+              allGroups={allGroupsFull}
+              selectedIds={batch.groupIds}
+              onToggle={toggleGroup}
+            />
           </FormField>
 
           {/* Количество часов */}
@@ -712,6 +709,11 @@ const BatchSection: React.FC<BatchSectionProps> = ({
                 onChange={(e) =>
                   onUpdate({ dateRange: { from: handleDateInput(e.target.value), to: batch.dateRange?.to ?? '' } })
                 }
+                onBlur={() => {
+                  const clamped = clampDateFrom(batch.dateRange?.from ?? '');
+                  if (clamped !== (batch.dateRange?.from ?? ''))
+                    onUpdate({ dateRange: { from: clamped, to: batch.dateRange?.to ?? '' } });
+                }}
                 placeholder="01.09.2025"
                 maxLength={10}
               />
@@ -723,6 +725,11 @@ const BatchSection: React.FC<BatchSectionProps> = ({
                 onChange={(e) =>
                   onUpdate({ dateRange: { from: batch.dateRange?.from ?? '', to: handleDateInput(e.target.value) } })
                 }
+                onBlur={() => {
+                  const clamped = clampDateTo(batch.dateRange?.to ?? '');
+                  if (clamped !== (batch.dateRange?.to ?? ''))
+                    onUpdate({ dateRange: { from: batch.dateRange?.from ?? '', to: clamped } });
+                }}
                 placeholder="31.12.2025"
                 maxLength={10}
               />
@@ -730,7 +737,7 @@ const BatchSection: React.FC<BatchSectionProps> = ({
           </div>
           <FormField
             label="Время проведения"
-            required
+            required={batch.isStatic}
             error={errors.occurrences}
             hint={effectiveWeeklyCount > 1 ? `Можно добавить до ${effectiveWeeklyCount} промежутков` : undefined}
           >
@@ -827,6 +834,156 @@ const BatchSection: React.FC<BatchSectionProps> = ({
             />
           </FormField>
         </div>
+      )}
+    </div>
+  );
+};
+
+// ─── GroupTreeSelect ─────────────────────────────────────────────────────────
+
+interface GroupTreeSelectProps {
+  streams: { id: string; label: string; childGroupNames: string[] }[];
+  groups: { id: string; label: string }[];
+  semiGroups: { id: string; label: string }[];
+  allGroups: Group[];
+  selectedIds: string[];
+  onToggle: (id: string) => void;
+}
+
+const GroupTreeSelect: React.FC<GroupTreeSelectProps> = ({
+  streams,
+  groups: groupOptions,
+  semiGroups,
+  allGroups,
+  selectedIds,
+  onToggle,
+}) => {
+  const [expandedStreams, setExpandedStreams] = useState<Set<string>>(new Set());
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+
+  const toggleExpand = (set: Set<string>, id: string, setter: React.Dispatch<React.SetStateAction<Set<string>>>) => {
+    setter((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  };
+
+  if (streams.length === 0 && groupOptions.length === 0 && semiGroups.length === 0) {
+    return <span style={{ fontSize: 12, color: '#9ca3af' }}>Нет доступных групп</span>;
+  }
+
+  // Группы, привязанные к потокам
+  const groupsInStreams = new Set(
+    allGroups.filter((g) => g.streamIds && g.streamIds.length > 0).map((g) => g.id),
+  );
+  // Группы без потока
+  const freeGroups = allGroups.filter((g) => !groupsInStreams.has(g.id));
+
+  return (
+    <div className={styles.groupTree}>
+      {/* Потоки */}
+      {streams.map((stream) => {
+        const streamGroups = allGroups.filter((g) => g.streamIds?.includes(stream.id));
+        const isExpanded = expandedStreams.has(stream.id);
+        return (
+          <div key={stream.id} className={styles.treeNode}>
+            <div className={styles.treeRow}>
+              <button
+                type="button"
+                className={styles.treeExpandBtn}
+                onClick={() => toggleExpand(expandedStreams, stream.id, setExpandedStreams)}
+              >
+                <span className={`${styles.treeArrow} ${isExpanded ? styles.treeArrowOpen : ''}`}>&#9654;</span>
+              </button>
+              <label className={styles.checkLabel}>
+                <input type="checkbox" checked={selectedIds.includes(stream.id)} onChange={() => onToggle(stream.id)} />
+                <strong>{stream.label}</strong>
+              </label>
+            </div>
+            {isExpanded && (
+              <div className={styles.treeChildren}>
+                {streamGroups.map((group) => {
+                  const hasSubs = group.subgroups.length > 0;
+                  const isGroupExpanded = expandedGroups.has(group.id);
+                  return (
+                    <div key={group.id} className={styles.treeNode}>
+                      <div className={styles.treeRow}>
+                        {hasSubs ? (
+                          <button
+                            type="button"
+                            className={styles.treeExpandBtn}
+                            onClick={() => toggleExpand(expandedGroups, group.id, setExpandedGroups)}
+                          >
+                            <span className={`${styles.treeArrow} ${isGroupExpanded ? styles.treeArrowOpen : ''}`}>&#9654;</span>
+                          </button>
+                        ) : (
+                          <span className={styles.treeSpacer} />
+                        )}
+                        <label className={styles.checkLabel}>
+                          <input type="checkbox" checked={selectedIds.includes(group.id)} onChange={() => onToggle(group.id)} />
+                          {group.name}
+                        </label>
+                      </div>
+                      {hasSubs && isGroupExpanded && (
+                        <div className={styles.treeChildren}>
+                          {group.subgroups.map((sub) => (
+                            <div key={sub.id} className={styles.treeRow} style={{ paddingLeft: 24 }}>
+                              <label className={styles.checkLabel}>
+                                <input type="checkbox" checked={selectedIds.includes(sub.id)} onChange={() => onToggle(sub.id)} />
+                                {sub.name}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Группы без потока */}
+      {freeGroups.length > 0 && (
+        <>
+          {streams.length > 0 && <div className={styles.groupSectionLabel}>Без потока</div>}
+          {freeGroups.map((group) => {
+            const hasSubs = group.subgroups.length > 0;
+            const isGroupExpanded = expandedGroups.has(group.id);
+            return (
+              <div key={group.id} className={styles.treeNode}>
+                <div className={styles.treeRow}>
+                  {hasSubs ? (
+                    <button
+                      type="button"
+                      className={styles.treeExpandBtn}
+                      onClick={() => toggleExpand(expandedGroups, group.id, setExpandedGroups)}
+                    >
+                      <span className={`${styles.treeArrow} ${isGroupExpanded ? styles.treeArrowOpen : ''}`}>&#9654;</span>
+                    </button>
+                  ) : (
+                    <span className={styles.treeSpacer} />
+                  )}
+                  <label className={styles.checkLabel}>
+                    <input type="checkbox" checked={selectedIds.includes(group.id)} onChange={() => onToggle(group.id)} />
+                    {group.name}
+                  </label>
+                </div>
+                {hasSubs && isGroupExpanded && (
+                  <div className={styles.treeChildren}>
+                    {group.subgroups.map((sub) => (
+                      <div key={sub.id} className={styles.treeRow} style={{ paddingLeft: 24 }}>
+                        <label className={styles.checkLabel}>
+                          <input type="checkbox" checked={selectedIds.includes(sub.id)} onChange={() => onToggle(sub.id)} />
+                          {sub.name}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </>
       )}
     </div>
   );

@@ -70,6 +70,7 @@ export const DisciplinesList: React.FC<Props> = ({
               <thead>
                 <tr>
                   <th>Название</th>
+                  <th>Альтернативные названия</th>
                   <th>Допустимые виды занятий</th>
                   <th style={{ width: 40 }}></th>
                 </tr>
@@ -84,6 +85,11 @@ export const DisciplinesList: React.FC<Props> = ({
                   >
                     <td>
                       <span className={styles.name}>{d.name}</span>
+                    </td>
+                    <td>
+                      {(d.associatedNames ?? []).length > 0
+                        ? <span className={styles.secondary}>{d.associatedNames!.join(', ')}</span>
+                        : <span className={styles.secondary}>—</span>}
                     </td>
                     <td>
                       <div className={styles.badges}>

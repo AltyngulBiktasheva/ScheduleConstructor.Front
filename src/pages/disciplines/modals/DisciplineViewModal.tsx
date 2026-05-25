@@ -7,6 +7,7 @@ import { RootDisciplineForm } from '../tabs/RootDisciplineForm';
 import type { RootDisciplineFormData } from '../tabs/RootDisciplineForm';
 import { LESSON_TYPE_LABELS } from '../tabs/RootDisciplineForm';
 import type { Discipline } from '../../../types';
+import { DAYS } from '../../../constants/days';
 import styles from './DisciplineViewModal.module.scss';
 
 interface Props {
@@ -221,6 +222,32 @@ const ChildView: React.FC<{ discipline: Discipline }> = ({ discipline }) => {
             {discipline.forIds.length > 0 && (
               <Row label="Группы">{(discipline.forNames ?? []).filter(Boolean).join(', ') || '—'}</Row>
             )}
+            {/* Преподаватели (уникальные по всем batch-ам) */}
+            {(() => {
+              const names = [...new Set(batches.flatMap((b) => b.teachers.map((t) => t.name).filter(Boolean)))];
+              return names.length > 0 ? <Row label="Преподаватели">{names.join(', ')}</Row> : null;
+            })()}
+            {/* Аудитории (уникальные по всем batch-ам) */}
+            {(() => {
+              const rooms = [...new Set(batches.flatMap((b) => b.audiences.map((a) => a.roomName).filter(Boolean)))];
+              return rooms.length > 0 ? <Row label="Аудитории">{rooms.join(', ')}</Row> : null;
+            })()}
+            {/* Время (уникальные по всем batch-ам) */}
+            {(() => {
+              const occs = batches.flatMap((b) => b.occurrences ?? []);
+              if (occs.length === 0) return null;
+              return (
+                <Row label="Время проведения">
+                  {occs.map((o, i) => (
+                    <span key={i}>
+                      {DAYS.find((d) => d.id === o.dayId)?.shortName ?? o.dayId}{' '}
+                      {o.timeStart}–{o.timeEnd}
+                      {i < occs.length - 1 ? '; ' : ''}
+                    </span>
+                  ))}
+                </Row>
+              );
+            })()}
           </>
         ) : (
           // Одно занятие
@@ -240,6 +267,26 @@ const ChildView: React.FC<{ discipline: Discipline }> = ({ discipline }) => {
             </Row>
             {discipline.forIds.length > 0 && (
               <Row label="Группа">{(discipline.forNames ?? []).filter(Boolean).join(', ') || '—'}</Row>
+            )}
+            {/* Преподаватели */}
+            {discipline.teachers.length > 0 && (
+              <Row label="Преподаватели">{discipline.teachers.map((t) => t.name).filter(Boolean).join(', ')}</Row>
+            )}
+            {/* Аудитории */}
+            {discipline.audiences.length > 0 && (
+              <Row label="Аудитории">{discipline.audiences.map((a) => a.roomName).filter(Boolean).join(', ')}</Row>
+            )}
+            {/* Время проведения */}
+            {(discipline.occurrences ?? []).length > 0 && (
+              <Row label="Время проведения">
+                {discipline.occurrences!.map((o, i) => (
+                  <span key={i}>
+                    {DAYS.find((d) => d.id === o.dayId)?.shortName ?? o.dayId}{' '}
+                    {o.timeStart}–{o.timeEnd}
+                    {i < discipline.occurrences!.length - 1 ? '; ' : ''}
+                  </span>
+                ))}
+              </Row>
             )}
             {discipline.dateRange && (
               <Row label="Период">

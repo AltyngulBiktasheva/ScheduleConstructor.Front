@@ -44,9 +44,6 @@ function normalizeToOccurrences(discipline: Discipline): WeeklyOccurrence[] {
   return [];
 }
 
-const ONLINE_VALUE = '__online__';
-const OTHER_VALUE = '__other__';
-
 export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
   const dispatch = useAppDispatch();
   const teachers = useAppSelector((s) => s.teachersList.teachers);
@@ -63,21 +60,7 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
 
   const isStatic = discipline.isStatic;
 
-  // Determine initial campus selection from discipline.roomId
-  const initialCampusId = (() => {
-    if (discipline.roomId) {
-      const room = classrooms.find((c) => c.id === discipline.roomId);
-      if (room?.campusId) return room.campusId;
-    }
-    if (!discipline.roomId && !discipline.audience) return ONLINE_VALUE;
-    return OTHER_VALUE;
-  })();
-
-  const [selectedCampusId, setSelectedCampusId] = useState<string>(initialCampusId);
   const [selectedRoomId, setSelectedRoomId] = useState<string>(discipline.roomId ?? '');
-  const [otherRoomName, setOtherRoomName] = useState<string>(
-    selectedCampusId === OTHER_VALUE ? (discipline.audience ?? '') : '',
-  );
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>(
     discipline.teachers?.[0]?.id ?? '',
   );
@@ -91,14 +74,6 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
 
   const weeklyCount = discipline.weeklyCount ?? 1;
   const occurrences = formData.occurrences ?? [];
-
-  const roomsForCampus = classrooms.filter((c) => c.campusId === selectedCampusId);
-
-  const handleCampusChange = (campusId: string) => {
-    setSelectedCampusId(campusId);
-    setSelectedRoomId('');
-    setOtherRoomName('');
-  };
 
   const handleOccurrenceChange = (index: number, field: keyof WeeklyOccurrence, value: string) => {
     const occs = [...occurrences];
@@ -117,9 +92,6 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
 
   const handleSave = () => {
     if (!formData.name.trim()) { setError('Название дисциплины обязательно'); return; }
-    if (!isStatic && selectedCampusId === OTHER_VALUE && !otherRoomName.trim()) {
-      setError('Укажите название аудитории'); return;
-    }
 
     const teacher = teachers.find((t) => t.id === selectedTeacherId);
 
@@ -129,23 +101,16 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
     let buildingName: string | undefined;
 
     if (isStatic) {
-      // Для статических — не меняем аудиторию/корпус
       roomId = discipline.roomId;
       audience = discipline.audience;
       building = discipline.building;
       buildingName = discipline.buildingName;
-    } else if (selectedCampusId === ONLINE_VALUE) {
-      building = 'online';
-    } else if (selectedCampusId === OTHER_VALUE) {
-      building = 'other';
-      buildingName = otherRoomName.trim();
-      audience = otherRoomName.trim();
-    } else {
-      const campus = campuses.find((c) => c.id === selectedCampusId);
-      building = campus?.name ?? selectedCampusId;
-      roomId = selectedRoomId || undefined;
+    } else if (selectedRoomId) {
+      roomId = selectedRoomId;
       const room = classrooms.find((c) => c.id === selectedRoomId);
       audience = room?.name;
+      const campus = campuses.find((c) => c.id === room?.campusId);
+      building = campus?.name;
     }
 
     const firstOcc = occurrences[0];
@@ -214,6 +179,13 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
         )}
 
         <div className={styles.form}>
+          {/* ── Баннер ошибки/предупреждения ── */}
+          {discipline.errorLevel && (
+            <div className={discipline.errorLevel === 'Error' ? styles.errorBanner : styles.warningBanner}>
+              {discipline.errorMessage || (discipline.errorLevel === 'Error' ? 'Ошибка валидации' : 'Предупреждение')}
+            </div>
+          )}
+
           {/* ── Read-only: Название ── */}
           <Field label="Название">
             <span className={styles.readOnlyValue}>{discipline.name}</span>
@@ -288,48 +260,26 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
               </span>
             </Field>
           ) : (
-            <>
-              <Field label="Корпус">
-                <select
-                  value={selectedCampusId}
-                  onChange={(e) => handleCampusChange(e.target.value)}
-                  className={styles.select}
-                >
-                  <option value={ONLINE_VALUE}>Онлайн</option>
-                  {campuses.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                  <option value={OTHER_VALUE}>Другой корпус</option>
-                </select>
-              </Field>
-
-              {selectedCampusId !== ONLINE_VALUE && selectedCampusId !== OTHER_VALUE && (
-                <Field label="Аудитория">
-                  <select
-                    value={selectedRoomId}
-                    onChange={(e) => setSelectedRoomId(e.target.value)}
-                    className={styles.select}
-                  >
-                    <option value="">— не выбрана —</option>
-                    {roomsForCampus.map((r) => (
-                      <option key={r.id} value={r.id}>{r.name}</option>
-                    ))}
-                  </select>
-                </Field>
-              )}
-
-              {selectedCampusId === OTHER_VALUE && (
-                <Field label="Аудитория *">
-                  <input
-                    type="text"
-                    value={otherRoomName}
-                    onChange={(e) => setOtherRoomName(e.target.value)}
-                    className={styles.input}
-                    placeholder="Название аудитории"
-                  />
-                </Field>
-              )}
-            </>
+            <Field label="Аудитория">
+              <select
+                value={selectedRoomId}
+                onChange={(e) => setSelectedRoomId(e.target.value)}
+                className={styles.select}
+              >
+                <option value="">— не выбрана —</option>
+                {campuses.map((campus) => {
+                  const rooms = classrooms.filter((r) => r.campusId === campus.id);
+                  if (rooms.length === 0) return null;
+                  return (
+                    <optgroup key={campus.id} label={campus.name}>
+                      {rooms.map((r) => (
+                        <option key={r.id} value={r.id}>{r.name}</option>
+                      ))}
+                    </optgroup>
+                  );
+                })}
+              </select>
+            </Field>
           )}
 
           {/* ── Время (editable / read-only for static) ── */}

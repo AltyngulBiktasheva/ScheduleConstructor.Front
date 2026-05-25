@@ -79,7 +79,6 @@ export const GroupViewModal: React.FC<Props> = ({
             : <span className={styles.none}>Нет</span>
           }
         </Row>
-        <Row label="Дисциплин">{group.disciplineIds.length} шт.</Row>
       </div>
     </Modal>
   );
