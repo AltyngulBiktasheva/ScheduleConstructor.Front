@@ -39,6 +39,10 @@ export const GroupSlice: React.FC<Props> = ({ onSelect }) => {
   const getStreamGroups = (stream: Stream): Group[] =>
     stream.groupIds.map((id) => groups.find((g) => g.id === id)!).filter(Boolean);
 
+  // Группы, не входящие ни в один поток
+  const groupsInStreams = new Set(streams.flatMap((s) => s.groupIds));
+  const freeGroups = groups.filter((g) => !groupsInStreams.has(g.id));
+
   const selectStream = (stream: Stream) => {
     setSelected((prev) => ({ ...prev, [stream.id]: !prev[stream.id] }));
   };
@@ -60,6 +64,10 @@ export const GroupSlice: React.FC<Props> = ({ onSelect }) => {
         if (selected[group.id]) { parts.push(group.name); return; }
         group.subgroups.forEach((sub) => { if (selected[sub.id]) parts.push(sub.name); });
       });
+    });
+    freeGroups.forEach((group) => {
+      if (selected[group.id]) { parts.push(group.name); return; }
+      group.subgroups.forEach((sub) => { if (selected[sub.id]) parts.push(sub.name); });
     });
     return parts.join(', ') || '';
   };
@@ -117,6 +125,41 @@ export const GroupSlice: React.FC<Props> = ({ onSelect }) => {
               </div>
             );
           })}
+
+          {/* Группы без потока */}
+          {freeGroups.length > 0 && (
+            <>
+              {streams.length > 0 && (
+                <div className={treeStyles.streamRow} style={{ marginTop: 8, opacity: 0.6, fontSize: 12 }}>
+                  Без потока
+                </div>
+              )}
+              {freeGroups.map((group) => (
+                <div key={group.id} className={treeStyles.groupNode}>
+                  <div className={treeStyles.groupRow}>
+                    {group.subgroups.length > 0 && (
+                      <button className={treeStyles.expandBtn} onClick={() => toggleGroup(group.id)}>
+                        <span className={`${treeStyles.arrow} ${expandedGroups.has(group.id) ? treeStyles.arrowOpen : ''}`}>▶</span>
+                      </button>
+                    )}
+                    <label className={treeStyles.checkLabel} style={{ marginLeft: group.subgroups.length === 0 ? 24 : 0 }}>
+                      <input type="checkbox" checked={Boolean(selected[group.id])} onChange={() => selectGroup(group)} />
+                      <span className={treeStyles.groupLabel}>{group.name}</span>
+                    </label>
+                  </div>
+
+                  {expandedGroups.has(group.id) && group.subgroups.map((sub) => (
+                    <div key={sub.id} className={treeStyles.subgroupRow}>
+                      <label className={treeStyles.checkLabel}>
+                        <input type="checkbox" checked={Boolean(selected[sub.id])} onChange={() => selectSubgroup(sub.id)} />
+                        <span className={treeStyles.subgroupLabel}>{sub.name}</span>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </>
+          )}
         </div>
       )}
 
