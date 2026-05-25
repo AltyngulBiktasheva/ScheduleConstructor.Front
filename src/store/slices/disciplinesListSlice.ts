@@ -87,6 +87,7 @@ function mapBatchToFields(batch: LessonBatchInfoDto) {
     teachers: (batch.teacherIds ?? []).map((id) => ({ id, name: '' })),
     audiences: (batch.roomIds ?? []).map((id) => ({ roomId: id })),
     roomIds: batch.roomIds,
+    comment: batch.comment ?? null,
   };
 }
 

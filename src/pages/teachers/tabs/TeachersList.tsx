@@ -10,18 +10,6 @@ interface Props {
   onDelete: (id: string) => void;
 }
 
-function countWishes(t: Teacher): number {
-  const w = t.wishes;
-  return (
-    w.preferredTimes.length +
-    w.undesirableTimes.length +
-    w.forbiddenTimes.length +
-    w.preferredAudiences.length +
-    w.undesirableAudiences.length +
-    w.forbiddenAudiences.length +
-    (w.comment.trim() ? 1 : 0)
-  );
-}
 
 export const TeachersList: React.FC<Props> = ({
   teachers,
@@ -64,13 +52,10 @@ export const TeachersList: React.FC<Props> = ({
             <thead>
               <tr>
                 <th>ФИО</th>
-                <th>Пожелания</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((t) => {
-                const wishCount = countWishes(t);
-                return (
+              {filtered.map((t) => (
                   <tr
                     key={t.id}
                     ref={t.id === newlyCreatedId ? highlightRef : null}
@@ -78,16 +63,8 @@ export const TeachersList: React.FC<Props> = ({
                     onClick={() => setSelected(t)}
                   >
                     <td className={styles.name}>{t.name}</td>
-                    <td>
-                      {wishCount > 0 ? (
-                        <span className={styles.wishBadge}>{wishCount} пожел.</span>
-                      ) : (
-                        <span className={styles.noWishes}>Не указаны</span>
-                      )}
-                    </td>
                   </tr>
-                );
-              })}
+              ))}
             </tbody>
           </table>
         </div>

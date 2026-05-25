@@ -44,7 +44,7 @@ function mapPreferencesToWishes(dto: TeacherPreferencesViewDto): TeacherWishes {
     const wish: AudienceWish = {
       id: crypto.randomUUID(),
       roomId: rp.roomId,
-      roomName: rp.roomId, // roomId как fallback — нет доступа к деталям аудитории здесь
+      roomName: rp.roomName ?? rp.roomId,
     };
     if (rp.teacherPreferenceType === 'Preferred') wishes.preferredAudiences.push(wish);
     else if (rp.teacherPreferenceType === 'Restricted') wishes.forbiddenAudiences.push(wish);
@@ -53,13 +53,6 @@ function mapPreferencesToWishes(dto: TeacherPreferencesViewDto): TeacherWishes {
 
   return wishes;
 }
-
-const BUILDING_LABELS: Record<string, string> = {
-  turgeneva: 'Тургенева',
-  kuybysheva: 'Куйбышева',
-  online: 'Онлайн',
-  other: 'Другой',
-};
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -210,17 +203,9 @@ const AudienceWishGroup: React.FC<{ label: string; variant: WishVariant; items: 
     <div className={styles.wishGroup}>
       <span className={`${styles.wishGroupLabel} ${styles[variant]}`}>{label}</span>
       <ul className={styles.wishList}>
-        {items.map((item) => {
-          const building =
-            item.building === 'other'
-              ? (item.buildingName ?? 'Другой')
-              : (BUILDING_LABELS[item.building] ?? item.building);
-          return (
-            <li key={item.id}>
-              {building}{item.audience ? `, ауд. ${item.audience}` : ''}
-            </li>
-          );
-        })}
+        {items.map((item) => (
+          <li key={item.id}>{item.roomName || item.roomId}</li>
+        ))}
       </ul>
     </div>
   );

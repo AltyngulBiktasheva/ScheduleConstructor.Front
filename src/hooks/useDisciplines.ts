@@ -147,7 +147,11 @@ async function saveAsPayload(
     ...b,
     studentGroupIds: b.studentGroups?.map((sg: any) => sg.id) ?? b.studentGroupIds ?? [],
   }));
-  const updatedPayload: LessonBatchInfoSaveDto[] = [...existingBatches, ...allBatchInfos];
+
+  // Дедупликация: убираем из existing те batch-и, которые были отредактированы
+  const editedIds = new Set(allBatchInfos.map((b) => b.id).filter(Boolean));
+  const untouchedExisting = existingBatches.filter((b) => !b.id || !editedIds.has(b.id));
+  const updatedPayload: LessonBatchInfoSaveDto[] = [...untouchedExisting, ...allBatchInfos];
 
   await academicDisciplineApi.saveAcademicDiscipline({
     id: parentId,

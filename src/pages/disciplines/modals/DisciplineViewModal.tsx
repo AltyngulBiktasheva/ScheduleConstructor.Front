@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '../../../components/Modal/Modal';
 import { Button } from '../../../components/Button/Button';
 import { Badge } from '../../../components/Badge/Badge';
@@ -8,6 +8,7 @@ import type { RootDisciplineFormData } from '../tabs/RootDisciplineForm';
 import { LESSON_TYPE_LABELS } from '../tabs/RootDisciplineForm';
 import type { Discipline } from '../../../types';
 import { DAYS } from '../../../constants/days';
+import { teacherApi, roomApi } from '../../../api';
 import styles from './DisciplineViewModal.module.scss';
 
 interface Props {
@@ -193,6 +194,58 @@ function mergeSummaryDisplay(values: (string | number | undefined | null)[]): st
 
 const ChildView: React.FC<{ discipline: Discipline }> = ({ discipline }) => {
   const batches = discipline.childBatches;
+  const [teacherNames, setTeacherNames] = useState<Record<string, string>>({});
+  const [roomNames, setRoomNames] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    // Собираем уникальные ID преподавателей
+    const allTeachers = batches
+      ? batches.flatMap((b) => b.teachers)
+      : discipline.teachers;
+    const uniqueTeacherIds = [...new Set(allTeachers.map((t) => t.id))];
+
+    // Собираем уникальные ID аудиторий
+    const allAudiences = batches
+      ? batches.flatMap((b) => b.audiences)
+      : discipline.audiences;
+    const uniqueRoomIds = [...new Set(allAudiences.map((a) => a.roomId))];
+
+    // Загружаем имена преподавателей
+    if (uniqueTeacherIds.length > 0) {
+      Promise.all(
+        uniqueTeacherIds.map((id) =>
+          teacherApi.getTeacher({ teacherId: id })
+            .then(({ data }) => [id, data.fullname ?? ''] as const)
+            .catch(() => [id, ''] as const),
+        ),
+      ).then((results) => {
+        const map: Record<string, string> = {};
+        for (const [id, name] of results) if (name) map[id] = name;
+        setTeacherNames(map);
+      });
+    }
+
+    // Загружаем имена аудиторий
+    if (uniqueRoomIds.length > 0) {
+      Promise.all(
+        uniqueRoomIds.map((id) =>
+          roomApi.getRoom({ roomId: id })
+            .then(({ data }) => [id, data.name ?? ''] as const)
+            .catch(() => [id, ''] as const),
+        ),
+      ).then((results) => {
+        const map: Record<string, string> = {};
+        for (const [id, name] of results) if (name) map[id] = name;
+        setRoomNames(map);
+      });
+    }
+  }, [discipline]);
+
+  /** Отображает имя преподавателя: сначала из API, потом из discipline, потом ID */
+  const displayTeacher = (t: { id: string; name: string }) => teacherNames[t.id] || t.name || t.id;
+
+  /** Отображает имя аудитории */
+  const displayRoom = (a: { roomId: string; roomName?: string }) => roomNames[a.roomId] || a.roomName || a.roomId;
 
   return (
     <div className={styles.view}>
@@ -224,12 +277,12 @@ const ChildView: React.FC<{ discipline: Discipline }> = ({ discipline }) => {
             )}
             {/* Преподаватели (уникальные по всем batch-ам) */}
             {(() => {
-              const names = [...new Set(batches.flatMap((b) => b.teachers.map((t) => t.name).filter(Boolean)))];
+              const names = [...new Set(batches.flatMap((b) => b.teachers.map(displayTeacher)).filter(Boolean))];
               return names.length > 0 ? <Row label="Преподаватели">{names.join(', ')}</Row> : null;
             })()}
             {/* Аудитории (уникальные по всем batch-ам) */}
             {(() => {
-              const rooms = [...new Set(batches.flatMap((b) => b.audiences.map((a) => a.roomName).filter(Boolean)))];
+              const rooms = [...new Set(batches.flatMap((b) => b.audiences.map(displayRoom)).filter(Boolean))];
               return rooms.length > 0 ? <Row label="Аудитории">{rooms.join(', ')}</Row> : null;
             })()}
             {/* Время (уникальные по всем batch-ам) */}
@@ -270,11 +323,11 @@ const ChildView: React.FC<{ discipline: Discipline }> = ({ discipline }) => {
             )}
             {/* Преподаватели */}
             {discipline.teachers.length > 0 && (
-              <Row label="Преподаватели">{discipline.teachers.map((t) => t.name).filter(Boolean).join(', ')}</Row>
+              <Row label="Преподаватели">{discipline.teachers.map(displayTeacher).filter(Boolean).join(', ')}</Row>
             )}
             {/* Аудитории */}
             {discipline.audiences.length > 0 && (
-              <Row label="Аудитории">{discipline.audiences.map((a) => a.roomName).filter(Boolean).join(', ')}</Row>
+              <Row label="Аудитории">{discipline.audiences.map(displayRoom).filter(Boolean).join(', ')}</Row>
             )}
             {/* Время проведения */}
             {(discipline.occurrences ?? []).length > 0 && (

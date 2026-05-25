@@ -33,7 +33,7 @@ interface Props {
   disciplines: Discipline[];
   columns: GridColumn[];
   highlights?: SlotHighlight[];
-  onMove?: (disciplineId: string, dayId: string, timeStart: string, timeEnd: string) => void;
+  onMove?: (disciplineId: string, dayId: string, timeStart: string, timeEnd: string, columnId?: string) => void;
   onDisciplineClick?: (discipline: Discipline) => void;
   onToggleHighlight?: (disciplineId: string) => void;
   highlightedDisciplineId?: string | null;
@@ -210,7 +210,7 @@ export const TransposedScheduleGrid: React.FC<Props> = ({
   );
 
   const handleDrop = useCallback(
-    (e: React.DragEvent, dayId: string) => {
+    (e: React.DragEvent, dayId: string, columnId?: string) => {
       e.preventDefault();
       const disciplineId = e.dataTransfer.getData('disciplineId');
       const duration = parseInt(e.dataTransfer.getData('duration') || '90', 10);
@@ -219,7 +219,7 @@ export const TransposedScheduleGrid: React.FC<Props> = ({
       const relY = e.clientY - rect.top + scrollTop - (dragInfo.current?.offsetY || 0);
       const rawStart = pixelsToTime(relY);
       const startMin = tMins(rawStart);
-      onMove?.(disciplineId, dayId, minsToTime(startMin), minsToTime(startMin + duration));
+      onMove?.(disciplineId, dayId, minsToTime(startMin), minsToTime(startMin + duration), columnId);
       dragInfo.current = null;
     },
     [pixelsToTime, onMove],
@@ -361,6 +361,7 @@ export const TransposedScheduleGrid: React.FC<Props> = ({
                 <TransposedGroupCell
                   key={col.id}
                   dayId={day.id}
+                  columnId={col.id}
                   disciplines={colDisciplines[i]}
                   highlights={highlights}
                   highlightedDisciplineId={highlightedDisciplineId}
@@ -391,6 +392,7 @@ export const TransposedScheduleGrid: React.FC<Props> = ({
 
 interface GroupCellProps {
   dayId: string;
+  columnId: string;
   disciplines: Discipline[];
   highlights: SlotHighlight[];
   highlightedDisciplineId?: string | null;
@@ -401,7 +403,7 @@ interface GroupCellProps {
   slotMetrics?: BellSlotMetric[] | null;
   timeToPixels: (t: string) => number;
   durationToPixels: (s: string, e: string) => number;
-  onDrop: (e: React.DragEvent, dayId: string) => void;
+  onDrop: (e: React.DragEvent, dayId: string, columnId?: string) => void;
   onDragOver: (e: React.DragEvent) => void;
   onDragStart: (e: React.DragEvent, d: Discipline, occ?: { timeStart: string; timeEnd: string }) => void;
   onDisciplineClick?: (d: Discipline) => void;
@@ -410,6 +412,7 @@ interface GroupCellProps {
 
 const TransposedGroupCell: React.FC<GroupCellProps> = ({
   dayId,
+  columnId,
   disciplines,
   highlights,
   highlightedDisciplineId,
@@ -433,7 +436,7 @@ const TransposedGroupCell: React.FC<GroupCellProps> = ({
     <div
       className={styles.tGroupCell}
       style={{ height: totalHeight, width: colWidth, minWidth: colWidth }}
-      onDrop={(e) => onDrop(e, dayId)}
+      onDrop={(e) => onDrop(e, dayId, columnId)}
       onDragOver={onDragOver}
     >
       {/* Линии пар или часовые линии */}

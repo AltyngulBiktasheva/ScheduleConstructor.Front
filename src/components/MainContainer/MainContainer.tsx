@@ -355,13 +355,16 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
     const ids = selection.entityId as string[];
 
     return ids.map((entityId) => {
-      // Поток → filterIds = все группы и подгруппы потока
+      // Поток → filterIds = сам stream ID + все группы и подгруппы потока
       const stream = streams.find((s) => s.id === entityId);
       if (stream) {
-        const filterIds = stream.groupIds.flatMap((gid) => {
-          const g = groups.find((g) => g.id === gid);
-          return g ? [gid, ...g.subgroups.map((s) => s.id)] : [gid];
-        });
+        const filterIds = [
+          entityId,  // сам ID потока (дисциплина может быть назначена на поток)
+          ...stream.groupIds.flatMap((gid) => {
+            const g = groups.find((gr) => gr.id === gid);
+            return g ? [gid, ...g.subgroups.map((sg) => sg.id)] : [gid];
+          }),
+        ];
         return { id: entityId, label: stream.name, filterIds };
       }
 
@@ -398,7 +401,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
 
   // ── DnD: перемещение / создание занятия ──────────────────────────────────
   const handleDisciplineMove = useCallback(
-    async (disciplineId: string, dayId: string, timeStart: string, timeEnd: string) => {
+    async (disciplineId: string, dayId: string, timeStart: string, timeEnd: string, targetColumnId?: string) => {
       if (!selectedScheduleId) return;
 
       const dates = getWeekDates(weekOffset);
@@ -408,6 +411,19 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
       const existingLesson = weekLessons.find((l) => l.id === disciplineId);
 
       if (existingLesson) {
+        // Запрет перемещения в колонку другой группы (транспонированный режим)
+        if (isTransposed && targetColumnId) {
+          const targetCol = gridColumns.find((c) => c.id === targetColumnId);
+          if (targetCol) {
+            const lessonGroupIds = existingLesson.studentGroups.map((g) => g.id);
+            const belongsToTarget = lessonGroupIds.some((gid) => targetCol.filterIds.includes(gid));
+            if (!belongsToTarget) {
+              addToast('Нельзя переместить занятие в колонку другой группы. Измените группы в разделе «Дисциплины»', 'info');
+              return;
+            }
+          }
+        }
+
         // Перемещаем существующее занятие
         if (existingLesson.flexibilityType === 'Fixed') return;
         const result = await dispatch(saveLesson({
@@ -462,7 +478,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
 
       refetchWeek();
     },
-    [dispatch, selectedScheduleId, weekOffset, weekLessons, selection, refetchWeek, addToast],
+    [dispatch, selectedScheduleId, weekOffset, weekLessons, selection, refetchWeek, addToast, isTransposed, gridColumns],
   );
 
   // ── DnD: возврат занятия в список (снятие времени) ────────────────────────

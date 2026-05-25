@@ -115,9 +115,6 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
   const { teachers: teachersList } = useAppSelector((s) => s.teachersList);
   const { groups, streams } = useAppSelector((s) => s.groupsList);
   const { rootDisciplines: allDisciplines } = useAppSelector((s) => s.disciplinesList);
-  const scheduleDateInterval = useAppSelector((s) =>
-    s.schedule.list.find((sc) => sc.id === s.schedule.selectedScheduleId)?.dateInterval ?? null
-  );
   const [roomOptions, setRoomOptions] = useState<RoomOption[]>([]);
 
   const rootDisciplines = allDisciplines.filter((d) => d.isRoot);
@@ -345,36 +342,6 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
     return digits;
   };
 
-  /** DD.MM.YYYY → Date | null */
-  const parseDDMMYYYY = (s: string): Date | null => {
-    const m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
-    if (!m) return null;
-    return new Date(+m[3], +m[2] - 1, +m[1]);
-  };
-
-  /** Date → DD.MM.YYYY */
-  const formatDDMMYYYY = (d: Date): string =>
-    `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
-
-  /** Ограничить дату рамками расписания */
-  const clampDateFrom = (val: string): string => {
-    if (!scheduleDateInterval || !val) return val;
-    const d = parseDDMMYYYY(val);
-    if (!d) return val;
-    const schedEnd = new Date(scheduleDateInterval.dateTo);
-    if (d > schedEnd) return formatDDMMYYYY(schedEnd);
-    return val;
-  };
-
-  const clampDateTo = (val: string): string => {
-    if (!scheduleDateInterval || !val) return val;
-    const d = parseDDMMYYYY(val);
-    if (!d) return val;
-    const schedStart = new Date(scheduleDateInterval.dateFrom);
-    if (d < schedStart) return formatDDMMYYYY(schedStart);
-    return val;
-  };
-
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -444,9 +411,6 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
                   handleTimeInput={handleTimeInput}
                   normalizeTime={normalizeTime}
                   handleDateInput={handleDateInput}
-                  clampDateFrom={clampDateFrom}
-                  clampDateTo={clampDateTo}
-                  scheduleDateInterval={scheduleDateInterval}
               />
           );
       })}
@@ -520,9 +484,6 @@ interface BatchSectionProps {
   handleTimeInput: (raw: string) => string;
   normalizeTime: (val: string) => string;
   handleDateInput: (raw: string) => string;
-  clampDateFrom: (val: string) => string;
-  clampDateTo: (val: string) => string;
-  scheduleDateInterval?: { dateFrom: string; dateTo: string } | null;
 }
 
 const BatchSection: React.FC<BatchSectionProps> = ({
@@ -550,9 +511,6 @@ const BatchSection: React.FC<BatchSectionProps> = ({
   handleTimeInput,
   normalizeTime,
   handleDateInput,
-  clampDateFrom,
-  clampDateTo,
-  scheduleDateInterval,
 }) => {
   const selectedGroupLabels = batch.groupIds
     .map((id) => allGroupsFlat.find((g) => g.id === id)?.label ?? id);
@@ -709,11 +667,6 @@ const BatchSection: React.FC<BatchSectionProps> = ({
                 onChange={(e) =>
                   onUpdate({ dateRange: { from: handleDateInput(e.target.value), to: batch.dateRange?.to ?? '' } })
                 }
-                onBlur={() => {
-                  const clamped = clampDateFrom(batch.dateRange?.from ?? '');
-                  if (clamped !== (batch.dateRange?.from ?? ''))
-                    onUpdate({ dateRange: { from: clamped, to: batch.dateRange?.to ?? '' } });
-                }}
                 placeholder="01.09.2025"
                 maxLength={10}
               />
@@ -725,11 +678,6 @@ const BatchSection: React.FC<BatchSectionProps> = ({
                 onChange={(e) =>
                   onUpdate({ dateRange: { from: batch.dateRange?.from ?? '', to: handleDateInput(e.target.value) } })
                 }
-                onBlur={() => {
-                  const clamped = clampDateTo(batch.dateRange?.to ?? '');
-                  if (clamped !== (batch.dateRange?.to ?? ''))
-                    onUpdate({ dateRange: { from: batch.dateRange?.from ?? '', to: clamped } });
-                }}
                 placeholder="31.12.2025"
                 maxLength={10}
               />

@@ -11,6 +11,13 @@ export function extractError(err: unknown): string {
       if (typeof data === 'string' && data.trim()) return data.trim();
       if (data && typeof data === 'object') {
         const obj = data as Record<string, unknown>;
+        // Извлекаем сообщение из validationMessages (приоритет над общим message)
+        if (Array.isArray(obj.validationMessages) && obj.validationMessages.length > 0) {
+          const vm = obj.validationMessages[0];
+          if (typeof vm === 'object' && vm && typeof (vm as Record<string, unknown>).message === 'string' && (vm as Record<string, unknown>).message) {
+            return (vm as Record<string, unknown>).message as string;
+          }
+        }
         if (typeof obj.message === 'string' && obj.message) return obj.message;
         if (typeof obj.title === 'string' && obj.title) return obj.title;
       }
