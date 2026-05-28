@@ -5,7 +5,6 @@ import type { GridColumn } from '../ScheduleGrid/TransposedScheduleGrid';
 import { DisciplineList } from '../DisciplineList/DisciplineList';
 import { EditModal } from '../EditModal/EditModal';
 import { HighlightModal } from '../HighlightModal/HighlightModal';
-import { Spinner } from '../Spinner/Spinner';
 import type { Discipline } from '../../types';
 import type { SlotHighlight } from '../../api/slotHighlights';
 import { fetchSlotHighlights } from '../../api/slotHighlights';
@@ -194,16 +193,24 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
   const [highlightModal, setHighlightModal] = useState<SlotHighlight | null>(null);
   const [detachedWarning, setDetachedWarning] = useState<{ message: string; dto: any } | null>(null);
 
+  // ── Debounce weekOffset для API-запросов (500мс) ──────────────────────────
+  const [debouncedWeekOffset, setDebouncedWeekOffset] = useState(weekOffset);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedWeekOffset(weekOffset), 500);
+    return () => clearTimeout(timer);
+  }, [weekOffset]);
+
   // ── Загрузка занятий недели ───────────────────────────────────────────────
   useEffect(() => {
     if (!selectedScheduleId) return;
-    const weekDates = getWeekDates(weekOffset);
+    const weekDates = getWeekDates(debouncedWeekOffset);
     dispatch(fetchWeekLessons({
       scheduleId: selectedScheduleId,
       dateFrom: weekDates[0],
       dateTo: weekDates[5],
     }));
-  }, [dispatch, selectedScheduleId, weekOffset]);
+  }, [dispatch, selectedScheduleId, debouncedWeekOffset]);
 
 
   // ── Загрузка групп для транспонированного режима ──────────────────────────
@@ -629,11 +636,10 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
 
   return (
     <div className={styles.container}>
-      {weekLessonsLoading && <div className={styles.loading}><Spinner size="lg" /></div>}
       {isTransposed ? (
-        <TransposedScheduleGrid {...gridProps} columns={gridColumns} />
+        <TransposedScheduleGrid {...gridProps} columns={gridColumns} loading={weekLessonsLoading} />
       ) : (
-        <ScheduleGrid {...gridProps} />
+        <ScheduleGrid {...gridProps} loading={weekLessonsLoading} />
       )}
       <DisciplineList
         sections={listSections}
@@ -642,6 +648,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
         onToggleHighlight={handleToggleHighlight}
         highlightedDisciplineId={highlightedId}
         loadingHighlightId={loadingHighlightId}
+        loading={weekLessonsLoading}
       />
       {editingDiscipline && (
         <EditModal

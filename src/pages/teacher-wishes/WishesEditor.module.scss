@@ -132,7 +132,11 @@
   display: flex;
   align-items: center;
   gap: $space-1;
-  flex-wrap: wrap;
+
+  > *:first-child {
+    flex: 1;
+    min-width: 0;
+  }
 }
 
 .buildingSelect {

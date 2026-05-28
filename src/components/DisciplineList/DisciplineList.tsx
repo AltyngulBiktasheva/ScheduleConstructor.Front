@@ -11,6 +11,7 @@ interface Props {
   onToggleHighlight?: (disciplineId: string) => void;
   highlightedDisciplineId?: string | null;
   loadingHighlightId?: string | null;
+  loading?: boolean;
 }
 
 export const DisciplineList: React.FC<Props> = ({
@@ -20,6 +21,7 @@ export const DisciplineList: React.FC<Props> = ({
   onToggleHighlight,
   highlightedDisciplineId,
   loadingHighlightId,
+  loading,
 }) => {
   const handleDragStart = (e: React.DragEvent, discipline: Discipline) => {
     if (discipline.isStatic) return;
@@ -44,6 +46,7 @@ export const DisciplineList: React.FC<Props> = ({
 
   return (
     <div className={styles.container} onDragOver={handleDragOver} onDrop={handleDrop} data-tour="discipline-list">
+      {loading && <div className={styles.loadingOverlay} />}
       <h2 className={styles.title}>Дисциплины</h2>
       {totalDisciplines === 0 ? (
         <p className={styles.empty}>Все дисциплины размещены</p>

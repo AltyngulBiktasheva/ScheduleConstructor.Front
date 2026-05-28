@@ -1,6 +1,7 @@
 import React, { useRef, useState, useCallback, useMemo } from 'react';
 import { DAYS } from '../../constants/days';
 import { DisciplineCard } from '../DisciplineCard/DisciplineCard';
+import { Spinner } from '../Spinner/Spinner';
 import type { Discipline } from '../../types';
 import type { SlotHighlight } from '../../api/slotHighlights';
 import { useGridMetrics } from '../../hooks/useGridMetrics';
@@ -41,6 +42,7 @@ interface Props {
   weekOffset?: number;
   onWeekOffsetChange?: (offset: number) => void;
   scheduleDateInterval?: { dateFrom: string; dateTo: string } | null;
+  loading?: boolean;
 }
 
 // ─── Pure helpers ─────────────────────────────────────────────────────────────
@@ -89,6 +91,7 @@ export const TransposedScheduleGrid: React.FC<Props> = ({
   weekOffset = 0,
   onWeekOffsetChange,
   scheduleDateInterval,
+  loading,
 }) => {
   const [zoomIndex, setZoomIndex] = useState(DEFAULT_ZOOM_INDEX);
   const [bellScheduleId, setBellScheduleId] = useState('');
@@ -233,7 +236,7 @@ export const TransposedScheduleGrid: React.FC<Props> = ({
     <div className={styles.wrapper}>
       {/* Toolbar — идентичен обычной сетке */}
       <div className={styles.toolbar}>
-        <div className={styles.weekNav}>
+        <div className={`${styles.weekNav} ${loading ? styles.toolbarDisabled : ''}`}>
           <button
             className={styles.navBtn}
             onClick={() => onWeekOffsetChange?.(weekOffset - 1)}
@@ -295,6 +298,9 @@ export const TransposedScheduleGrid: React.FC<Props> = ({
 
       {/* Прокручиваемая область */}
       <div className={styles.gridOuter} ref={scrollRef}>
+        {loading && (
+          <div className={styles.gridOverlay}><Spinner size="lg" /></div>
+        )}
         <div className={styles.tGridInner}>
 
           {/* Заголовок: угол + названия групп */}

@@ -10,18 +10,6 @@
   align-items: flex-start;
 }
 
-.loading {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.12);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10;
-  pointer-events: none;
-  border-radius: $border-radius-lg;
-}
-
 // ─── Detached warning modal ──────────────────────────────────────────────────
 
 .overlay {

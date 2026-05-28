@@ -1,6 +1,7 @@
 @use '../../styles/variables' as *;
 
 .container {
+  position: relative;
   width: 220px;
   min-width: 220px;
   display: flex;
@@ -10,6 +11,15 @@
   box-shadow: $shadow;
   padding: $space-4;
   min-height: 200px;
+}
+
+.loadingOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.08);
+  z-index: 5;
+  pointer-events: auto;
+  border-radius: $border-radius-lg;
 }
 
 .title {

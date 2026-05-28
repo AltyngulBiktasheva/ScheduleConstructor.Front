@@ -258,10 +258,12 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
     const errs: Record<string, string> = {};
     if (!parentId) errs.parentId = 'Обязательное поле';
     if (!lessonType) errs.lessonType = 'Обязательное поле';
-    const first = batches[0];
-    if (first.groupIds.length === 0) errs.group = 'Выберите хотя бы одну группу';
-    if (first.isStatic && first.occurrences.length === 0)
-      errs.occurrences = 'Для постоянной дисциплины необходимо указать время';
+    batches.forEach((batch, idx) => {
+      if (batch.groupIds.length === 0)
+        errs[`group_${idx}`] = `Занятие ${idx + 1}: выберите хотя бы одну группу`;
+      if (batch.isStatic && batch.occurrences.length === 0)
+        errs[`occurrences_${idx}`] = `Занятие ${idx + 1}: укажите время`;
+    });
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -380,7 +382,17 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
                   index={idx}
                   batch={batch}
                   total={batches.length}
-                  errors={idx === 0 ? errors : {}}
+                  errors={{
+                    ...Object.fromEntries(
+                      Object.entries(errors)
+                        .filter(([k]) => k === 'parentId' || k === 'lessonType')
+                    ),
+                    ...Object.fromEntries(
+                      Object.entries(errors)
+                        .filter(([k]) => k === `group_${idx}` || k === `occurrences_${idx}`)
+                        .map(([k, v]) => [k.replace(`_${idx}`, ''), v])
+                    ),
+                  }}
                   streamOptions={streamOptions}
                   actualGroupOptions={actualGroupOptions}
                   semiGroupOptions={semiGroupOptions}

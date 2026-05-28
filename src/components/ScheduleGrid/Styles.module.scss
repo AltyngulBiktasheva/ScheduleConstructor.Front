@@ -138,8 +138,25 @@
 // ─── Grid outer scroll container ─────────────────────────────────────────────
 
 .gridOuter {
+  position: relative;
   overflow-x: auto;
   overflow-y: visible;
+}
+
+.gridOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  pointer-events: auto;
+}
+
+.toolbarDisabled {
+  pointer-events: none;
+  opacity: 0.5;
 }
 
 .gridInner {

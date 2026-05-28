@@ -1,7 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { teacherPreferenceApi } from '../../../api';
-import type { TeacherPreferencesViewDto } from '../../../api';
+import type { TeacherPreferencesViewDto, TeacherPreferenceType } from '../../../api';
 import { Badge } from '../../../components/Badge/Badge';
+
+const DOW_SHORT: Record<number, string> = {
+  1: 'Пн', 2: 'Вт', 3: 'Ср', 4: 'Чт', 5: 'Пт', 6: 'Сб', 0: 'Вс',
+};
+
+const fmtTime = (t: string) => t.slice(0, 5); // HH:MM:SS → HH:MM
+
+const prefVariant = (type: TeacherPreferenceType): 'green' | 'yellow' | 'red' => {
+  switch (type) {
+    case 'Preferred': return 'green';
+    case 'Undesirable': return 'yellow';
+    case 'Restricted': return 'red';
+  }
+};
 
 interface Props {
   teacherId: string;
@@ -35,30 +49,33 @@ export const TeacherWishCell: React.FC<Props> = React.memo(({ teacherId, schedul
 
   if (column === 'time') {
     const prefs = data.teacherTimePreferences ?? [];
-    const preferred = prefs.filter((p) => p.teacherPreferenceType === 'Preferred').length;
-    const undesirable = prefs.filter((p) => p.teacherPreferenceType === 'Undesirable').length;
-    const restricted = prefs.filter((p) => p.teacherPreferenceType === 'Restricted').length;
-    if (preferred === 0 && undesirable === 0 && restricted === 0) return <span style={{ color: '#9ca3af', fontSize: 12 }}>—</span>;
+    if (prefs.length === 0) return <span style={{ color: '#9ca3af', fontSize: 12 }}>—</span>;
     return (
-      <span style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-        {preferred > 0 && <Badge variant="green">{preferred} жел.</Badge>}
-        {undesirable > 0 && <Badge variant="yellow">{undesirable} нежел.</Badge>}
-        {restricted > 0 && <Badge variant="red">{restricted} запр.</Badge>}
+      <span style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {prefs.map((p, i) => {
+          const day = DOW_SHORT[p.dayOfWeekTimeInterval.dayOfWeek] ?? '?';
+          const from = fmtTime(p.dayOfWeekTimeInterval.timeInterval.timeFrom);
+          const to = fmtTime(p.dayOfWeekTimeInterval.timeInterval.timeTo);
+          return (
+            <Badge key={i} variant={prefVariant(p.teacherPreferenceType)}>
+              {day}, {from}–{to}
+            </Badge>
+          );
+        })}
       </span>
     );
   }
 
   if (column === 'room') {
     const prefs = data.teacherRoomPreferences ?? [];
-    const preferred = prefs.filter((p) => p.teacherPreferenceType === 'Preferred').length;
-    const undesirable = prefs.filter((p) => p.teacherPreferenceType === 'Undesirable').length;
-    const restricted = prefs.filter((p) => p.teacherPreferenceType === 'Restricted').length;
-    if (preferred === 0 && undesirable === 0 && restricted === 0) return <span style={{ color: '#9ca3af', fontSize: 12 }}>—</span>;
+    if (prefs.length === 0) return <span style={{ color: '#9ca3af', fontSize: 12 }}>—</span>;
     return (
-      <span style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-        {preferred > 0 && <Badge variant="green">{preferred} жел.</Badge>}
-        {undesirable > 0 && <Badge variant="yellow">{undesirable} нежел.</Badge>}
-        {restricted > 0 && <Badge variant="red">{restricted} запр.</Badge>}
+      <span style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {prefs.map((p, i) => (
+          <Badge key={i} variant={prefVariant(p.teacherPreferenceType)}>
+            {p.roomName}
+          </Badge>
+        ))}
       </span>
     );
   }
