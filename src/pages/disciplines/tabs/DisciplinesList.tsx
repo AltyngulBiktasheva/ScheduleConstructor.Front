@@ -59,8 +59,24 @@ export const DisciplinesList: React.FC<Props> = ({
     return <div className={styles.empty}>Нет дисциплин, соответствующих фильтру</div>;
   }
 
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const filteredDisciplines = filteredRoots.filter((t) =>
+        t.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const filteredChildDisciplines = filteredChildren.filter((t) =>
+        t.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
   return (
     <>
+        <input
+            className="field-input"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Поиск дисциплин..."
+        />
       {/* ── Корневые дисциплины ── */}
       {filteredRoots.length > 0 && (
         <section className={styles.section}>
@@ -76,7 +92,7 @@ export const DisciplinesList: React.FC<Props> = ({
                 </tr>
               </thead>
               <tbody>
-                {filteredRoots.map((d) => (
+                {filteredDisciplines.map((d) => (
                   <tr
                     key={d.id}
                     ref={d.id === newlyCreatedId ? highlightRef : null}
@@ -119,7 +135,7 @@ export const DisciplinesList: React.FC<Props> = ({
       )}
 
       {/* ── Обычные дисциплины ── */}
-      {(filteredChildren.length > 0 || filterRootId) && (
+      {(filteredChildDisciplines.length > 0 || filterRootId) && (
         <section className={styles.section}>
           <h3 className={styles.sectionTitle}>Дисциплины</h3>
           {filterRootId && (
@@ -130,7 +146,7 @@ export const DisciplinesList: React.FC<Props> = ({
               <button onClick={() => setFilterRootId(null)}>✕</button>
             </div>
           )}
-          {filteredChildren.length > 0 ? (
+          {filteredChildDisciplines.length > 0 ? (
             <div className={styles.tableWrapper}>
               <table className={styles.table}>
                 <thead>
@@ -142,7 +158,7 @@ export const DisciplinesList: React.FC<Props> = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredChildren.map((d) => (
+                  {filteredChildDisciplines.map((d) => (
                     <React.Fragment key={d.id}>
                       {/* Основная строка */}
                       <tr

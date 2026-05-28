@@ -252,6 +252,7 @@ export interface LessonShortDto {
   allowCombining: boolean;
   lessonPolicyViolationDescription?: string | null;
   currentErrorsMaxLevel?: LessonValidationErrorType | null;
+  comment?: string | null;
 }
 
 export interface LessonSeriesConflictMessageDto {
