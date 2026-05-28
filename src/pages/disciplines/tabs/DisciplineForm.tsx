@@ -17,6 +17,8 @@ import { LESSON_TYPE_LABELS } from './RootDisciplineForm';
 import type { AcademicDisciplineType } from '../../../api';
 import { roomApi } from '../../../api';
 import type { RoomTreeDto } from '../../../api';
+import { clampToValidDate } from '../../../utils/validateDate';
+import { SearchableSelect } from '../../../components/SearchableSelect/SearchableSelect';
 import styles from './DisciplineForm.module.scss';
 
 interface RoomOption {
@@ -232,14 +234,6 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
     });
   };
 
-  const toggleTeacher = (batchIndex: number, teacher: DisciplineTeacher) => {
-    const batch = batches[batchIndex];
-    const has = batch.teachers.some((t) => t.id === teacher.id);
-    updateBatch(batchIndex, {
-      teachers: has ? batch.teachers.filter((t) => t.id !== teacher.id) : [...batch.teachers, teacher],
-    });
-  };
-
   const addAudience = (batchIndex: number) => {
     updateBatch(batchIndex, {
       audiences: [...batches[batchIndex].audiences, { roomId: '', roomName: '' }],
@@ -349,17 +343,13 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
 
       {/* ── Shared fields ── */}
       <FormField label="Корневая дисциплина" required error={errors.parentId}>
-        <select
-          className="field-input"
+        <SearchableSelect
+          options={rootDisciplines.map((d) => ({ value: d.id, label: d.name }))}
           value={parentId}
-          onChange={(e) => setParentId(e.target.value)}
+          onChange={setParentId}
+          placeholder="— выберите дисциплину —"
           disabled={!!initial}
-        >
-          <option value="">— выберите дисциплину —</option>
-          {rootDisciplines.map((d) => (
-            <option key={d.id} value={d.id}>{d.name}</option>
-          ))}
-        </select>
+        />
         {rootDisciplines.length === 0 && (
           <span style={{ fontSize: 12, color: '#9ca3af' }}>
             Сначала создайте корневую дисциплину на вкладке «Добавить корневую дисциплину»
@@ -404,7 +394,6 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
                   onAddOccurrence={() => addOccurrence(idx)}
                   onRemoveOccurrence={(i) => removeOccurrence(idx, i)}
                   onUpdateOccurrence={(i, patch) => updateOccurrence(idx, i, patch)}
-                  onToggleTeacher={(t) => toggleTeacher(idx, t)}
                   onAddAudience={() => addAudience(idx)}
                   onRemoveAudience={(i) => removeAudience(idx, i)}
                   onUpdateAudience={(i, patch) => updateAudience(idx, i, patch)}
@@ -477,7 +466,6 @@ interface BatchSectionProps {
   onAddOccurrence: () => void;
   onRemoveOccurrence: (i: number) => void;
   onUpdateOccurrence: (i: number, patch: Partial<WeeklyOccurrence>) => void;
-  onToggleTeacher: (t: DisciplineTeacher) => void;
   onAddAudience: () => void;
   onRemoveAudience: (i: number) => void;
   onUpdateAudience: (i: number, patch: Partial<DisciplineAudience>) => void;
@@ -504,7 +492,6 @@ const BatchSection: React.FC<BatchSectionProps> = ({
   onAddOccurrence,
   onRemoveOccurrence,
   onUpdateOccurrence,
-  onToggleTeacher,
   onAddAudience,
   onRemoveAudience,
   onUpdateAudience,
@@ -667,6 +654,11 @@ const BatchSection: React.FC<BatchSectionProps> = ({
                 onChange={(e) =>
                   onUpdate({ dateRange: { from: handleDateInput(e.target.value), to: batch.dateRange?.to ?? '' } })
                 }
+                onBlur={() => {
+                  const clamped = clampToValidDate(batch.dateRange?.from ?? '', 'DD.MM.YYYY');
+                  if (clamped !== (batch.dateRange?.from ?? ''))
+                    onUpdate({ dateRange: { from: clamped, to: batch.dateRange?.to ?? '' } });
+                }}
                 placeholder="01.09.2025"
                 maxLength={10}
               />
@@ -678,6 +670,11 @@ const BatchSection: React.FC<BatchSectionProps> = ({
                 onChange={(e) =>
                   onUpdate({ dateRange: { from: batch.dateRange?.from ?? '', to: handleDateInput(e.target.value) } })
                 }
+                onBlur={() => {
+                  const clamped = clampToValidDate(batch.dateRange?.to ?? '', 'DD.MM.YYYY');
+                  if (clamped !== (batch.dateRange?.to ?? ''))
+                    onUpdate({ dateRange: { from: batch.dateRange?.from ?? '', to: clamped } });
+                }}
                 placeholder="31.12.2025"
                 maxLength={10}
               />
@@ -730,17 +727,45 @@ const BatchSection: React.FC<BatchSectionProps> = ({
           </FormField>
 
           <FormField label="Преподаватели" hint="Выберите одного или нескольких">
-            <div className={styles.checkList}>
-              {teachersList.map((t) => (
-                <label key={t.id} className={styles.checkLabel}>
-                  <input
-                    type="checkbox"
-                    checked={batch.teachers.some((f) => f.id === t.id)}
-                    onChange={() => onToggleTeacher({ id: t.id, name: t.name })}
+            <div className={styles.teacherSelectList}>
+              {batch.teachers.map((t, i) => (
+                <div key={t.id} className={styles.teacherSelectRow}>
+                  <SearchableSelect
+                    options={teachersList
+                      .filter((tl) => tl.id === t.id || !batch.teachers.some((bt) => bt.id === tl.id))
+                      .map((tl) => ({ value: tl.id, label: tl.name }))}
+                    value={t.id}
+                    onChange={(newId) => {
+                      const newTeacher = teachersList.find((tl) => tl.id === newId);
+                      if (newTeacher) {
+                        const updated = [...batch.teachers];
+                        updated[i] = { id: newTeacher.id, name: newTeacher.name };
+                        onUpdate({ teachers: updated });
+                      }
+                    }}
+                    placeholder="— выберите преподавателя —"
                   />
-                  {t.name}
-                </label>
+                  <button
+                    className={styles.removeBtn}
+                    onClick={() => onUpdate({ teachers: batch.teachers.filter((_, idx) => idx !== i) })}
+                    type="button"
+                  >✕</button>
+                </div>
               ))}
+              <button
+                className={styles.addBtn}
+                onClick={() => {
+                  const available = teachersList.find((tl) => !batch.teachers.some((bt) => bt.id === tl.id));
+                  if (available) {
+                    onUpdate({ teachers: [...batch.teachers, { id: available.id, name: available.name }] });
+                  } else {
+                    onUpdate({ teachers: [...batch.teachers, { id: '', name: '' }] });
+                  }
+                }}
+                type="button"
+              >
+                + Добавить преподавателя
+              </button>
             </div>
           </FormField>
 
@@ -748,20 +773,15 @@ const BatchSection: React.FC<BatchSectionProps> = ({
             <div className={styles.audienceList}>
               {batch.audiences.map((a, i) => (
                 <div key={i} className={styles.audienceRow}>
-                  <select
-                    className={styles.roomSelect}
+                  <SearchableSelect
+                    options={roomOptions.map((r) => ({ value: r.id, label: r.label }))}
                     value={a.roomId}
-                    onChange={(e) => {
-                      const roomId = e.target.value;
+                    onChange={(roomId) => {
                       const roomName = roomOptions.find((r) => r.id === roomId)?.label ?? '';
                       onUpdateAudience(i, { roomId, roomName });
                     }}
-                  >
-                    <option value="">— выберите аудиторию —</option>
-                    {roomOptions.map((r) => (
-                      <option key={r.id} value={r.id}>{r.label}</option>
-                    ))}
-                  </select>
+                    placeholder="— выберите аудиторию —"
+                  />
                   <button className={styles.removeBtn} onClick={() => onRemoveAudience(i)} type="button">✕</button>
                 </div>
               ))}

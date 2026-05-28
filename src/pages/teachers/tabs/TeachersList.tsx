@@ -1,6 +1,8 @@
 import React, { useRef, useEffect, useState } from 'react';
 import type { Teacher } from '../../../types/teacher';
 import { TeacherViewModal } from '../modals/TeacherViewModal';
+import { TeacherWishCell } from './TeacherWishCell';
+import { useAppSelector } from '../../../store/hooks';
 import styles from './TeachersList.module.scss';
 
 interface Props {
@@ -20,6 +22,7 @@ export const TeachersList: React.FC<Props> = ({
   const [selected, setSelected] = useState<Teacher | null>(null);
   const [query, setQuery] = useState('');
   const highlightRef = useRef<HTMLTableRowElement | null>(null);
+  const selectedScheduleId = useAppSelector((s) => s.schedule.selectedScheduleId);
 
   useEffect(() => {
     if (newlyCreatedId && highlightRef.current) {
@@ -52,6 +55,9 @@ export const TeachersList: React.FC<Props> = ({
             <thead>
               <tr>
                 <th>ФИО</th>
+                <th>По времени</th>
+                <th>По аудиториям</th>
+                <th>Другие</th>
               </tr>
             </thead>
             <tbody>
@@ -63,6 +69,21 @@ export const TeachersList: React.FC<Props> = ({
                     onClick={() => setSelected(t)}
                   >
                     <td className={styles.name}>{t.name}</td>
+                    <td>
+                      {selectedScheduleId && (
+                        <TeacherWishCell teacherId={t.id} scheduleId={selectedScheduleId} column="time" />
+                      )}
+                    </td>
+                    <td>
+                      {selectedScheduleId && (
+                        <TeacherWishCell teacherId={t.id} scheduleId={selectedScheduleId} column="room" />
+                      )}
+                    </td>
+                    <td>
+                      {selectedScheduleId && (
+                        <TeacherWishCell teacherId={t.id} scheduleId={selectedScheduleId} column="other" />
+                      )}
+                    </td>
                   </tr>
               ))}
             </tbody>

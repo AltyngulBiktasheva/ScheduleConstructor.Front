@@ -1,0 +1,77 @@
+@use '../../styles/variables' as *;
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $space-3 $space-4;
+  border-top: 1px solid $border-color;
+  background: $color-gray-50;
+  border-radius: 0 0 $border-radius-lg $border-radius-lg;
+  font-size: $font-size-sm;
+  color: $color-gray-600;
+  gap: $space-4;
+  flex-wrap: wrap;
+}
+
+.left,
+.center,
+.right {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+}
+
+.label {
+  white-space: nowrap;
+}
+
+.sizeSelect {
+  height: 28px;
+  padding: 0 $space-2;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  background: $color-white;
+  color: $color-gray-700;
+  font-size: $font-size-sm;
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+    border-color: $color-primary;
+  }
+}
+
+.navBtn {
+  height: 28px;
+  padding: 0 $space-3;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  background: $color-white;
+  color: $color-gray-700;
+  font-size: $font-size-sm;
+  cursor: pointer;
+  transition: all $transition-fast;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    background: $color-primary-light;
+    border-color: $color-primary;
+    color: $color-primary;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.pageInfo {
+  white-space: nowrap;
+  font-weight: $font-weight-medium;
+}
+
+.total {
+  white-space: nowrap;
+  color: $color-gray-500;
+}

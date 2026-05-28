@@ -18,28 +18,39 @@ interface TeachersListState {
   teachers: Teacher[];
   loading: boolean;
   error: string | null;
+  page: number;
+  itemsPerPage: number;
+  totalItems: number;
 }
 
 const initialState: TeachersListState = {
   teachers: [],
   loading: false,
   error: null,
+  page: 1,
+  itemsPerPage: 100,
+  totalItems: 0,
 };
 
 // ─── Thunks ──────────────────────────────────────────────────────────────────
 
-/** Загружает список преподавателей с бэкенда */
+/** Загружает список преподавателей с бэкенда (с пагинацией) */
 export const fetchTeachersAll = createAsyncThunk(
   'teachersList/fetchAll',
-  async (_, { rejectWithValue }) => {
+  async (params: { page?: number; itemsPerPage?: number } | undefined, { rejectWithValue }) => {
     try {
-      const { data } = await teacherApi.searchTeachersShort();
-      return data.map((dto) => ({
-        id: dto.id,
-        name: dto.fullname,
-        contacts: dto.contacts ?? undefined,
-        wishes: emptyWishes(),
-      }));
+      const { data } = await teacherApi.searchTeachers({
+        searchParameters: { page: params?.page ?? 1, itemsPerPage: params?.itemsPerPage ?? 100 },
+      });
+      return {
+        teachers: data.items.map((dto) => ({
+          id: dto.id,
+          name: dto.fullname,
+          contacts: dto.contacts ?? undefined,
+          wishes: emptyWishes(),
+        })),
+        totalItems: data.itemsCount,
+      };
     } catch (err: unknown) {
       return rejectWithValue(extractError(err));
     }
@@ -85,6 +96,13 @@ const teachersListSlice = createSlice({
     removeTeacherLocally(state, action: PayloadAction<string>) {
       state.teachers = state.teachers.filter((t) => t.id !== action.payload);
     },
+    setTeachersPage(state, action: PayloadAction<number>) {
+      state.page = action.payload;
+    },
+    setTeachersItemsPerPage(state, action: PayloadAction<number>) {
+      state.itemsPerPage = action.payload;
+      state.page = 1;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -94,7 +112,8 @@ const teachersListSlice = createSlice({
       })
       .addCase(fetchTeachersAll.fulfilled, (state, action) => {
         state.loading = false;
-        state.teachers = action.payload;
+        state.teachers = action.payload.teachers;
+        state.totalItems = action.payload.totalItems;
       })
       .addCase(fetchTeachersAll.rejected, (state, action) => {
         state.loading = false;
@@ -103,6 +122,8 @@ const teachersListSlice = createSlice({
   },
 });
 
-export const { addTeacherLocally, updateTeacherLocally, removeTeacherLocally } =
-  teachersListSlice.actions;
+export const {
+  addTeacherLocally, updateTeacherLocally, removeTeacherLocally,
+  setTeachersPage, setTeachersItemsPerPage,
+} = teachersListSlice.actions;
 export default teachersListSlice.reducer;

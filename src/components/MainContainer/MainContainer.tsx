@@ -5,6 +5,7 @@ import type { GridColumn } from '../ScheduleGrid/TransposedScheduleGrid';
 import { DisciplineList } from '../DisciplineList/DisciplineList';
 import { EditModal } from '../EditModal/EditModal';
 import { HighlightModal } from '../HighlightModal/HighlightModal';
+import { Spinner } from '../Spinner/Spinner';
 import type { Discipline } from '../../types';
 import type { SlotHighlight } from '../../api/slotHighlights';
 import { fetchSlotHighlights } from '../../api/slotHighlights';
@@ -628,7 +629,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
 
   return (
     <div className={styles.container}>
-      {weekLessonsLoading && <div className={styles.loading}>Загрузка...</div>}
+      {weekLessonsLoading && <div className={styles.loading}><Spinner size="lg" /></div>}
       {isTransposed ? (
         <TransposedScheduleGrid {...gridProps} columns={gridColumns} />
       ) : (

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchTeachersAll } from '../../../store/slices/teachersListSlice';
+import { SearchableSelect } from '../../../components/SearchableSelect/SearchableSelect';
 import styles from './SliceCard.module.scss';
 
 interface Props {
@@ -10,16 +11,13 @@ interface Props {
 export const TeacherSlice: React.FC<Props> = ({ onSelect }) => {
   const dispatch = useAppDispatch();
   const { teachers, loading } = useAppSelector((s) => s.teachersList);
-  const [query, setQuery] = useState('');
   const [selected, setSelected] = useState('');
 
   useEffect(() => {
     if (teachers.length === 0) dispatch(fetchTeachersAll());
   }, [dispatch, teachers.length]);
 
-  const filtered = teachers.filter((t) =>
-    t.name.toLowerCase().includes(query.toLowerCase())
-  );
+  const options = teachers.map((t) => ({ value: t.id, label: t.name }));
 
   const handleOpen = () => {
     const teacher = teachers.find((t) => t.id === selected);
@@ -31,27 +29,16 @@ export const TeacherSlice: React.FC<Props> = ({ onSelect }) => {
       <h2 className={styles.cardTitle}>Выберите преподавателя</h2>
 
       <div className={styles.field}>
-        <label>Поиск</label>
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => { setQuery(e.target.value); setSelected(''); }}
-          placeholder="Введите ФИО..."
-          style={{ padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 6, fontSize: 14, fontFamily: 'inherit' }}
-        />
-      </div>
-
-      <div className={styles.field}>
         <label>Преподаватель</label>
         {loading ? (
           <div>Загрузка…</div>
         ) : (
-          <select value={selected} onChange={(e) => setSelected(e.target.value)}>
-            <option value="">— выберите преподавателя —</option>
-            {filtered.map((t) => (
-              <option key={t.id} value={t.id}>{t.name}</option>
-            ))}
-          </select>
+          <SearchableSelect
+            options={options}
+            value={selected}
+            onChange={setSelected}
+            placeholder="— выберите преподавателя —"
+          />
         )}
       </div>
 

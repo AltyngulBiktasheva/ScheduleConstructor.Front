@@ -4,7 +4,9 @@ import { PageHeader } from '../../components/PageHeader/PageHeader';
 import { Tabs } from '../../components/Tabs/Tabs';
 import { SchedulesList } from './tabs/SchedulesList';
 import { ScheduleForm } from './tabs/ScheduleForm';
-import { useSchedule } from '../../store/slices/scheduleSlice';
+import { useSchedule, setSchedulesPage, setSchedulesItemsPerPage, fetchSchedules } from '../../store/slices/scheduleSlice';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { Pagination } from '../../components/Pagination/Pagination';
 import type { ScheduleSaveDto, ScheduleRegistryItemDto } from '../../api';
 import styles from './Styles.module.scss';
 
@@ -17,14 +19,16 @@ export const SchedulesPage: React.FC = () => {
   const location = useLocation();
   const initialTab = (location.state as { tab?: string } | null)?.tab ?? 'list';
   const [activeTab, setActiveTab] = useState(initialTab);
+  const dispatch = useAppDispatch();
+  const { page, itemsPerPage, totalItems } = useAppSelector((s) => s.schedule);
   const [saving, setSaving] = useState(false);
   const { list, error, fetchAll, save, delete: deleteSchedule } = useSchedule();
   const [newlyCreatedId, setNewlyCreatedId] = useState<string | null>(null);
   const prevListRef = useRef<ScheduleRegistryItemDto[]>([]);
 
   useEffect(() => {
-    fetchAll();
-  }, []);
+    dispatch(fetchSchedules({ page, itemsPerPage }));
+  }, [dispatch, page, itemsPerPage]);
 
   // Определяем только что созданное расписание (появилось в списке)
   useEffect(() => {
@@ -75,12 +79,21 @@ export const SchedulesPage: React.FC = () => {
               </div>
             )}
             {(!error || list.length > 0) && (
-              <SchedulesList
-                schedules={list}
-                newlyCreatedId={newlyCreatedId}
-                onUpdate={handleUpdateFromModal}
-                onDelete={handleDelete}
-              />
+              <>
+                <SchedulesList
+                  schedules={list}
+                  newlyCreatedId={newlyCreatedId}
+                  onUpdate={handleUpdateFromModal}
+                  onDelete={handleDelete}
+                />
+                <Pagination
+                  page={page}
+                  itemsPerPage={itemsPerPage}
+                  totalItems={totalItems}
+                  onPageChange={(p) => dispatch(setSchedulesPage(p))}
+                  onItemsPerPageChange={(s) => dispatch(setSchedulesItemsPerPage(s))}
+                />
+              </>
             )}
           </>
         )}

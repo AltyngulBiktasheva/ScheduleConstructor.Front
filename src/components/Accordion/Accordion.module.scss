@@ -1,0 +1,50 @@
+@use '../../styles/variables' as *;
+
+.accordion {
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  width: 100%;
+  padding: $space-2 $space-3;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  border-radius: $border-radius;
+  transition: background $transition-fast;
+
+  &:hover {
+    background: $color-gray-50;
+  }
+}
+
+.arrow {
+  display: inline-block;
+  font-size: 10px;
+  color: $color-gray-400;
+  transition: transform $transition-base;
+  flex-shrink: 0;
+}
+
+.arrowOpen {
+  transform: rotate(90deg);
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+}
+
+.body {
+  transition: max-height $transition-base ease;
+}
+
+.bodyInner {
+  padding: $space-2 $space-3 $space-3;
+}

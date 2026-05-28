@@ -134,6 +134,18 @@
 
 // ─── Audiences ───────────────────────────────────────────────────────────────
 
+.teacherSelectList {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.teacherSelectRow {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+}
+
 .audienceList {
   display: flex;
   flex-direction: column;
@@ -144,7 +156,11 @@
   display: flex;
   align-items: center;
   gap: $space-2;
-  flex-wrap: wrap;
+
+  > *:first-child {
+    flex: 1;
+    min-width: 0;
+  }
 }
 
 .roomSelect {

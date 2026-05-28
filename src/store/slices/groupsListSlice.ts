@@ -21,6 +21,9 @@ interface GroupsListState {
   streams: Stream[];
   loading: boolean;
   error: string | null;
+  page: number;
+  itemsPerPage: number;
+  totalItems: number;
 }
 
 const initialState: GroupsListState = {
@@ -28,6 +31,9 @@ const initialState: GroupsListState = {
   streams: [],
   loading: false,
   error: null,
+  page: 1,
+  itemsPerPage: 100,
+  totalItems: 0,
 };
 
 // ─── Thunks ──────────────────────────────────────────────────────────────────
@@ -35,10 +41,10 @@ const initialState: GroupsListState = {
 /** Загружает плоский список групп и потоков с бэкенда */
 export const fetchGroupsAll = createAsyncThunk(
   'groupsList/fetchAll',
-  async (_: undefined, { rejectWithValue }) => {
+  async (params: { page?: number; itemsPerPage?: number } | undefined, { rejectWithValue }) => {
     try {
       const { data } = await studentGroupApi.searchStudentGroups({
-        searchParameters: { page: 1, itemsPerPage: 100 },
+        searchParameters: { page: params?.page ?? 1, itemsPerPage: params?.itemsPerPage ?? 100 },
       });
 
       const streamsMap = new Map<string, Stream>();
@@ -69,7 +75,7 @@ export const fetchGroupsAll = createAsyncThunk(
         }
       }
 
-      return { groups: Array.from(groupsMap.values()), streams: Array.from(streamsMap.values()) };
+      return { groups: Array.from(groupsMap.values()), streams: Array.from(streamsMap.values()), totalItems: data.itemsCount };
     } catch (err: unknown) {
       return rejectWithValue(extractError(err));
     }
@@ -235,6 +241,13 @@ const groupsListSlice = createSlice({
           : g,
       );
     },
+    setGroupsPage(state, action: PayloadAction<number>) {
+      state.page = action.payload;
+    },
+    setGroupsItemsPerPage(state, action: PayloadAction<number>) {
+      state.itemsPerPage = action.payload;
+      state.page = 1;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -247,6 +260,7 @@ const groupsListSlice = createSlice({
         state.loading = false;
         state.groups = action.payload.groups;
         state.streams = action.payload.streams;
+        state.totalItems = action.payload.totalItems;
       })
       .addCase(fetchGroupsAll.rejected, (state, action) => {
         state.loading = false;
@@ -276,5 +290,7 @@ export const {
   addStreamLocally,
   updateStreamLocally,
   removeStreamLocally,
+  setGroupsPage,
+  setGroupsItemsPerPage,
 } = groupsListSlice.actions;
 export default groupsListSlice.reducer;

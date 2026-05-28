@@ -5,6 +5,7 @@ import type { TeacherWishes, TimeWish, AudienceWish } from '../../types';
 import { DAYS } from '../../constants/days';
 import { roomApi } from '../../api';
 import type { RoomTreeDto } from '../../api';
+import { SearchableSelect } from '../../components/SearchableSelect/SearchableSelect';
 import styles from './WishesEditor.module.scss';
 
 interface Props {
@@ -182,18 +183,13 @@ export const WishesEditor: React.FC<Props> = ({ wishes, onSave, onCancel }) => {
 
               {form[key].map((w: AudienceWish) => (
                 <div key={w.id} className={styles.audienceRow}>
-                  <select
-                    className={styles.buildingSelect}
+                  <SearchableSelect
+                    options={roomOptions.map((o) => ({ value: o.id, label: o.label }))}
                     value={w.roomId}
-                    onChange={(e) => updateAudienceWishRoom(key, w.id, e.target.value)}
-                  >
-                    {roomOptions.length === 0 && (
-                      <option value="">Загрузка аудиторий…</option>
-                    )}
-                    {roomOptions.map((o) => (
-                      <option key={o.id} value={o.id}>{o.label}</option>
-                    ))}
-                  </select>
+                    onChange={(roomId) => updateAudienceWishRoom(key, w.id, roomId)}
+                    placeholder={roomOptions.length === 0 ? 'Загрузка аудиторий…' : '— выберите аудиторию —'}
+                    disabled={roomOptions.length === 0}
+                  />
                   <button className={styles.removeBtn} onClick={() => removeAudienceWish(key, w.id)}>✕</button>
                 </div>
               ))}

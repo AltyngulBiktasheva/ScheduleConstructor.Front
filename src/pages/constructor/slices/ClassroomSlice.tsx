@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchClassroomsAll } from '../../../store/slices/classroomsListSlice';
+import { SearchableSelect } from '../../../components/SearchableSelect/SearchableSelect';
 import styles from './SliceCard.module.scss';
 
 interface Props {
@@ -25,6 +26,9 @@ export const ClassroomSlice: React.FC<Props> = ({ onSelect }) => {
     ? classrooms.filter((c) => c.building === buildingName)
     : [];
 
+  const buildingOptions = buildings.map((b) => ({ value: b, label: b }));
+  const roomOptions = rooms.map((r) => ({ value: r.id, label: r.name }));
+
   const handleBuildingChange = (name: string) => {
     setBuildingName(name);
     setRoomId('');
@@ -44,23 +48,24 @@ export const ClassroomSlice: React.FC<Props> = ({ onSelect }) => {
         {loading ? (
           <div>Загрузка…</div>
         ) : (
-          <select value={buildingName} onChange={(e) => handleBuildingChange(e.target.value)}>
-            <option value="">— выберите корпус —</option>
-            {buildings.map((b) => (
-              <option key={b} value={b}>{b}</option>
-            ))}
-          </select>
+          <SearchableSelect
+            options={buildingOptions}
+            value={buildingName}
+            onChange={handleBuildingChange}
+            placeholder="— выберите корпус —"
+          />
         )}
       </div>
 
       <div className={styles.field}>
         <label>Аудитория</label>
-        <select value={roomId} onChange={(e) => setRoomId(e.target.value)} disabled={!buildingName || loading}>
-          <option value="">— выберите аудиторию —</option>
-          {rooms.map((r) => (
-            <option key={r.id} value={r.id}>{r.name}</option>
-          ))}
-        </select>
+        <SearchableSelect
+          options={roomOptions}
+          value={roomId}
+          onChange={setRoomId}
+          placeholder="— выберите аудиторию —"
+          disabled={!buildingName || loading}
+        />
       </div>
 
       <button className={styles.openBtn} disabled={!roomId} onClick={handleOpen}>

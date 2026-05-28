@@ -18,6 +18,7 @@ export const TeacherSchedulePage: React.FC = () => {
     error: disciplinesError,
   } = useAppSelector((s) => s.disciplinesList);
   const disciplines = [...rootDisciplines, ...rawDisciplines];
+  const selectedScheduleId = useAppSelector((s) => s.schedule.selectedScheduleId);
 
   const [teacher, setTeacher] = useState<Teacher | null>(null);
   const [weekOffset, setWeekOffset] = useState(0);
@@ -25,8 +26,8 @@ export const TeacherSchedulePage: React.FC = () => {
 
   useEffect(() => {
     if (teachers.length === 0) dispatch(fetchTeachersAll());
-    if (disciplines.length === 0) dispatch(fetchDisciplinesAll());
-  }, [dispatch, teachers.length, disciplines.length, retryKey]);
+    if (disciplines.length === 0) dispatch(fetchDisciplinesAll(selectedScheduleId ?? undefined));
+  }, [dispatch, teachers.length, disciplines.length, retryKey, selectedScheduleId]);
 
   const loadError =
     (teachersError && teachers.length === 0) ||

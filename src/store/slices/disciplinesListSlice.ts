@@ -28,6 +28,9 @@ interface DisciplinesListState {
   disciplines: Discipline[];           // дочерние (не корневые)
   loading: boolean;
   error: string | null;
+  page: number;
+  itemsPerPage: number;
+  totalItems: number;
 }
 
 const initialState: DisciplinesListState = {
@@ -35,6 +38,9 @@ const initialState: DisciplinesListState = {
   disciplines: [],
   loading: false,
   error: null,
+  page: 1,
+  itemsPerPage: 100,
+  totalItems: 0,
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -235,10 +241,16 @@ function mapDto(dto: AcademicDisciplineRegistryItemDto): { root: Discipline; chi
 
 export const fetchDisciplinesAll = createAsyncThunk(
   'disciplinesList/fetchAll',
-  async (_, { rejectWithValue }) => {
+  async (
+    params: { scheduleId?: string; page?: number; itemsPerPage?: number } | string | undefined,
+    { rejectWithValue },
+  ) => {
     try {
+      // Поддержка вызова как fetchDisciplinesAll(scheduleId) для обратной совместимости
+      const p = typeof params === 'string' ? { scheduleId: params } : params ?? {};
       const { data } = await academicDisciplineApi.searchAcademicDisciplines({
-        searchParameters: { page: 1, itemsPerPage: 100 },
+        scheduleId: p.scheduleId || undefined,
+        searchParameters: { page: p.page ?? 1, itemsPerPage: p.itemsPerPage ?? 100 },
       });
       const rootDisciplines: Discipline[] = [];
       const disciplines: Discipline[] = [];
@@ -247,7 +259,7 @@ export const fetchDisciplinesAll = createAsyncThunk(
         rootDisciplines.push(root);
         disciplines.push(...children);
       }
-      return { rootDisciplines, disciplines };
+      return { rootDisciplines, disciplines, totalItems: data.itemsCount };
     } catch (err: unknown) {
       return rejectWithValue(extractError(err));
     }
@@ -265,7 +277,7 @@ export const saveDisciplineOnServer = createAsyncThunk(
         ...dto,
         id: isNew ? undefined : dto.id,
       });
-      if (isNew) dispatch(fetchDisciplinesAll());
+      if (isNew) dispatch(fetchDisciplinesAll(dto.scheduleId));
       return discipline;
     } catch (err: unknown) {
       return rejectWithValue(extractError(err));
@@ -299,6 +311,13 @@ const disciplinesListSlice = createSlice({
       state.rootDisciplines = state.rootDisciplines.filter((d) => d.id !== action.payload);
       state.disciplines = state.disciplines.filter((d) => d.id !== action.payload);
     },
+    setDisciplinesPage(state, action: PayloadAction<number>) {
+      state.page = action.payload;
+    },
+    setDisciplinesItemsPerPage(state, action: PayloadAction<number>) {
+      state.itemsPerPage = action.payload;
+      state.page = 1;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -310,6 +329,7 @@ const disciplinesListSlice = createSlice({
         state.loading = false;
         state.rootDisciplines = action.payload.rootDisciplines;
         state.disciplines = action.payload.disciplines;
+        state.totalItems = action.payload.totalItems;
       })
       .addCase(fetchDisciplinesAll.rejected, (state, action) => {
         state.loading = false;
@@ -318,6 +338,8 @@ const disciplinesListSlice = createSlice({
   },
 });
 
-export const { addDisciplineLocally, updateDisciplineLocally, removeDisciplineLocally } =
-  disciplinesListSlice.actions;
+export const {
+  addDisciplineLocally, updateDisciplineLocally, removeDisciplineLocally,
+  setDisciplinesPage, setDisciplinesItemsPerPage,
+} = disciplinesListSlice.actions;
 export default disciplinesListSlice.reducer;

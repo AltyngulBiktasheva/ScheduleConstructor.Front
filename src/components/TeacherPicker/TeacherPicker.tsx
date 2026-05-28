@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { Teacher } from '../../types/teacher';
+import { SearchableSelect } from '../SearchableSelect/SearchableSelect';
 import styles from './Styles.module.scss';
 
 interface Props {
@@ -15,13 +16,9 @@ export const TeacherPicker: React.FC<Props> = ({
   title = 'Выберите преподавателя',
   subtitle = 'Найдите себя в списке',
 }) => {
-  const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState('');
 
-  const filtered = query
-    ? teachers.filter((t) => t.name.toLowerCase().includes(query.toLowerCase()))
-    : teachers;
-
+  const options = teachers.map((t) => ({ value: t.id, label: t.name }));
   const selected = teachers.find((t) => t.id === selectedId);
 
   return (
@@ -35,29 +32,13 @@ export const TeacherPicker: React.FC<Props> = ({
 
         <div className={styles.fields}>
           <div className={styles.field}>
-            <label className={styles.label}>Поиск</label>
-            <input
-              className={styles.input}
-              type="text"
-              value={query}
-              onChange={(e) => { setQuery(e.target.value); setSelectedId(''); }}
-              placeholder="Введите ФИО..."
-              autoFocus
-            />
-          </div>
-
-          <div className={styles.field}>
             <label className={styles.label}>Преподаватель</label>
-            <select
-              className={styles.select}
+            <SearchableSelect
+              options={options}
               value={selectedId}
-              onChange={(e) => setSelectedId(e.target.value)}
-            >
-              <option value="">— выберите из списка —</option>
-              {filtered.map((t) => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
-            </select>
+              onChange={setSelectedId}
+              placeholder="— выберите из списка —"
+            />
           </div>
         </div>
 

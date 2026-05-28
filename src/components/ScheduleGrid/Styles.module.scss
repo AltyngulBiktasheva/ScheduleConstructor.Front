@@ -8,7 +8,8 @@
   background: $color-white;
   border-radius: $border-radius-lg;
   box-shadow: $shadow;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: visible;
 }
 
 // ─── Toolbar ─────────────────────────────────────────────────────────────────
@@ -137,8 +138,8 @@
 // ─── Grid outer scroll container ─────────────────────────────────────────────
 
 .gridOuter {
-  overflow: auto;
-  flex: 1;
+  overflow-x: auto;
+  overflow-y: visible;
 }
 
 .gridInner {

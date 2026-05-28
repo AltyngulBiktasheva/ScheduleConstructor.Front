@@ -50,34 +50,43 @@ interface ClassroomsListState {
   classrooms: Classroom[];
   loading: boolean;
   error: string | null;
+  page: number;
+  itemsPerPage: number;
+  totalItems: number;
 }
 
 const initialState: ClassroomsListState = {
   classrooms: [],
   loading: false,
   error: null,
+  page: 1,
+  itemsPerPage: 100,
+  totalItems: 0,
 };
 
 // ─── Thunks ──────────────────────────────────────────────────────────────────
 
-/** Загружает все аудитории через /room/search */
+/** Загружает аудитории через /room/search */
 export const fetchClassroomsAll = createAsyncThunk(
   'classroomsList/fetchAll',
-  async (_, { rejectWithValue }) => {
+  async (params: { page?: number; itemsPerPage?: number } | undefined, { rejectWithValue }) => {
     try {
       const { data } = await roomApi.searchRooms({
-        searchParameters: { page: 1, itemsPerPage: 100 },
+        searchParameters: { page: params?.page ?? 1, itemsPerPage: params?.itemsPerPage ?? 100 },
       });
-      return data.items.map((room): Classroom => ({
-        id: room.id,
-        name: room.name,
-        building: room.campusName,
-        campusId: room.campusId,
-        type: room.roomType ? (ROOM_TYPE_MAP[room.roomType] ?? 'standard') : 'standard',
-        capacity: room.capacity || null,
-        boardType: room.roomBoardType ? (BOARD_TYPE_MAP[room.roomBoardType] ?? null) : null,
-        hasProjector: room.hasProjector ?? null,
-      }));
+      return {
+        classrooms: data.items.map((room): Classroom => ({
+          id: room.id,
+          name: room.name,
+          building: room.campusName,
+          campusId: room.campusId,
+          type: room.roomType ? (ROOM_TYPE_MAP[room.roomType] ?? 'standard') : 'standard',
+          capacity: room.capacity || null,
+          boardType: room.roomBoardType ? (BOARD_TYPE_MAP[room.roomBoardType] ?? null) : null,
+          hasProjector: room.hasProjector ?? null,
+        })),
+        totalItems: data.itemsCount,
+      };
     } catch (err: unknown) {
       return rejectWithValue(extractError(err));
     }
@@ -130,6 +139,13 @@ const classroomsListSlice = createSlice({
     removeClassroomLocally(state, action: PayloadAction<string>) {
       state.classrooms = state.classrooms.filter((c) => c.id !== action.payload);
     },
+    setClassroomsPage(state, action: PayloadAction<number>) {
+      state.page = action.payload;
+    },
+    setClassroomsItemsPerPage(state, action: PayloadAction<number>) {
+      state.itemsPerPage = action.payload;
+      state.page = 1;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -139,7 +155,8 @@ const classroomsListSlice = createSlice({
       })
       .addCase(fetchClassroomsAll.fulfilled, (state, action) => {
         state.loading = false;
-        state.classrooms = action.payload;
+        state.classrooms = action.payload.classrooms;
+        state.totalItems = action.payload.totalItems;
       })
       .addCase(fetchClassroomsAll.rejected, (state, action) => {
         state.loading = false;
@@ -148,6 +165,8 @@ const classroomsListSlice = createSlice({
   },
 });
 
-export const { addClassroomLocally, updateClassroomLocally, removeClassroomLocally } =
-  classroomsListSlice.actions;
+export const {
+  addClassroomLocally, updateClassroomLocally, removeClassroomLocally,
+  setClassroomsPage, setClassroomsItemsPerPage,
+} = classroomsListSlice.actions;
 export default classroomsListSlice.reducer;

@@ -219,16 +219,16 @@ export function useDisciplines() {
   const [newlyCreatedId, setNewlyCreatedId] = useState<string | null>(null);
 
   useEffect(() => {
-    dispatch(fetchDisciplinesAll());
+    dispatch(fetchDisciplinesAll(selectedScheduleId ?? undefined));
     dispatch(fetchSchedules());
-  }, [dispatch]);
+  }, [dispatch, selectedScheduleId]);
 
   const markCreated = (id: string) => {
     setNewlyCreatedId(id);
     setTimeout(() => setNewlyCreatedId(null), 3000);
   };
 
-  const refetch = useCallback(() => dispatch(fetchDisciplinesAll()), [dispatch]);
+  const refetch = useCallback(() => dispatch(fetchDisciplinesAll(selectedScheduleId ?? undefined)), [dispatch, selectedScheduleId]);
 
   const getOrCreateScheduleId = useCallback(async (): Promise<string | null> => {
     if (selectedScheduleId) return selectedScheduleId;
@@ -303,7 +303,7 @@ export function useDisciplines() {
         const selectedSchedule = scheduleList.find((sc) => sc.id === selectedScheduleId);
         const dateInterval = resolveDateInterval(discipline.dateRange, selectedSchedule?.dateInterval);
         await saveAsPayload(discipline, scheduleId, rootDisciplines, dateInterval);
-        dispatch(fetchDisciplinesAll());
+        dispatch(fetchDisciplinesAll(selectedScheduleId ?? undefined));
         return true;
       } catch (err) {
         addToast(extractError(err), 'error');
@@ -375,12 +375,12 @@ export function useDisciplines() {
           const selectedSchedule = scheduleList.find((sc) => sc.id === selectedScheduleId);
           const dateInterval = resolveDateInterval(updated.dateRange, selectedSchedule?.dateInterval);
           await saveSingleBatch(updated, scheduleId, rootDisciplines, dateInterval);
-          dispatch(fetchDisciplinesAll());
+          dispatch(fetchDisciplinesAll(selectedScheduleId ?? undefined));
         } else {
           const selectedSchedule = scheduleList.find((sc) => sc.id === selectedScheduleId);
           const dateInterval = resolveDateInterval(updated.dateRange, selectedSchedule?.dateInterval);
           await saveAsPayload(updated, scheduleId, rootDisciplines, dateInterval);
-          dispatch(fetchDisciplinesAll());
+          dispatch(fetchDisciplinesAll(selectedScheduleId ?? undefined));
         }
         return true;
       } catch (err) {
@@ -397,7 +397,7 @@ export function useDisciplines() {
     (id: string) => {
       dispatch(removeDisciplineLocally(id));
       academicDisciplineApi.deleteAcademicDiscipline({ academicDisciplineId: id }).catch((err: unknown) => {
-        dispatch(fetchDisciplinesAll());
+        dispatch(fetchDisciplinesAll(selectedScheduleId ?? undefined));
         addToast(extractError(err), 'error');
       });
     },

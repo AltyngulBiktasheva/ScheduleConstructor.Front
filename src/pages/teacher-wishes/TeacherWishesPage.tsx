@@ -45,7 +45,7 @@ function mapPreferencesToWishes(dto: TeacherPreferencesViewDto): TeacherWishes {
     const wish: AudienceWish = {
       id: crypto.randomUUID(),
       roomId: rp.roomId,
-      roomName: rp.roomId,
+      roomName: rp.roomName,
     };
     if (rp.teacherPreferenceType === 'Preferred') wishes.preferredAudiences.push(wish);
     else if (rp.teacherPreferenceType === 'Restricted') wishes.forbiddenAudiences.push(wish);

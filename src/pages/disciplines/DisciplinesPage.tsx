@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PageHeader } from '../../components/PageHeader/PageHeader';
 import { Tabs } from '../../components/Tabs/Tabs';
 import { ScheduleSelector } from '../../components/ScheduleSelector/ScheduleSelector';
@@ -6,7 +6,9 @@ import { DisciplinesList } from './tabs/DisciplinesList';
 import { DisciplineForm } from './tabs/DisciplineForm';
 import { RootDisciplineForm } from './tabs/RootDisciplineForm';
 import { useDisciplines } from '../../hooks/useDisciplines';
-import { useAppSelector } from '../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { setDisciplinesPage, setDisciplinesItemsPerPage, fetchDisciplinesAll } from '../../store/slices/disciplinesListSlice';
+import { Pagination } from '../../components/Pagination/Pagination';
 import type { Discipline } from '../../types/discipline';
 import type { RootDisciplineFormData } from './tabs/RootDisciplineForm';
 import styles from './Styles.module.scss';
@@ -25,7 +27,15 @@ export const DisciplinesPage: React.FC = () => {
     rootDisciplines, disciplines, loading, error, newlyCreatedId,
     add, addRoot, update, remove, refetch,
   } = useDisciplines();
+  const dispatch = useAppDispatch();
   const selectedScheduleId = useAppSelector((s) => s.schedule.selectedScheduleId);
+  const { page, itemsPerPage, totalItems } = useAppSelector((s) => s.disciplinesList);
+
+  useEffect(() => {
+    if (selectedScheduleId) {
+      dispatch(fetchDisciplinesAll({ scheduleId: selectedScheduleId, page, itemsPerPage }));
+    }
+  }, [dispatch, selectedScheduleId, page, itemsPerPage]);
 
   const handleCreateRoot = async (data: RootDisciplineFormData) => {
     setSavingRoot(true);
@@ -65,13 +75,22 @@ export const DisciplinesPage: React.FC = () => {
                   </div>
                 )}
                 {!loading && (!error || rootDisciplines.length > 0 || disciplines.length > 0) && (
-                  <DisciplinesList
-                    rootDisciplines={rootDisciplines}
-                    disciplines={disciplines}
-                    newlyCreatedId={newlyCreatedId}
-                    onUpdate={update}
-                    onDelete={remove}
-                  />
+                  <>
+                    <DisciplinesList
+                      rootDisciplines={rootDisciplines}
+                      disciplines={disciplines}
+                      newlyCreatedId={newlyCreatedId}
+                      onUpdate={update}
+                      onDelete={remove}
+                    />
+                    <Pagination
+                      page={page}
+                      itemsPerPage={itemsPerPage}
+                      totalItems={totalItems}
+                      onPageChange={(p) => dispatch(setDisciplinesPage(p))}
+                      onItemsPerPageChange={(s) => dispatch(setDisciplinesItemsPerPage(s))}
+                    />
+                  </>
                 )}
               </>
             )}

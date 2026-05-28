@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { FormField } from '../../../components/FormField/FormField';
 import { Button } from '../../../components/Button/Button';
 import type { ScheduleSaveDto, ScheduleRegistryItemDto } from '../../../api';
+import { clampToValidDate } from '../../../utils/validateDate';
 import styles from './ScheduleForm.module.scss';
 
 interface Props {
@@ -81,6 +82,7 @@ export const ScheduleForm: React.FC<Props> = ({ initial, onSave, onCancel, loadi
             className="field-input"
             value={dateFrom}
             onChange={(e) => setDateFrom(parseDateInput(e.target.value))}
+            onBlur={() => setDateFrom((v) => clampToValidDate(v, 'DD.MM.YYYY'))}
             placeholder="01.09.2025"
             maxLength={10}
           />
@@ -90,6 +92,7 @@ export const ScheduleForm: React.FC<Props> = ({ initial, onSave, onCancel, loadi
             className="field-input"
             value={dateTo}
             onChange={(e) => setDateTo(parseDateInput(e.target.value))}
+            onBlur={() => setDateTo((v) => clampToValidDate(v, 'DD.MM.YYYY'))}
             placeholder="31.12.2025"
             maxLength={10}
           />

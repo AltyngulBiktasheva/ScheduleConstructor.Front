@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import type { Discipline, WeeklyOccurrence } from '../../types';
 import type { AcademicDisciplineType } from '../../api';
 import { DAYS } from '../../constants/days';
@@ -7,6 +7,11 @@ import { fetchTeachersAll } from '../../store/slices/teachersListSlice';
 import { fetchClassroomsAll } from '../../store/slices/classroomsListSlice';
 import { fetchCampuses } from '../../store/slices/campusSlice';
 import { fetchGroupsAll } from '../../store/slices/groupsListSlice';
+import { Accordion } from '../Accordion/Accordion';
+import { Spinner } from '../Spinner/Spinner';
+import { SearchableSelect } from '../SearchableSelect/SearchableSelect';
+import { fetchSlotHighlights } from '../../api/slotHighlights';
+import type { SlotHighlight, SlotHighlightMessage } from '../../api/slotHighlights';
 import styles from './Styles.module.scss';
 
 const LESSON_TYPE_LABELS: Record<AcademicDisciplineType, string> = {
@@ -43,6 +48,63 @@ function normalizeToOccurrences(discipline: Discipline): WeeklyOccurrence[] {
   }
   return [];
 }
+
+/** Компонент баннера ошибки с аккордеоном для детальных ошибок */
+const ErrorBanner: React.FC<{
+  errorLevel: 'Warning' | 'Error';
+  errorMessage?: string;
+  lessonId?: string;
+}> = ({ errorLevel, errorMessage, lessonId }) => {
+  const bannerClass = errorLevel === 'Error' ? styles.errorBanner : styles.warningBanner;
+  const text = errorMessage || (errorLevel === 'Error' ? 'Ошибка валидации' : 'Предупреждение');
+  const hasErrorCount = /число ошибок/i.test(text);
+
+  const [details, setDetails] = useState<SlotHighlightMessage[] | null>(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+
+  const loadDetails = useCallback(async () => {
+    if (!lessonId || details !== null) return;
+    setDetailsLoading(true);
+    try {
+      const highlights = await fetchSlotHighlights({ lessonId });
+      const allMessages = highlights.flatMap((h) => h.messages);
+      setDetails(allMessages);
+    } catch {
+      setDetails([]);
+    } finally {
+      setDetailsLoading(false);
+    }
+  }, [lessonId, details]);
+
+  // Если нет паттерна "число ошибок" или нет lessonId — простой баннер
+  if (!hasErrorCount || !lessonId) {
+    return <div className={bannerClass}>{text}</div>;
+  }
+
+  return (
+    <div className={bannerClass} style={{ padding: 0 }}>
+      <Accordion title={text} onFirstOpen={loadDetails}>
+        {detailsLoading && (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0' }}>
+            <Spinner size="sm" />
+          </div>
+        )}
+        {details && details.length === 0 && (
+          <div style={{ fontSize: 12, color: '#6b7280' }}>Нет подробностей</div>
+        )}
+        {details && details.length > 0 && (
+          <ul style={{ margin: 0, padding: '0 0 0 16px', fontSize: 13, lineHeight: 1.6 }}>
+            {details.map((m, i) => (
+              <li key={i}>
+                <strong>{m.timeStart}–{m.timeEnd}</strong>: {m.message}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Accordion>
+    </div>
+  );
+};
 
 export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
   const dispatch = useAppDispatch();
@@ -179,11 +241,13 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
         )}
 
         <div className={styles.form}>
-          {/* ── Баннер ошибки/предупреждения ── */}
+          {/* ── Баннер ошибки/предупреждения с аккордеоном ── */}
           {discipline.errorLevel && (
-            <div className={discipline.errorLevel === 'Error' ? styles.errorBanner : styles.warningBanner}>
-              {discipline.errorMessage || (discipline.errorLevel === 'Error' ? 'Ошибка валидации' : 'Предупреждение')}
-            </div>
+            <ErrorBanner
+              errorLevel={discipline.errorLevel}
+              errorMessage={discipline.errorMessage}
+              lessonId={discipline.lessonId}
+            />
           )}
 
           {/* ── Read-only: Название ── */}
@@ -238,16 +302,12 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
                 {discipline.teachers.map((t) => t.name).filter(Boolean).join(', ') || 'Без преподавателя'}
               </span>
             ) : (
-              <select
+              <SearchableSelect
+                options={teachers.map((t) => ({ value: t.id, label: t.name }))}
                 value={selectedTeacherId}
-                onChange={(e) => setSelectedTeacherId(e.target.value)}
-                className={styles.select}
-              >
-                <option value="">— не выбран —</option>
-                {teachers.map((t) => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
+                onChange={setSelectedTeacherId}
+                placeholder="— не выбран —"
+              />
             )}
           </Field>
 
@@ -261,24 +321,16 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
             </Field>
           ) : (
             <Field label="Аудитория">
-              <select
+              <SearchableSelect
+                options={campuses.flatMap((campus) =>
+                  classrooms
+                    .filter((r) => r.campusId === campus.id)
+                    .map((r) => ({ value: r.id, label: `${campus.name} — ${r.name}` }))
+                )}
                 value={selectedRoomId}
-                onChange={(e) => setSelectedRoomId(e.target.value)}
-                className={styles.select}
-              >
-                <option value="">— не выбрана —</option>
-                {campuses.map((campus) => {
-                  const rooms = classrooms.filter((r) => r.campusId === campus.id);
-                  if (rooms.length === 0) return null;
-                  return (
-                    <optgroup key={campus.id} label={campus.name}>
-                      {rooms.map((r) => (
-                        <option key={r.id} value={r.id}>{r.name}</option>
-                      ))}
-                    </optgroup>
-                  );
-                })}
-              </select>
+                onChange={setSelectedRoomId}
+                placeholder="— не выбрана —"
+              />
             </Field>
           )}
 

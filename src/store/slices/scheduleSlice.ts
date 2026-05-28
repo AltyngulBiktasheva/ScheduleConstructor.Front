@@ -14,6 +14,9 @@ interface ScheduleState {
   saving: boolean;
   deleting: boolean;
   error: string | null;
+  page: number;
+  itemsPerPage: number;
+  totalItems: number;
 }
 
 const initialState: ScheduleState = {
@@ -23,16 +26,21 @@ const initialState: ScheduleState = {
   saving: false,
   deleting: false,
   error: null,
+  page: 1,
+  itemsPerPage: 100,
+  totalItems: 0,
 };
 
 // ─── Thunks ───────────────────────────────────────────────────────────────────
 
 export const fetchSchedules = createAsyncThunk(
   'schedule/fetchAll',
-  async (_, { rejectWithValue }) => {
+  async (params: { page?: number; itemsPerPage?: number } | undefined, { rejectWithValue }) => {
     try {
-      const { data } = await scheduleApi.searchSchedules();
-      return data.items;
+      const { data } = await scheduleApi.searchSchedules({
+        searchParameters: { page: params?.page ?? 1, itemsPerPage: params?.itemsPerPage ?? 100 },
+      });
+      return { items: data.items, totalItems: data.itemsCount };
     } catch (err: unknown) {
       return rejectWithValue(extractError(err));
     }
@@ -76,6 +84,13 @@ const scheduleSlice = createSlice({
     clearScheduleError(state) {
       state.error = null;
     },
+    setSchedulesPage(state, action: { payload: number }) {
+      state.page = action.payload;
+    },
+    setSchedulesItemsPerPage(state, action: { payload: number }) {
+      state.itemsPerPage = action.payload;
+      state.page = 1;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -85,14 +100,15 @@ const scheduleSlice = createSlice({
       })
       .addCase(fetchSchedules.fulfilled, (state, action) => {
         state.loading = false;
-        state.list = action.payload;
+        state.list = action.payload.items;
+        state.totalItems = action.payload.totalItems;
         // Авто-выбор первого расписания если ни одно не выбрано
-        if (!state.selectedScheduleId && action.payload.length > 0) {
-          state.selectedScheduleId = action.payload[0].id;
+        if (!state.selectedScheduleId && action.payload.items.length > 0) {
+          state.selectedScheduleId = action.payload.items[0].id;
         }
         // Если выбранное расписание было удалено — сбросить выбор
-        if (state.selectedScheduleId && !action.payload.find((s) => s.id === state.selectedScheduleId)) {
-          state.selectedScheduleId = action.payload[0]?.id ?? null;
+        if (state.selectedScheduleId && !action.payload.items.find((s) => s.id === state.selectedScheduleId)) {
+          state.selectedScheduleId = action.payload.items[0]?.id ?? null;
         }
       })
       .addCase(fetchSchedules.rejected, (state, action) => {
@@ -124,7 +140,7 @@ const scheduleSlice = createSlice({
   },
 });
 
-export const { setSelectedScheduleId, clearScheduleError } = scheduleSlice.actions;
+export const { setSelectedScheduleId, clearScheduleError, setSchedulesPage, setSchedulesItemsPerPage } = scheduleSlice.actions;
 export default scheduleSlice.reducer;
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────

@@ -12,17 +12,14 @@
 
 .loading {
   position: absolute;
-  top: $space-2;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba($color-white, 0.9);
-  border: 1px solid $color-gray-200;
-  border-radius: $border-radius;
-  padding: $space-1 $space-3;
-  font-size: $font-size-sm;
-  color: $color-gray-500;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   z-index: 10;
   pointer-events: none;
+  border-radius: $border-radius-lg;
 }
 
 // ─── Detached warning modal ──────────────────────────────────────────────────

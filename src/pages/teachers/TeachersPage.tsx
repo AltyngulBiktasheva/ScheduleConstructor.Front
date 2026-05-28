@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PageHeader } from '../../components/PageHeader/PageHeader';
 import { Tabs } from '../../components/Tabs/Tabs';
 import { ScheduleSelector } from '../../components/ScheduleSelector/ScheduleSelector';
 import { TeachersList } from './tabs/TeachersList';
 import { TeacherForm } from './tabs/TeacherForm';
 import { useTeachers } from '../../hooks/useTeachers';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { setTeachersPage, setTeachersItemsPerPage, fetchTeachersAll } from '../../store/slices/teachersListSlice';
+import { Pagination } from '../../components/Pagination/Pagination';
 import type { Teacher } from '../../types/teacher';
 import styles from './Styles.module.scss';
 
@@ -15,8 +18,14 @@ const TABS = [
 
 export const TeachersPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('list');
+  const dispatch = useAppDispatch();
+  const { page, itemsPerPage, totalItems } = useAppSelector((s) => s.teachersList);
   const [saving, setSaving] = useState(false);
   const { teachers, loading, error, newlyCreatedId, add, update, remove, refetch } = useTeachers();
+
+  useEffect(() => {
+    dispatch(fetchTeachersAll({ page, itemsPerPage }));
+  }, [dispatch, page, itemsPerPage]);
 
   const handleCreate = async (teacher: Teacher) => {
     setSaving(true);
@@ -40,12 +49,21 @@ export const TeachersPage: React.FC = () => {
               </div>
             )}
             {(!error || teachers.length > 0) && (
-              <TeachersList
-                teachers={teachers}
-                newlyCreatedId={newlyCreatedId}
-                onUpdate={update}
-                onDelete={remove}
-              />
+              <>
+                <TeachersList
+                  teachers={teachers}
+                  newlyCreatedId={newlyCreatedId}
+                  onUpdate={update}
+                  onDelete={remove}
+                />
+                <Pagination
+                  page={page}
+                  itemsPerPage={itemsPerPage}
+                  totalItems={totalItems}
+                  onPageChange={(p) => dispatch(setTeachersPage(p))}
+                  onItemsPerPageChange={(s) => dispatch(setTeachersItemsPerPage(s))}
+                />
+              </>
             )}
           </>
         )}

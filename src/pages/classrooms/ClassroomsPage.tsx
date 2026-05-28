@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PageHeader } from '../../components/PageHeader/PageHeader';
 import { Tabs } from '../../components/Tabs/Tabs';
 import { ScheduleSelector } from '../../components/ScheduleSelector/ScheduleSelector';
 import { ClassroomsList } from './tabs/ClassroomsList';
 import { ClassroomForm } from './tabs/ClassroomForm';
 import { useClassrooms } from '../../hooks/useClassrooms';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { setClassroomsPage, setClassroomsItemsPerPage, fetchClassroomsAll } from '../../store/slices/classroomsListSlice';
+import { Pagination } from '../../components/Pagination/Pagination';
 import type { Classroom } from '../../types/classroom';
 import styles from './Styles.module.scss';
 
@@ -15,8 +18,14 @@ const TABS = [
 
 export const ClassroomsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('list');
+  const dispatch = useAppDispatch();
+  const { page, itemsPerPage, totalItems } = useAppSelector((s) => s.classroomsList);
   const [saving, setSaving] = useState(false);
   const { classrooms, loading, error, newlyCreatedId, add, update, remove, refetch } = useClassrooms();
+
+  useEffect(() => {
+    dispatch(fetchClassroomsAll({ page, itemsPerPage }));
+  }, [dispatch, page, itemsPerPage]);
 
   const handleCreate = async (classroom: Classroom) => {
     setSaving(true);
@@ -40,12 +49,21 @@ export const ClassroomsPage: React.FC = () => {
               </div>
             )}
             {(!error || classrooms.length > 0) && (
-              <ClassroomsList
-                classrooms={classrooms}
-                newlyCreatedId={newlyCreatedId}
-                onUpdate={update}
-                onDelete={remove}
-              />
+              <>
+                <ClassroomsList
+                  classrooms={classrooms}
+                  newlyCreatedId={newlyCreatedId}
+                  onUpdate={update}
+                  onDelete={remove}
+                />
+                <Pagination
+                  page={page}
+                  itemsPerPage={itemsPerPage}
+                  totalItems={totalItems}
+                  onPageChange={(p) => dispatch(setClassroomsPage(p))}
+                  onItemsPerPageChange={(s) => dispatch(setClassroomsItemsPerPage(s))}
+                />
+              </>
             )}
           </>
         )}
