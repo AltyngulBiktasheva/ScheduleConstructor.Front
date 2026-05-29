@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useState } from 'react';
+import {v4 as uuidv4} from "uuid";
 
 export type ToastType = 'error' | 'success' | 'info';
 
@@ -24,7 +25,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const addToast = useCallback((message: string, type: ToastType = 'error') => {
-    const id = crypto.randomUUID();
+    const id = uuidv4();
     setToasts((prev) => [...prev, { id, message, type }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));

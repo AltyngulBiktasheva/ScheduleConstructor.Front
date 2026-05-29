@@ -3,6 +3,7 @@ import { FormField } from '../../../components/FormField/FormField';
 import { Button } from '../../../components/Button/Button';
 import type { Group, Subgroup, Stream } from '../../../types/group';
 import styles from './GroupForm.module.scss';
+import {v4 as uuidv4} from "uuid";
 
 interface Props {
   initial?: Group;
@@ -27,7 +28,7 @@ export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel,
 
   const addSubgroup = () => {
     const newName = `${name}/${subgroups.length + 1}`;
-    setSubgroups((prev) => [...prev, { id: crypto.randomUUID(), name: newName }]);
+    setSubgroups((prev) => [...prev, { id: uuidv4(), name: newName }]);
   };
 
   const removeSubgroup = (id: string) =>
@@ -79,7 +80,7 @@ export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel,
     ];
 
     onSave({
-      id: initial?.id ?? crypto.randomUUID(),
+      id: initial?.id ?? uuidv4(),
       name: name.trim(),
       streamIds,
       subgroups,

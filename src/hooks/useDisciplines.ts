@@ -28,6 +28,7 @@ import type { Discipline } from '../types/discipline';
 import type { RootDisciplineFormData } from '../pages/disciplines/tabs/RootDisciplineForm';
 import { useToast } from '../components/Toast/ToastContext';
 import { extractError } from '../utils/extractError';
+import {v4 as uuidv4} from "uuid";
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 
@@ -247,7 +248,7 @@ export function useDisciplines() {
       if (!scheduleId) return false;
 
       const tempDiscipline: Discipline = {
-        id: crypto.randomUUID(),
+        id: uuidv4(),
         name: data.name,
         isRoot: true,
         semesterNumber: data.semesterNumber,

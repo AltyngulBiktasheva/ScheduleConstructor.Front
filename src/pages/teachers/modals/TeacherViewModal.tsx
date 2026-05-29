@@ -9,6 +9,7 @@ import { emptyWishes } from '../../../types/teacher';
 import { useAppSelector } from '../../../store/hooks';
 import { DAYS } from '../../../constants/days';
 import styles from './TeacherViewModal.module.scss';
+import {v4 as uuidv4} from "uuid";
 
 interface Props {
   teacher: Teacher;
@@ -33,7 +34,7 @@ function mapPreferencesToWishes(dto: TeacherPreferencesViewDto): TeacherWishes {
     const dayId = DOW_TO_DAY_ID[ta.dayOfWeekTimeInterval.dayOfWeek] ?? 'mon';
     const timeStart = ta.dayOfWeekTimeInterval.timeInterval.timeFrom.slice(0, 5);
     const timeEnd = ta.dayOfWeekTimeInterval.timeInterval.timeTo.slice(0, 5);
-    const wish: TimeWish = { id: crypto.randomUUID(), dayId, timeStart, timeEnd };
+    const wish: TimeWish = { id: uuidv4(), dayId, timeStart, timeEnd };
 
     if (ta.teacherPreferenceType === 'Preferred') wishes.preferredTimes.push(wish);
     else if (ta.teacherPreferenceType === 'Restricted') wishes.forbiddenTimes.push(wish);
@@ -42,7 +43,7 @@ function mapPreferencesToWishes(dto: TeacherPreferencesViewDto): TeacherWishes {
 
   for (const rp of dto.teacherRoomPreferences ?? []) {
     const wish: AudienceWish = {
-      id: crypto.randomUUID(),
+      id: uuidv4(),
       roomId: rp.roomId,
       roomName: rp.roomName ?? rp.roomId,
     };

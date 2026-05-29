@@ -20,6 +20,7 @@ import type { RoomTreeDto } from '../../../api';
 import { clampToValidDate } from '../../../utils/validateDate';
 import { SearchableSelect } from '../../../components/SearchableSelect/SearchableSelect';
 import styles from './DisciplineForm.module.scss';
+import {v4 as uuidv4} from "uuid";
 
 interface RoomOption {
   id: string;
@@ -295,7 +296,7 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
 
     onSave({
       ...first,
-      id: initial?.id ?? crypto.randomUUID(),
+      id: initial?.id ?? uuidv4(),
       lessonId: first.lessonId ?? initial?.lessonId,
       name: generatedName,
       parentId,

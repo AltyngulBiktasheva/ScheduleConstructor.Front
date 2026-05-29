@@ -6,6 +6,7 @@ import { CLASSROOM_TYPE_LABELS } from '../../../types';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchCampuses } from '../../../store/slices/campusSlice';
 import styles from './ClassroomForm.module.scss';
+import {v4 as uuidv4} from "uuid";
 
 // ─── Form ─────────────────────────────────────────────────────────────────────
 
@@ -62,7 +63,7 @@ export const ClassroomForm: React.FC<Props> = ({ initial, onSave, onCancel, load
 
   const handleSave = () => {
     if (!validate()) return;
-    onSave({ ...form, id: initial?.id ?? crypto.randomUUID() } as Classroom);
+    onSave({ ...form, id: initial?.id ?? uuidv4() } as Classroom);
   };
 
   const handleReset = () => {

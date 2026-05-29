@@ -3,6 +3,7 @@ import { FormField } from '../../../components/FormField/FormField';
 import { Button } from '../../../components/Button/Button';
 import type { Group, Stream } from '../../../types/group';
 import styles from './StreamForm.module.scss';
+import {v4 as uuidv4} from "uuid";
 
 interface Props {
   initial?: Stream;
@@ -66,7 +67,7 @@ export const StreamForm: React.FC<Props> = ({
     // Deduplicate just in case
     const childIds = [...new Set(selectedGroupIds)];
     onSave({
-      id: initial?.id ?? crypto.randomUUID(),
+      id: initial?.id ?? uuidv4(),
       name: name.trim(),
       semesterNumber,
       groupIds: childIds,

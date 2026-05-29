@@ -7,6 +7,7 @@ import { roomApi } from '../../api';
 import type { RoomTreeDto } from '../../api';
 import { SearchableSelect } from '../../components/SearchableSelect/SearchableSelect';
 import styles from './WishesEditor.module.scss';
+import {v4 as uuidv4} from "uuid";
 
 interface Props {
   wishes: TeacherWishes;
@@ -63,7 +64,7 @@ export const WishesEditor: React.FC<Props> = ({ wishes, onSave, onCancel }) => {
   const addTimeWish = (key: TimeCategory) => {
     setForm((prev) => ({
       ...prev,
-      [key]: [...prev[key], { id: crypto.randomUUID(), dayId: 'mon', timeStart: '09:00', timeEnd: '10:30' }],
+      [key]: [...prev[key], { id: uuidv4(), dayId: 'mon', timeStart: '09:00', timeEnd: '10:30' }],
     }));
   };
 
@@ -84,7 +85,7 @@ export const WishesEditor: React.FC<Props> = ({ wishes, onSave, onCancel }) => {
     const first = roomOptions[0];
     setForm((prev) => ({
       ...prev,
-      [key]: [...prev[key], { id: crypto.randomUUID(), roomId: first?.id ?? '', roomName: first?.label ?? '' }],
+      [key]: [...prev[key], { id: uuidv4(), roomId: first?.id ?? '', roomName: first?.label ?? '' }],
     }));
   };
 

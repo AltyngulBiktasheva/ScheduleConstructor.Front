@@ -16,7 +16,8 @@
     "react-router-dom": "^7.13.1",
     "scss": "^0.2.4",
     "urfu-ui-kit-react": "^1.6.1",
-    "urfu-ui-kit-vanilla": "^2.5.1"
+    "urfu-ui-kit-vanilla": "^2.5.1",
+    "uuid": "^14.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

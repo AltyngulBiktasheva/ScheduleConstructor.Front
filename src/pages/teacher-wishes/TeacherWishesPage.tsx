@@ -15,6 +15,7 @@ import { useToast } from '../../components/Toast/ToastContext';
 import { extractError } from '../../utils/extractError';
 import styles from './Styles.module.scss';
 import type { DayOfWeek } from '../../api/api/types';
+import {v4 as uuidv4} from "uuid";
 
 // ─── Mapping helpers ──────────────────────────────────────────────────────────
 
@@ -34,7 +35,7 @@ function mapPreferencesToWishes(dto: TeacherPreferencesViewDto): TeacherWishes {
     const dayId = DOW_TO_DAY_ID[ta.dayOfWeekTimeInterval.dayOfWeek] ?? 'mon';
     const timeStart = ta.dayOfWeekTimeInterval.timeInterval.timeFrom.slice(0, 5);
     const timeEnd = ta.dayOfWeekTimeInterval.timeInterval.timeTo.slice(0, 5);
-    const wish: TimeWish = { id: crypto.randomUUID(), dayId, timeStart, timeEnd };
+    const wish: TimeWish = { id: uuidv4(), dayId, timeStart, timeEnd };
 
     if (ta.teacherPreferenceType === 'Preferred') wishes.preferredTimes.push(wish);
     else if (ta.teacherPreferenceType === 'Restricted') wishes.forbiddenTimes.push(wish);
@@ -43,7 +44,7 @@ function mapPreferencesToWishes(dto: TeacherPreferencesViewDto): TeacherWishes {
 
   for (const rp of dto.teacherRoomPreferences ?? []) {
     const wish: AudienceWish = {
-      id: crypto.randomUUID(),
+      id: uuidv4(),
       roomId: rp.roomId,
       roomName: rp.roomName,
     };

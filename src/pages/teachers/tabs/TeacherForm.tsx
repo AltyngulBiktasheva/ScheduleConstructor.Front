@@ -4,6 +4,7 @@ import { Button } from '../../../components/Button/Button';
 import type { Teacher } from '../../../types/teacher';
 import { emptyWishes } from '../../../types/teacher';
 import styles from './TeacherForm.module.scss';
+import {v4 as uuidv4} from "uuid";
 
 interface Props {
   initial?: Teacher;
@@ -20,7 +21,7 @@ export const TeacherForm: React.FC<Props> = ({ initial, onSave, onCancel, loadin
   const handleSave = () => {
     if (!name.trim()) { setError('Обязательное поле'); return; }
     onSave({
-      id: initial?.id ?? crypto.randomUUID(),
+      id: initial?.id ?? uuidv4(),
       name: name.trim(),
       contacts: contacts.trim() || undefined,
       wishes: initial?.wishes ?? emptyWishes(),
