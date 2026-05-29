@@ -178,7 +178,7 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
     const last = batches[batches.length - 1];
     setBatches((prev) => [
       ...prev.map((c) => ({ ...c, collapsed: true })),
-      { ...last, lessonId: undefined, groupIds: [], collapsed: false },
+      { ...last, occurrences: last.occurrences.map((occ) => ({ ...occ, id: undefined })), lessonId: undefined, groupIds: [], collapsed: false },
     ]);
   };
 

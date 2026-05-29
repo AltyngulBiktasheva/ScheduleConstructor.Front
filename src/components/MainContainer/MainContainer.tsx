@@ -86,6 +86,7 @@ function lessonToDiscipline(lesson: LessonShortDto, weekDates: string[]): Discip
     errorMessage: lesson.lessonPolicyViolationDescription ?? undefined,
     teacher: lesson.teachers.map((t) => t.fullname).filter(Boolean).join(', ') || undefined,
     audience: lesson.rooms.map((r) => r.name).filter(Boolean).join(', ') || undefined,
+    comment: lesson.comment,
   };
 }
 
