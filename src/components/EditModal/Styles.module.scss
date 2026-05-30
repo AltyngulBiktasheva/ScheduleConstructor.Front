@@ -206,6 +206,25 @@
   }
 }
 
+// ─── Multi-select lists (teachers / rooms) ──────────────────────────────────
+
+.multiSelectList {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.multiSelectRow {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+
+  > *:first-child {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
 // ─── Mode selector ──────────────────────────────────────────────────────────
 
 .modeSelector {

@@ -60,7 +60,7 @@ const initialState: ClassroomsListState = {
   loading: false,
   error: null,
   page: 1,
-  itemsPerPage: 100,
+  itemsPerPage: 20,
   totalItems: 0,
 };
 
@@ -72,7 +72,7 @@ export const fetchClassroomsAll = createAsyncThunk(
   async (params: { page?: number; itemsPerPage?: number } | undefined, { rejectWithValue }) => {
     try {
       const { data } = await roomApi.searchRooms({
-        searchParameters: { page: params?.page ?? 1, itemsPerPage: params?.itemsPerPage ?? 100 },
+        searchParameters: { page: params?.page ?? 1, itemsPerPage: params?.itemsPerPage ?? 20 },
       });
       return {
         classrooms: data.items.map((room): Classroom => ({

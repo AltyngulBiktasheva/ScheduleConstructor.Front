@@ -17,6 +17,7 @@ interface Props {
 
 export const SchedulesList: React.FC<Props> = ({ schedules, newlyCreatedId, onDelete, onUpdate }) => {
   const [selected, setSelected] = useState<ScheduleRegistryItemDto | null>(null);
+  const [query, setQuery] = useState('');
   const highlightRef = useRef<HTMLTableRowElement | null>(null);
 
   useEffect(() => {
@@ -25,13 +26,24 @@ export const SchedulesList: React.FC<Props> = ({ schedules, newlyCreatedId, onDe
     }
   }, [newlyCreatedId]);
 
+  const filtered = query
+    ? schedules.filter((s) => s.name.toLowerCase().includes(query.toLowerCase()))
+    : schedules;
+
   return (
     <>
       <div className={styles.toolbar}>
-        <span className={styles.count}>{schedules.length} проектов расписания</span>
+        <input
+          className={styles.search}
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Поиск по названию..."
+        />
+        <span className={styles.count}>{filtered.length} проектов расписания</span>
       </div>
 
-      {schedules.length === 0 ? (
+      {filtered.length === 0 ? (
         <div className={styles.empty}>Проекты расписания не найдены</div>
       ) : (
         <div className={styles.tableWrapper}>
@@ -44,7 +56,7 @@ export const SchedulesList: React.FC<Props> = ({ schedules, newlyCreatedId, onDe
               </tr>
             </thead>
             <tbody>
-              {schedules.map((s) => (
+              {filtered.map((s) => (
                 <tr
                   key={s.id}
                   ref={s.id === newlyCreatedId ? highlightRef : null}

@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { PageHeader } from '../../components/PageHeader/PageHeader';
 import { TeacherPicker } from '../../components/TeacherPicker/TeacherPicker';
+import { TeacherForm } from '../teachers/tabs/TeacherForm';
 import { WishesViewer } from './WishesViewer';
 import { WishesEditor } from './WishesEditor';
 import type { Teacher, TeacherWishes, TimeWish, AudienceWish } from '../../types/teacher';
 import { emptyWishes } from '../../types/teacher';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { fetchTeachersAll, updateTeacherLocally } from '../../store/slices/teachersListSlice';
+import { fetchTeachersAll, updateTeacherLocally, saveTeacherOnServer } from '../../store/slices/teachersListSlice';
 import { fetchSchedules } from '../../store/slices/scheduleSlice';
 import { teacherPreferenceApi } from '../../api';
 import type { TeacherPreferencesViewDto } from '../../api';
@@ -108,6 +109,8 @@ export const TeacherWishesPage: React.FC = () => {
 
   const [teacher, setTeacher] = useState<Teacher | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [createLoading, setCreateLoading] = useState(false);
   const [wishes, setWishes] = useState<TeacherWishes | null>(null);
   const [wishesLoading, setWishesLoading] = useState(false);
   const [wishesSaving, setWishesSaving] = useState(false);
@@ -155,6 +158,25 @@ export const TeacherWishesPage: React.FC = () => {
     }
   };
 
+  const handleCreateTeacher = async (newTeacher: Teacher) => {
+    setCreateLoading(true);
+    try {
+      await dispatch(saveTeacherOnServer({ teacher: newTeacher, isNew: true })).unwrap();
+      // After the list refreshes, find the teacher by name
+      const result = await dispatch(fetchTeachersAll()).unwrap();
+      const created = result.teachers.find((t: Teacher) => t.name === newTeacher.name);
+      if (created) {
+        handleSelectTeacher(created);
+      }
+      setShowCreateForm(false);
+      addToast('Преподаватель успешно добавлен', 'success');
+    } catch (err) {
+      addToast(extractError(err), 'error');
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
   if (!teacher || !wishes) {
     return (
       <div className={styles.page}>
@@ -164,13 +186,27 @@ export const TeacherWishesPage: React.FC = () => {
         />
         {loading ? (
           <div className={styles.loading}>Загрузка преподавателей…</div>
+        ) : showCreateForm ? (
+          <div className={styles.createFormWrapper}>
+            <h3 className={styles.createFormTitle}>Добавить себя в систему</h3>
+            <TeacherForm
+              onSave={handleCreateTeacher}
+              onCancel={() => setShowCreateForm(false)}
+              loading={createLoading}
+            />
+          </div>
         ) : (
-          <TeacherPicker
-            teachers={teachers}
-            onSelect={handleSelectTeacher}
-            title="Найдите себя в списке"
-            subtitle="Выберите своё имя для просмотра и редактирования пожеланий"
-          />
+          <>
+            <TeacherPicker
+              teachers={teachers}
+              onSelect={handleSelectTeacher}
+              title="Найдите себя в списке"
+              subtitle="Выберите своё имя для просмотра и редактирования пожеланий"
+            />
+            <button className={styles.selfAddBtn} onClick={() => setShowCreateForm(true)}>
+              Нет в списке? Добавить себя
+            </button>
+          </>
         )}
       </div>
     );

@@ -27,7 +27,7 @@ const initialState: ScheduleState = {
   deleting: false,
   error: null,
   page: 1,
-  itemsPerPage: 100,
+  itemsPerPage: 20,
   totalItems: 0,
 };
 
@@ -38,7 +38,7 @@ export const fetchSchedules = createAsyncThunk(
   async (params: { page?: number; itemsPerPage?: number } | undefined, { rejectWithValue }) => {
     try {
       const { data } = await scheduleApi.searchSchedules({
-        searchParameters: { page: params?.page ?? 1, itemsPerPage: params?.itemsPerPage ?? 100 },
+        searchParameters: { page: params?.page ?? 1, itemsPerPage: params?.itemsPerPage ?? 20 },
       });
       return { items: data.items, totalItems: data.itemsCount };
     } catch (err: unknown) {

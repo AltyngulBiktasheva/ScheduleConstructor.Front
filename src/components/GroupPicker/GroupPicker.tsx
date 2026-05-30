@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { Group, Stream } from '../../types/group';
+import { GroupTreeSelect } from '../GroupTreeSelect/GroupTreeSelect';
 import styles from './Styles.module.scss';
 
 interface Props {
@@ -10,36 +11,27 @@ interface Props {
 
 export const GroupPicker: React.FC<Props> = ({ groups, streams, onSelect }) => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [expanded, setExpanded] = useState<Set<string>>(new Set(streams.map((s) => s.id)));
 
-  const toggle = (id: string) => {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
-
-  const selectStream = (stream: Stream) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      next.has(stream.id) ? next.delete(stream.id) : next.add(stream.id);
-      return next;
-    });
-  };
-
-  const selectGroup = (group: Group) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      next.has(group.id) ? next.delete(group.id) : next.add(group.id);
-      return next;
-    });
-  };
-
-  const selectSubgroup = (id: string) => {
+  const handleToggle = (id: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkSelect = (ids: string[]) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => next.add(id));
+      return next;
+    });
+  };
+
+  const handleBulkDeselect = (ids: string[]) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => next.delete(id));
       return next;
     });
   };
@@ -68,65 +60,18 @@ export const GroupPicker: React.FC<Props> = ({ groups, streams, onSelect }) => {
         <div className={styles.cardHeader}>
           <span className={styles.icon}>🎒</span>
           <h2 className={styles.title}>Выберите группу</h2>
-          <p className={styles.subtitle}>Можно выбрать поток, группу или подгруппу</p>
+          <p className={styles.subtitle}>Можно выбрать поток, группу или команду</p>
         </div>
 
-        <div className={styles.tree}>
-          {streams.map((stream) => {
-            const streamGroups = groups.filter((g) => stream.groupIds.includes(g.id));
-            return (
-              <div key={stream.id} className={styles.streamNode}>
-                <div className={styles.streamRow}>
-                  <button className={styles.expandBtn} onClick={() => toggle(stream.id)}>
-                    <span className={`${styles.arrow} ${expanded.has(stream.id) ? styles.arrowOpen : ''}`}>▶</span>
-                  </button>
-                  <label className={styles.checkLabel}>
-                    <input
-                      type="checkbox"
-                      checked={selected.has(stream.id)}
-                      onChange={() => selectStream(stream)}
-                    />
-                    <span className={styles.streamName}>{stream.name}</span>
-                  </label>
-                </div>
-
-                {expanded.has(stream.id) && streamGroups.map((group) => (
-                  <div key={group.id} className={styles.groupNode}>
-                    <div className={styles.groupRow}>
-                      {group.subgroups.length > 0 && (
-                        <button className={styles.expandBtn} onClick={() => toggle(group.id)}>
-                          <span className={`${styles.arrow} ${expanded.has(group.id) ? styles.arrowOpen : ''}`}>▶</span>
-                        </button>
-                      )}
-                      <label className={styles.checkLabel} style={{ marginLeft: group.subgroups.length === 0 ? 24 : 0 }}>
-                        <input
-                          type="checkbox"
-                          checked={selected.has(group.id)}
-                          onChange={() => selectGroup(group)}
-                        />
-                        <span className={styles.groupName}>{group.name}</span>
-                        <span className={styles.groupCount}>{group.studentCount} чел.</span>
-                      </label>
-                    </div>
-
-                    {expanded.has(group.id) && group.subgroups.map((sub) => (
-                      <div key={sub.id} className={styles.subgroupRow}>
-                        <label className={styles.checkLabel}>
-                          <input
-                            type="checkbox"
-                            checked={selected.has(sub.id)}
-                            onChange={() => selectSubgroup(sub.id)}
-                          />
-                          <span className={styles.subgroupName}>{sub.name}</span>
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            );
-          })}
-        </div>
+        <GroupTreeSelect
+          groups={groups}
+          streams={streams}
+          selectedIds={Array.from(selected)}
+          onToggle={handleToggle}
+          onBulkSelect={handleBulkSelect}
+          onBulkDeselect={handleBulkDeselect}
+          showStudentCount
+        />
 
         {selected.size > 0 && (
           <div className={styles.summary}>

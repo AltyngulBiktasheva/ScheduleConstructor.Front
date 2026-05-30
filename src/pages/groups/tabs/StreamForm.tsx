@@ -83,13 +83,13 @@ export const StreamForm: React.FC<Props> = ({
         label="Название потока"
         required
         error={errors.name}
-        hint="Например: Поток РИ-2023"
+        hint="Например: Поток МЕН-2023"
       >
         <input
           className="field-input"
           value={name}
           onChange={(e) => { setName(e.target.value); setErrors((p) => ({ ...p, name: '' })); }}
-          placeholder="Поток РИ-2023"
+          placeholder="Поток МЕН-2023"
           autoFocus
           onKeyDown={(e) => e.key === 'Enter' && handleSave()}
         />

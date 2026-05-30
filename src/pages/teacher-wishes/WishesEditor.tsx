@@ -6,6 +6,7 @@ import { DAYS } from '../../constants/days';
 import { roomApi } from '../../api';
 import type { RoomTreeDto } from '../../api';
 import { SearchableSelect } from '../../components/SearchableSelect/SearchableSelect';
+import { isTimeRangeValid } from '../../utils/validateTime';
 import styles from './WishesEditor.module.scss';
 import {v4 as uuidv4} from "uuid";
 
@@ -35,7 +36,30 @@ interface RoomOption {
   label: string;
 }
 
+/** Parse structured comment back into parts */
+function parseComment(raw: string): { forbiddenTimeReason: string; forbiddenAudienceReason: string; comment: string } {
+  const parts = raw.split('\n-----\n');
+  let forbiddenTimeReason = '';
+  let forbiddenAudienceReason = '';
+  const rest: string[] = [];
+
+  for (const part of parts) {
+    const trimmed = part.trim();
+    if (trimmed.startsWith('Причина запрета временных промежутков:')) {
+      forbiddenTimeReason = trimmed.replace('Причина запрета временных промежутков:', '').trim();
+    } else if (trimmed.startsWith('Причина запрета аудитории:')) {
+      forbiddenAudienceReason = trimmed.replace('Причина запрета аудитории:', '').trim();
+    } else if (trimmed) {
+      rest.push(trimmed);
+    }
+  }
+
+  return { forbiddenTimeReason, forbiddenAudienceReason, comment: rest.join('\n-----\n') };
+}
+
 export const WishesEditor: React.FC<Props> = ({ wishes, onSave, onCancel }) => {
+  const parsed = parseComment(wishes.comment ?? '');
+
   const [form, setForm] = useState<TeacherWishes>({ ...wishes,
     preferredTimes:      [...wishes.preferredTimes],
     undesirableTimes:    [...wishes.undesirableTimes],
@@ -43,8 +67,12 @@ export const WishesEditor: React.FC<Props> = ({ wishes, onSave, onCancel }) => {
     preferredAudiences:  [...wishes.preferredAudiences],
     undesirableAudiences:[...wishes.undesirableAudiences],
     forbiddenAudiences:  [...wishes.forbiddenAudiences],
+    comment: parsed.comment,
   });
 
+  const [forbiddenTimeReason, setForbiddenTimeReason] = useState(parsed.forbiddenTimeReason);
+  const [forbiddenAudienceReason, setForbiddenAudienceReason] = useState(parsed.forbiddenAudienceReason);
+  const [timeErrors, setTimeErrors] = useState<Record<string, string>>({});
   const [roomOptions, setRoomOptions] = useState<RoomOption[]>([]);
 
   useEffect(() => {
@@ -125,7 +153,7 @@ export const WishesEditor: React.FC<Props> = ({ wishes, onSave, onCancel }) => {
       {/* ─── Пожелания по времени ─────────────────────────────── */}
       <div className={styles.card}>
         <h3 className={styles.cardTitle}>Пожелания по времени</h3>
-        <p className={styles.cardHint}>Учитываются автоматически при составлении расписания</p>
+        <p className={styles.cardHint}>Пожелания будут учтены по мере возможности</p>
 
         <div className={styles.wishSections}>
           {TIME_SECTIONS.map(({ key, label, variant }) => (
@@ -156,11 +184,20 @@ export const WishesEditor: React.FC<Props> = ({ wishes, onSave, onCancel }) => {
                     className={styles.timeInput}
                     value={w.timeEnd}
                     onChange={(e) => updateTimeWish(key, w.id, { timeEnd: maskTime(e.target.value) })}
-                    onBlur={(e) => updateTimeWish(key, w.id, { timeEnd: normalizeTime(e.target.value) })}
+                    onBlur={(e) => {
+                      const normalized = normalizeTime(e.target.value);
+                      updateTimeWish(key, w.id, { timeEnd: normalized });
+                      if (!isTimeRangeValid(w.timeStart, normalized)) {
+                        setTimeErrors((prev) => ({ ...prev, [w.id]: 'Начало должно быть раньше окончания' }));
+                      } else {
+                        setTimeErrors((prev) => { const next = { ...prev }; delete next[w.id]; return next; });
+                      }
+                    }}
                     placeholder="10:30"
                     maxLength={5}
                   />
                   <button className={styles.removeBtn} onClick={() => removeTimeWish(key, w.id)}>✕</button>
+                  {timeErrors[w.id] && <span className={styles.timeError}>{timeErrors[w.id]}</span>}
                 </div>
               ))}
 
@@ -170,12 +207,24 @@ export const WishesEditor: React.FC<Props> = ({ wishes, onSave, onCancel }) => {
             </div>
           ))}
         </div>
+
+        {form.forbiddenTimes.length > 0 && (
+          <FormField label="Причина запрета" required>
+            <textarea
+              className="field-input"
+              value={forbiddenTimeReason}
+              onChange={(e) => setForbiddenTimeReason(e.target.value)}
+              rows={2}
+              placeholder="Укажите причину запрета временных промежутков..."
+            />
+          </FormField>
+        )}
       </div>
 
       {/* ─── Пожелания по аудиториям ──────────────────────────── */}
       <div className={styles.card}>
         <h3 className={styles.cardTitle}>Пожелания по аудиториям</h3>
-        <p className={styles.cardHint}>Учитываются автоматически при составлении расписания</p>
+        <p className={styles.cardHint}>Пожелания будут учтены по мере возможности</p>
 
         <div className={styles.wishSections}>
           {AUDIENCE_SECTIONS.map(({ key, label, variant }) => (
@@ -201,6 +250,18 @@ export const WishesEditor: React.FC<Props> = ({ wishes, onSave, onCancel }) => {
             </div>
           ))}
         </div>
+
+        {form.forbiddenAudiences.length > 0 && (
+          <FormField label="Причина запрета" required>
+            <textarea
+              className="field-input"
+              value={forbiddenAudienceReason}
+              onChange={(e) => setForbiddenAudienceReason(e.target.value)}
+              rows={2}
+              placeholder="Укажите причину запрета аудиторий..."
+            />
+          </FormField>
+        )}
       </div>
 
       {/* ─── Дополнительные пожелания ───────────────────────────────────────── */}
@@ -221,7 +282,36 @@ export const WishesEditor: React.FC<Props> = ({ wishes, onSave, onCancel }) => {
       {/* ─── Actions ─────────────────────────────────────────────────────── */}
       <div className={styles.actions}>
         <Button variant="secondary" onClick={onCancel}>Отмена</Button>
-        <Button variant="primary" onClick={() => onSave(form)}>Сохранить пожелания</Button>
+        <Button variant="primary" onClick={() => {
+          // Validate time ranges
+          const newTimeErrors: Record<string, string> = {};
+          for (const cat of TIME_SECTIONS) {
+            for (const w of form[cat.key]) {
+              if (!isTimeRangeValid(w.timeStart, w.timeEnd)) {
+                newTimeErrors[w.id] = 'Начало должно быть раньше окончания';
+              }
+            }
+          }
+          if (Object.keys(newTimeErrors).length > 0) {
+            setTimeErrors(newTimeErrors);
+            return;
+          }
+
+          // Assemble comment
+          const parts: string[] = [];
+          if (form.comment.trim()) {
+            parts.push(form.comment.trim());
+          }
+          if (forbiddenTimeReason.trim()) {
+            parts.push(`Причина запрета временных промежутков: ${forbiddenTimeReason.trim()}`);
+          }
+          if (forbiddenAudienceReason.trim()) {
+            parts.push(`Причина запрета аудитории: ${forbiddenAudienceReason.trim()}`);
+          }
+          const finalComment = parts.join('\n-----\n');
+
+          onSave({ ...form, comment: finalComment });
+        }}>Сохранить пожелания</Button>
       </div>
     </div>
   );

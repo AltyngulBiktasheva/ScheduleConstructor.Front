@@ -43,7 +43,7 @@ export const WishesViewer: React.FC<Props> = ({ wishes, onEdit }) => {
             <div className={styles.card}>
               <h3 className={styles.cardTitle}>Статичные пожелания</h3>
               <p className={styles.cardHint}>
-                Учитываются автоматически при составлении расписания
+                Пожелания будут учтены по мере возможности
               </p>
 
               <div className={styles.wishGrid}>

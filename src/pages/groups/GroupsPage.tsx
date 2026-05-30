@@ -51,7 +51,7 @@ export const GroupsPage: React.FC = () => {
 
   return (
     <div className={styles.page}>
-      <PageHeader title="Академические группы" subtitle="Управление потоками, группами и подгруппами" />
+      <PageHeader title="Академические группы" subtitle="Управление потоками, группами и командами" />
       <ScheduleSelector />
       <Tabs tabs={TABS} activeId={activeTab} onChange={setActiveTab} />
       <div className={styles.content}>

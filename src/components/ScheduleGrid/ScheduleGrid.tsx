@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { DAYS } from '../../constants/days';
 import { DisciplineCard } from '../DisciplineCard/DisciplineCard';
 import { Spinner } from '../Spinner/Spinner';
@@ -49,7 +49,11 @@ export const ScheduleGrid: React.FC<Props> = ({
   const [zoomIndex, setZoomIndex] = useState(DEFAULT_ZOOM_INDEX);
   const [bellScheduleId, setBellScheduleId] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fakeScrollRef = useRef<HTMLDivElement>(null);
+  const syncingRef = useRef<'real' | 'fake' | null>(null);
   const dragInfo = useRef<{ disciplineId: string; offsetY: number } | null>(null);
+  const [scrollWidth, setScrollWidth] = useState(0);
+  const [fakeBarStyle, setFakeBarStyle] = useState<React.CSSProperties>({ display: 'none' });
 
   const hourHeight = ZOOM_LEVELS[zoomIndex];
   const continuousMetrics = useGridMetrics(hourHeight);
@@ -63,6 +67,85 @@ export const ScheduleGrid: React.FC<Props> = ({
   const pixelsToTime = isBell ? bellMetrics.pixelsToTime : continuousMetrics.pixelsToTime;
   const { hours } = continuousMetrics;
   const slotMetrics = isBell ? bellMetrics.slotMetrics : null;
+
+  // ─── Fixed fake scrollbar: position & visibility ───────────────────────
+  useEffect(() => {
+    const real = scrollRef.current;
+    if (!real) return;
+
+    const update = () => {
+      const sw = real.scrollWidth;
+      setScrollWidth(sw);
+
+      const rect = real.getBoundingClientRect();
+      const viewportH = window.innerHeight;
+
+      // Нативный скроллбар находится внизу .gridOuter
+      const nativeBarY = rect.bottom;
+      // Скрываем фейковый, если нативный уже видим во вьюпорте
+      const nativeVisible = nativeBarY <= viewportH + 10;
+
+      // Нет горизонтального переполнения — скроллбар не нужен
+      const hasOverflow = sw > rect.width + 1;
+
+      if (nativeVisible || !hasOverflow) {
+        setFakeBarStyle({ display: 'none' });
+      } else {
+        setFakeBarStyle({
+          position: 'fixed',
+          bottom: 0,
+          left: rect.left,
+          width: rect.width,
+          height: 14,
+          zIndex: 50,
+          overflowX: 'scroll',
+          overflowY: 'hidden',
+          background: '#f3f4f6',
+          borderTop: '2px solid #d1d5db',
+          borderRadius: '0',
+        });
+      }
+    };
+
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(real);
+    const inner = real.firstElementChild;
+    if (inner) ro.observe(inner);
+
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update, { passive: true });
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+    };
+  }, [disciplines, zoomIndex, bellScheduleId]);
+
+  // ─── Sync scroll positions between real & fake ────────────────────────
+  useEffect(() => {
+    const real = scrollRef.current;
+    const fake = fakeScrollRef.current;
+    if (!real || !fake) return;
+
+    const onRealScroll = () => {
+      if (syncingRef.current === 'fake') { syncingRef.current = null; return; }
+      syncingRef.current = 'real';
+      fake.scrollLeft = real.scrollLeft;
+    };
+    const onFakeScroll = () => {
+      if (syncingRef.current === 'real') { syncingRef.current = null; return; }
+      syncingRef.current = 'fake';
+      real.scrollLeft = fake.scrollLeft;
+    };
+
+    real.addEventListener('scroll', onRealScroll);
+    fake.addEventListener('scroll', onFakeScroll);
+    return () => {
+      real.removeEventListener('scroll', onRealScroll);
+      fake.removeEventListener('scroll', onFakeScroll);
+    };
+  }, []);
 
   const handleDragStart = useCallback(
     (e: React.DragEvent, discipline: Discipline, occ?: { timeStart: string; timeEnd: string }) => {
@@ -287,6 +370,11 @@ export const ScheduleGrid: React.FC<Props> = ({
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Fixed horizontal scrollbar — always visible at bottom of viewport */}
+      <div ref={fakeScrollRef} style={fakeBarStyle}>
+        <div style={{ width: scrollWidth, height: 1 }} />
       </div>
     </div>
   );

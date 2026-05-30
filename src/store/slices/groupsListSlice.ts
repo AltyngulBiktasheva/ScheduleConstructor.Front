@@ -32,7 +32,7 @@ const initialState: GroupsListState = {
   loading: false,
   error: null,
   page: 1,
-  itemsPerPage: 100,
+  itemsPerPage: 20,
   totalItems: 0,
 };
 
@@ -44,7 +44,7 @@ export const fetchGroupsAll = createAsyncThunk(
   async (params: { page?: number; itemsPerPage?: number } | undefined, { rejectWithValue }) => {
     try {
       const { data } = await studentGroupApi.searchStudentGroups({
-        searchParameters: { page: params?.page ?? 1, itemsPerPage: params?.itemsPerPage ?? 100 },
+        searchParameters: { page: params?.page ?? 1, itemsPerPage: params?.itemsPerPage ?? 20 },
       });
 
       const streamsMap = new Map<string, Stream>();

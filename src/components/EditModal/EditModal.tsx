@@ -11,6 +11,7 @@ import { Accordion } from '../Accordion/Accordion';
 import { Spinner } from '../Spinner/Spinner';
 import { SearchableSelect } from '../SearchableSelect/SearchableSelect';
 import { fetchSlotHighlights } from '../../api/slotHighlights';
+import { isTimeRangeValid } from '../../utils/validateTime';
 import type { SlotHighlight, SlotHighlightMessage } from '../../api/slotHighlights';
 import styles from './Styles.module.scss';
 
@@ -57,7 +58,7 @@ const ErrorBanner: React.FC<{
 }> = ({ errorLevel, errorMessage, lessonId }) => {
   const bannerClass = errorLevel === 'Error' ? styles.errorBanner : styles.warningBanner;
   const text = errorMessage || (errorLevel === 'Error' ? 'Ошибка валидации' : 'Предупреждение');
-  const hasErrorCount = /число ошибок/i.test(text);
+  const hasErrorCount = /(?:число|количество) ошибок/i.test(text);
 
   const [details, setDetails] = useState<SlotHighlightMessage[] | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -122,9 +123,11 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
 
   const isStatic = discipline.isStatic;
 
-  const [selectedRoomId, setSelectedRoomId] = useState<string>(discipline.roomId ?? '');
-  const [selectedTeacherId, setSelectedTeacherId] = useState<string>(
-    discipline.teachers?.[0]?.id ?? '',
+  const [selectedRoomIds, setSelectedRoomIds] = useState<string[]>(
+    discipline.roomIds?.length ? discipline.roomIds : (discipline.roomId ? [discipline.roomId] : []),
+  );
+  const [selectedTeacherIds, setSelectedTeacherIds] = useState<string[]>(
+    discipline.teachers?.map((t) => t.id) ?? [],
   );
 
   useEffect(() => {
@@ -155,21 +158,33 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
   const handleSave = () => {
     if (!formData.name.trim()) { setError('Название дисциплины обязательно'); return; }
 
-    const teacher = teachers.find((t) => t.id === selectedTeacherId);
+    // Validate time ranges
+    for (let i = 0; i < occurrences.length; i++) {
+      const occ = occurrences[i];
+      if (!isTimeRangeValid(occ.timeStart, occ.timeEnd)) {
+        setError(`Время ${i + 1}: начало должно быть раньше окончания`);
+        return;
+      }
+    }
+
+    const selectedTeachers = teachers.filter((t) => selectedTeacherIds.includes(t.id));
 
     let roomId: string | undefined;
+    let roomIds: string[] | undefined;
     let audience: string | undefined;
     let building: string | undefined;
     let buildingName: string | undefined;
 
     if (isStatic) {
       roomId = discipline.roomId;
+      roomIds = discipline.roomIds;
       audience = discipline.audience;
       building = discipline.building;
       buildingName = discipline.buildingName;
-    } else if (selectedRoomId) {
-      roomId = selectedRoomId;
-      const room = classrooms.find((c) => c.id === selectedRoomId);
+    } else if (selectedRoomIds.length > 0) {
+      roomIds = selectedRoomIds;
+      roomId = selectedRoomIds[0];
+      const room = classrooms.find((c) => c.id === selectedRoomIds[0]);
       audience = room?.name;
       const campus = campuses.find((c) => c.id === room?.campusId);
       building = campus?.name;
@@ -180,8 +195,9 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
       ...formData,
       teachers: isStatic
         ? formData.teachers
-        : (teacher ? [teacher] : formData.teachers),
+        : (selectedTeachers.length > 0 ? selectedTeachers : formData.teachers),
       roomId,
+      roomIds: roomIds ?? [],
       audience,
       building: building as any,
       buildingName,
@@ -295,23 +311,39 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
             </>
           )}
 
-          {/* ── Преподаватель (editable / read-only for static) ── */}
-          <Field label="Преподаватель">
+          {/* ── Преподаватели (editable / read-only for static) ── */}
+          <Field label="Преподаватели">
             {isStatic ? (
               <span className={styles.readOnlyValue}>
                 {discipline.teachers.map((t) => t.name).filter(Boolean).join(', ') || 'Без преподавателя'}
               </span>
             ) : (
-              <SearchableSelect
-                options={teachers.map((t) => ({ value: t.id, label: t.name }))}
-                value={selectedTeacherId}
-                onChange={setSelectedTeacherId}
-                placeholder="— не выбран —"
-              />
+              <div className={styles.multiSelectList}>
+                {selectedTeacherIds.map((tid, i) => (
+                  <div key={tid} className={styles.multiSelectRow}>
+                    <SearchableSelect
+                      options={teachers
+                        .filter((t) => t.id === tid || !selectedTeacherIds.includes(t.id))
+                        .map((t) => ({ value: t.id, label: t.name }))}
+                      value={tid}
+                      onChange={(newId) => {
+                        const next = [...selectedTeacherIds];
+                        next[i] = newId;
+                        setSelectedTeacherIds(next);
+                      }}
+                      placeholder="— не выбран —"
+                    />
+                    <button className={styles.removeBtn} onClick={() => setSelectedTeacherIds(selectedTeacherIds.filter((_, j) => j !== i))}>✕</button>
+                  </div>
+                ))}
+                <button className={styles.addBtn} onClick={() => setSelectedTeacherIds([...selectedTeacherIds, ''])}>
+                  + Добавить преподавателя
+                </button>
+              </div>
             )}
           </Field>
 
-          {/* ── Корпус / Аудитория (editable / read-only for static) ── */}
+          {/* ── Аудитории (editable / read-only for static) ── */}
           {isStatic ? (
             <Field label="Аудитория">
               <span className={styles.readOnlyValue}>
@@ -320,17 +352,32 @@ export const EditModal: React.FC<Props> = ({ discipline, onSave, onClose }) => {
               </span>
             </Field>
           ) : (
-            <Field label="Аудитория">
-              <SearchableSelect
-                options={campuses.flatMap((campus) =>
-                  classrooms
-                    .filter((r) => r.campusId === campus.id)
-                    .map((r) => ({ value: r.id, label: `${campus.name} — ${r.name}` }))
-                )}
-                value={selectedRoomId}
-                onChange={setSelectedRoomId}
-                placeholder="— не выбрана —"
-              />
+            <Field label="Аудитории">
+              <div className={styles.multiSelectList}>
+                {selectedRoomIds.map((rid, i) => (
+                  <div key={`${rid}-${i}`} className={styles.multiSelectRow}>
+                    <SearchableSelect
+                      options={campuses.flatMap((campus) =>
+                        classrooms
+                          .filter((r) => r.campusId === campus.id)
+                          .filter((r) => r.id === rid || !selectedRoomIds.includes(r.id))
+                          .map((r) => ({ value: r.id, label: `${campus.name} — ${r.name}` }))
+                      )}
+                      value={rid}
+                      onChange={(newId) => {
+                        const next = [...selectedRoomIds];
+                        next[i] = newId;
+                        setSelectedRoomIds(next);
+                      }}
+                      placeholder="— не выбрана —"
+                    />
+                    <button className={styles.removeBtn} onClick={() => setSelectedRoomIds(selectedRoomIds.filter((_, j) => j !== i))}>✕</button>
+                  </div>
+                ))}
+                <button className={styles.addBtn} onClick={() => setSelectedRoomIds([...selectedRoomIds, ''])}>
+                  + Добавить аудиторию
+                </button>
+              </div>
             </Field>
           )}
 

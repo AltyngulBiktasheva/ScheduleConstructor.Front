@@ -18,7 +18,9 @@ import type { AcademicDisciplineType } from '../../../api';
 import { roomApi } from '../../../api';
 import type { RoomTreeDto } from '../../../api';
 import { clampToValidDate } from '../../../utils/validateDate';
+import { isTimeRangeValid } from '../../../utils/validateTime';
 import { SearchableSelect } from '../../../components/SearchableSelect/SearchableSelect';
+import { GroupTreeSelect } from '../../../components/GroupTreeSelect/GroupTreeSelect';
 import styles from './DisciplineForm.module.scss';
 import {v4 as uuidv4} from "uuid";
 
@@ -136,7 +138,7 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
   // Только сами группы (Group)
   const actualGroupOptions = groups.map((g) => ({ id: g.id, label: g.name }));
 
-  // Только подгруппы (SemiGroup) в формате «Группа / Подгруппа»
+  // Только команды (SemiGroup) в формате «Группа / Команда»
   const semiGroupOptions = groups.flatMap((g) =>
     g.subgroups.map((sg) => ({ id: sg.id, label: `${g.name} / ${sg.name}` })),
   );
@@ -264,6 +266,12 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
         errs[`group_${idx}`] = `Занятие ${idx + 1}: выберите хотя бы одну группу`;
       if (batch.isStatic && batch.occurrences.length === 0)
         errs[`occurrences_${idx}`] = `Занятие ${idx + 1}: укажите время`;
+      if (batch.isStatic) {
+        batch.occurrences.forEach((occ, oi) => {
+          if (!isTimeRangeValid(occ.timeStart, occ.timeEnd))
+            errs[`time_${idx}_${oi}`] = `Занятие ${idx + 1}, время ${oi + 1}: начало должно быть раньше окончания`;
+        });
+      }
     });
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -558,12 +566,17 @@ const BatchSection: React.FC<BatchSectionProps> = ({
           {/* Группы (иерархический мультиселект) */}
           <FormField label="Группы" required error={errors.group}>
             <GroupTreeSelect
-              streams={streamOptions}
-              groups={actualGroupOptions}
-              semiGroups={semiGroupOptions}
-              allGroups={allGroupsFull}
+              groups={allGroupsFull}
+              streams={streamOptions.map((s) => ({
+                id: s.id,
+                name: s.label,
+                groupIds: allGroupsFull.filter((g) => g.streamIds?.includes(s.id)).map((g) => g.id),
+                disciplineIds: [],
+              }))}
               selectedIds={batch.groupIds}
               onToggle={toggleGroup}
+              onBulkSelect={(ids) => onUpdate({ groupIds: [...new Set([...batch.groupIds, ...ids])] })}
+              onBulkDeselect={(ids) => onUpdate({ groupIds: batch.groupIds.filter((id) => !ids.includes(id)) })}
             />
           </FormField>
 
@@ -820,152 +833,3 @@ const BatchSection: React.FC<BatchSectionProps> = ({
   );
 };
 
-// ─── GroupTreeSelect ─────────────────────────────────────────────────────────
-
-interface GroupTreeSelectProps {
-  streams: { id: string; label: string; childGroupNames: string[] }[];
-  groups: { id: string; label: string }[];
-  semiGroups: { id: string; label: string }[];
-  allGroups: Group[];
-  selectedIds: string[];
-  onToggle: (id: string) => void;
-}
-
-const GroupTreeSelect: React.FC<GroupTreeSelectProps> = ({
-  streams,
-  groups: groupOptions,
-  semiGroups,
-  allGroups,
-  selectedIds,
-  onToggle,
-}) => {
-  const [expandedStreams, setExpandedStreams] = useState<Set<string>>(new Set());
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
-
-  const toggleExpand = (set: Set<string>, id: string, setter: React.Dispatch<React.SetStateAction<Set<string>>>) => {
-    setter((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
-  };
-
-  if (streams.length === 0 && groupOptions.length === 0 && semiGroups.length === 0) {
-    return <span style={{ fontSize: 12, color: '#9ca3af' }}>Нет доступных групп</span>;
-  }
-
-  // Группы, привязанные к потокам
-  const groupsInStreams = new Set(
-    allGroups.filter((g) => g.streamIds && g.streamIds.length > 0).map((g) => g.id),
-  );
-  // Группы без потока
-  const freeGroups = allGroups.filter((g) => !groupsInStreams.has(g.id));
-
-  return (
-    <div className={styles.groupTree}>
-      {/* Потоки */}
-      {streams.map((stream) => {
-        const streamGroups = allGroups.filter((g) => g.streamIds?.includes(stream.id));
-        const isExpanded = expandedStreams.has(stream.id);
-        return (
-          <div key={stream.id} className={styles.treeNode}>
-            <div className={styles.treeRow}>
-              <button
-                type="button"
-                className={styles.treeExpandBtn}
-                onClick={() => toggleExpand(expandedStreams, stream.id, setExpandedStreams)}
-              >
-                <span className={`${styles.treeArrow} ${isExpanded ? styles.treeArrowOpen : ''}`}>&#9654;</span>
-              </button>
-              <label className={styles.checkLabel}>
-                <input type="checkbox" checked={selectedIds.includes(stream.id)} onChange={() => onToggle(stream.id)} />
-                <strong>{stream.label}</strong>
-              </label>
-            </div>
-            {isExpanded && (
-              <div className={styles.treeChildren}>
-                {streamGroups.map((group) => {
-                  const hasSubs = group.subgroups.length > 0;
-                  const isGroupExpanded = expandedGroups.has(group.id);
-                  return (
-                    <div key={group.id} className={styles.treeNode}>
-                      <div className={styles.treeRow}>
-                        {hasSubs ? (
-                          <button
-                            type="button"
-                            className={styles.treeExpandBtn}
-                            onClick={() => toggleExpand(expandedGroups, group.id, setExpandedGroups)}
-                          >
-                            <span className={`${styles.treeArrow} ${isGroupExpanded ? styles.treeArrowOpen : ''}`}>&#9654;</span>
-                          </button>
-                        ) : (
-                          <span className={styles.treeSpacer} />
-                        )}
-                        <label className={styles.checkLabel}>
-                          <input type="checkbox" checked={selectedIds.includes(group.id)} onChange={() => onToggle(group.id)} />
-                          {group.name}
-                        </label>
-                      </div>
-                      {hasSubs && isGroupExpanded && (
-                        <div className={styles.treeChildren}>
-                          {group.subgroups.map((sub) => (
-                            <div key={sub.id} className={styles.treeRow} style={{ paddingLeft: 24 }}>
-                              <label className={styles.checkLabel}>
-                                <input type="checkbox" checked={selectedIds.includes(sub.id)} onChange={() => onToggle(sub.id)} />
-                                {sub.name}
-                              </label>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        );
-      })}
-
-      {/* Группы без потока */}
-      {freeGroups.length > 0 && (
-        <>
-          {streams.length > 0 && <div className={styles.groupSectionLabel}>Без потока</div>}
-          {freeGroups.map((group) => {
-            const hasSubs = group.subgroups.length > 0;
-            const isGroupExpanded = expandedGroups.has(group.id);
-            return (
-              <div key={group.id} className={styles.treeNode}>
-                <div className={styles.treeRow}>
-                  {hasSubs ? (
-                    <button
-                      type="button"
-                      className={styles.treeExpandBtn}
-                      onClick={() => toggleExpand(expandedGroups, group.id, setExpandedGroups)}
-                    >
-                      <span className={`${styles.treeArrow} ${isGroupExpanded ? styles.treeArrowOpen : ''}`}>&#9654;</span>
-                    </button>
-                  ) : (
-                    <span className={styles.treeSpacer} />
-                  )}
-                  <label className={styles.checkLabel}>
-                    <input type="checkbox" checked={selectedIds.includes(group.id)} onChange={() => onToggle(group.id)} />
-                    {group.name}
-                  </label>
-                </div>
-                {hasSubs && isGroupExpanded && (
-                  <div className={styles.treeChildren}>
-                    {group.subgroups.map((sub) => (
-                      <div key={sub.id} className={styles.treeRow} style={{ paddingLeft: 24 }}>
-                        <label className={styles.checkLabel}>
-                          <input type="checkbox" checked={selectedIds.includes(sub.id)} onChange={() => onToggle(sub.id)} />
-                          {sub.name}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </>
-      )}
-    </div>
-  );
-};

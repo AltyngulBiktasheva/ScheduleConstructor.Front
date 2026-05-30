@@ -22,6 +22,7 @@ export const GroupsList: React.FC<Props> = ({
   onUpdateStream, onDeleteStream,
 }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('groups');
+  const [query, setQuery] = useState('');
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [selectedStream, setSelectedStream] = useState<Stream | null>(null);
   const highlightRef = useRef<HTMLTableRowElement | null>(null);
@@ -46,9 +47,24 @@ export const GroupsList: React.FC<Props> = ({
   const getStreamGroups = (stream: Stream) =>
     groups.filter((g) => stream.groupIds.includes(g.id));
 
+  const filteredGroups = query
+    ? groups.filter((g) => g.name.toLowerCase().includes(query.toLowerCase()))
+    : groups;
+
+  const filteredStreams = query
+    ? streams.filter((s) => s.name.toLowerCase().includes(query.toLowerCase()))
+    : streams;
+
   return (
     <>
       <div className={styles.toolbar}>
+        <input
+          className={styles.search}
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Поиск по названию..."
+        />
         <div className={styles.viewToggle}>
           <button
             className={`${styles.toggleBtn} ${viewMode === 'groups' ? styles.toggleActive : ''}`}
@@ -64,7 +80,7 @@ export const GroupsList: React.FC<Props> = ({
           </button>
         </div>
         <span className={styles.count}>
-          {viewMode === 'groups' ? `${groups.length} групп` : `${streams.length} потоков`}
+          {viewMode === 'groups' ? `${filteredGroups.length} групп` : `${filteredStreams.length} потоков`}
         </span>
       </div>
 
@@ -75,12 +91,12 @@ export const GroupsList: React.FC<Props> = ({
               <tr>
                 <th>Группа</th>
                 <th>Поток</th>
-                <th>Подгруппы</th>
+                <th>Команды</th>
                 <th>Кол-во студентов</th>
               </tr>
             </thead>
             <tbody>
-              {groups.map((g) => (
+              {filteredGroups.map((g) => (
                 <tr
                   key={g.id}
                   ref={g.id === newlyCreatedId ? highlightRef : null}
@@ -112,7 +128,7 @@ export const GroupsList: React.FC<Props> = ({
               </tr>
             </thead>
             <tbody>
-              {streams.map((s) => {
+              {filteredStreams.map((s) => {
                 const streamGroups = getStreamGroups(s);
                 return (
                   <tr

@@ -73,7 +73,7 @@ export const GroupViewModal: React.FC<Props> = ({
       <div className={styles.view}>
         <Row label="Поток">{streamName}</Row>
         <Row label="Студентов">{group.studentCount} чел.</Row>
-        <Row label="Подгруппы">
+        <Row label="Команды">
           {group.subgroups.length > 0
             ? group.subgroups.map((s) => s.name).join(', ')
             : <span className={styles.none}>Нет</span>

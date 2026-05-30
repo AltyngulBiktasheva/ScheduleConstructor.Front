@@ -49,6 +49,7 @@ export const DisciplineCard: React.FC<Props> = ({
         discipline.isStatic ? styles.isStatic : '',
         discipline.errorLevel === 'Warning' ? styles.errorWarning : '',
         discipline.errorLevel === 'Error' ? styles.errorError : '',
+        discipline.lessonType && !discipline.errorLevel ? styles[`type${discipline.lessonType}`] : '',
       ].filter(Boolean).join(' ')}
       draggable={isDraggable}
       onDragStart={isDraggable ? onDragStart : undefined}

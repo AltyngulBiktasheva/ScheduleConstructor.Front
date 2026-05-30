@@ -102,12 +102,12 @@ export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel,
   return (
     <div className={styles.form}>
       <FormField label="Номер группы" required error={errors.name}
-        hint="Например: РИ-230001">
+        hint="Например: МЕН-230001">
         <input
           className="field-input"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="РИ-230001"
+          placeholder="МЕН-230001"
           autoFocus
         />
       </FormField>
@@ -147,7 +147,7 @@ export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel,
         </div>
       </FormField>
 
-      <FormField label="Подгруппы" hint="Необязательно. Обычно две подгруппы.">
+      <FormField label="Команды" hint="Необязательно. Обычно две команды.">
         <div className={styles.subgroups}>
           {subgroups.map((sg) => (
             <div key={sg.id} className={styles.subgroupRow}>
@@ -155,13 +155,13 @@ export const GroupForm: React.FC<Props> = ({ initial, streams, onSave, onCancel,
                 className="field-input"
                 value={sg.name}
                 onChange={(e) => updateSubgroup(sg.id, e.target.value)}
-                placeholder="Название подгруппы"
+                placeholder="Название команды"
               />
               <button className={styles.removeBtn} onClick={() => removeSubgroup(sg.id)} type="button">✕</button>
             </div>
           ))}
           <button className={styles.addBtn} onClick={addSubgroup} type="button">
-            + Добавить подгруппу
+            + Добавить команду
           </button>
         </div>
       </FormField>

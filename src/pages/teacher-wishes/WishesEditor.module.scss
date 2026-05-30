@@ -126,6 +126,13 @@
   font-size: $font-size-sm;
 }
 
+.timeError {
+  width: 100%;
+  font-size: $font-size-xs;
+  color: $color-danger;
+  margin-top: 2px;
+}
+
 // ─── Audience row ─────────────────────────────────────────────────────────────
 
 .audienceRow {

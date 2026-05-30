@@ -39,7 +39,7 @@ const initialState: DisciplinesListState = {
   loading: false,
   error: null,
   page: 1,
-  itemsPerPage: 100,
+  itemsPerPage: 20,
   totalItems: 0,
 };
 
@@ -250,7 +250,7 @@ export const fetchDisciplinesAll = createAsyncThunk(
       const p = typeof params === 'string' ? { scheduleId: params } : params ?? {};
       const { data } = await academicDisciplineApi.searchAcademicDisciplines({
         scheduleId: p.scheduleId || undefined,
-        searchParameters: { page: p.page ?? 1, itemsPerPage: p.itemsPerPage ?? 100 },
+        searchParameters: { page: p.page ?? 1, itemsPerPage: p.itemsPerPage ?? 20 },
       });
       const rootDisciplines: Discipline[] = [];
       const disciplines: Discipline[] = [];

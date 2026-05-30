@@ -13,6 +13,14 @@ interface Props {
   onDelete: (id: string) => void;
 }
 
+const LESSON_TYPE_BADGE_VARIANT: Record<string, string> = {
+  Lecture: 'blue',
+  Practice: 'teal',
+  Lab: 'green',
+  Test: 'pink',
+  Exam: 'purple',
+};
+
 export const DisciplinesList: React.FC<Props> = ({
   rootDisciplines,
   disciplines,
@@ -23,6 +31,7 @@ export const DisciplinesList: React.FC<Props> = ({
   const [selected, setSelected] = useState<Discipline | null>(null);
   const [filterRootId, setFilterRootId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
   const highlightRef = useRef<HTMLTableRowElement | null>(null);
 
   const toggleExpand = (id: string) => {
@@ -49,34 +58,38 @@ export const DisciplinesList: React.FC<Props> = ({
       )
     : disciplines;
 
-  const isEmpty = filteredRoots.length === 0 && filteredChildren.length === 0;
+  const filteredDisciplines = filteredRoots.filter((t) =>
+    t.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredChildDisciplines = filteredChildren.filter((t) =>
+    t.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const isEmpty = filteredDisciplines.length === 0 && filteredChildDisciplines.length === 0;
 
   if (rootDisciplines.length === 0 && disciplines.length === 0) {
     return <div className={styles.empty}>Дисциплины не добавлены</div>;
   }
 
-  if (isEmpty) {
-    return <div className={styles.empty}>Нет дисциплин, соответствующих фильтру</div>;
-  }
-
-    const [searchQuery, setSearchQuery] = useState('');
-
-    const filteredDisciplines = filteredRoots.filter((t) =>
-        t.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    const filteredChildDisciplines = filteredChildren.filter((t) =>
-        t.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
   return (
     <>
+      <div className={styles.toolbar}>
         <input
-            className="field-input"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Поиск дисциплин..."
+          className={styles.search}
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Поиск дисциплин..."
         />
+        <span className={styles.count}>
+          {filteredDisciplines.length + filteredChildDisciplines.length} дисциплин
+        </span>
+      </div>
+
+      {isEmpty && (
+        <div className={styles.empty}>Нет дисциплин, соответствующих фильтру</div>
+      )}
       {/* ── Корневые дисциплины ── */}
       {filteredRoots.length > 0 && (
         <section className={styles.section}>
@@ -110,7 +123,7 @@ export const DisciplinesList: React.FC<Props> = ({
                     <td>
                       <div className={styles.badges}>
                         {(d.allowedLessonTypes ?? []).map((t) => (
-                          <Badge key={t} variant="blue">{LESSON_TYPE_LABELS[t] ?? t}</Badge>
+                          <Badge key={t} variant={(LESSON_TYPE_BADGE_VARIANT[t] ?? 'gray') as any}>{LESSON_TYPE_LABELS[t] ?? t}</Badge>
                         ))}
                       </div>
                     </td>
@@ -179,7 +192,7 @@ export const DisciplinesList: React.FC<Props> = ({
                         </td>
                         <td>
                           {d.lessonType && (
-                            <Badge variant="purple">{LESSON_TYPE_LABELS[d.lessonType] ?? d.lessonType}</Badge>
+                            <Badge variant={(LESSON_TYPE_BADGE_VARIANT[d.lessonType] ?? 'gray') as any}>{LESSON_TYPE_LABELS[d.lessonType] ?? d.lessonType}</Badge>
                           )}
                         </td>
                         <td className={styles.secondary}>

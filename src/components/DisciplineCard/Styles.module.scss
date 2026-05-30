@@ -52,6 +52,13 @@
     border-left-color: #ef4444;
     background: #fef2f2;
   }
+
+  // Lesson type colors (only when no error/warning)
+  &.typeLecture   { border-color: $lesson-lecture-border;  border-left-color: $lesson-lecture-border;  background: $lesson-lecture-bg; }
+  &.typePractice  { border-color: $lesson-practice-border; border-left-color: $lesson-practice-border; background: $lesson-practice-bg; }
+  &.typeLab       { border-color: $lesson-lab-border;      border-left-color: $lesson-lab-border;      background: $lesson-lab-bg; }
+  &.typeTest      { border-color: $lesson-test-border;     border-left-color: $lesson-test-border;     background: $lesson-test-bg; }
+  &.typeExam      { border-color: $lesson-exam-border;     border-left-color: $lesson-exam-border;     background: $lesson-exam-bg; }
 }
 
 .eyeBtn {

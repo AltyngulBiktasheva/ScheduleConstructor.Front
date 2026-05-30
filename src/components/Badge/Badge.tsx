@@ -1,7 +1,7 @@
 import React from 'react';
 import styles from './Styles.module.scss';
 
-type Variant = 'blue' | 'green' | 'yellow' | 'red' | 'gray' | 'purple';
+type Variant = 'blue' | 'green' | 'yellow' | 'red' | 'gray' | 'purple' | 'teal' | 'pink';
 
 interface Props {
   children: React.ReactNode;

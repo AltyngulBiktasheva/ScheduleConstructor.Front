@@ -28,7 +28,7 @@ const initialState: TeachersListState = {
   loading: false,
   error: null,
   page: 1,
-  itemsPerPage: 100,
+  itemsPerPage: 20,
   totalItems: 0,
 };
 
@@ -40,7 +40,7 @@ export const fetchTeachersAll = createAsyncThunk(
   async (params: { page?: number; itemsPerPage?: number } | undefined, { rejectWithValue }) => {
     try {
       const { data } = await teacherApi.searchTeachers({
-        searchParameters: { page: params?.page ?? 1, itemsPerPage: params?.itemsPerPage ?? 100 },
+        searchParameters: { page: params?.page ?? 1, itemsPerPage: params?.itemsPerPage ?? 20 },
       });
       return {
         teachers: data.items.map((dto) => ({

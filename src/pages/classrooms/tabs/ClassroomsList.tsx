@@ -38,6 +38,7 @@ export const ClassroomsList: React.FC<Props> = ({
 }) => {
   const [selected, setSelected] = useState<Classroom | null>(null);
   const [filterBuilding, setFilterBuilding] = useState('');
+  const [query, setQuery] = useState('');
   const highlightRef = useRef<HTMLTableRowElement | null>(null);
 
   useEffect(() => {
@@ -48,9 +49,9 @@ export const ClassroomsList: React.FC<Props> = ({
 
   const buildings = Array.from(new Set(classrooms.map((c) => c.building)));
 
-  const filtered = filterBuilding
-    ? classrooms.filter((c) => c.building === filterBuilding)
-    : classrooms;
+  const filtered = classrooms
+    .filter((c) => filterBuilding ? c.building === filterBuilding : true)
+    .filter((c) => query ? c.name.toLowerCase().includes(query.toLowerCase()) : true);
 
   const buildingLabel = (c: Classroom) =>
     c.building === 'other' ? (c.buildingName ?? 'Другой') : (BUILDING_LABELS[c.building] ?? c.building);
@@ -68,6 +69,13 @@ export const ClassroomsList: React.FC<Props> = ({
             <option key={b} value={b}>{BUILDING_LABELS[b] ?? b}</option>
           ))}
         </select>
+        <input
+          className={styles.search}
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Поиск по названию..."
+        />
         <span className={styles.count}>{filtered.length} аудиторий</span>
       </div>
 
