@@ -447,7 +447,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
           flexibilityType: existingLesson.flexibilityType,
           allowCombining: existingLesson.allowCombining,
           hoursCost: 2,
-          updateBatch: true,
+          updateBatch: false,
         }));
         if (saveLesson.rejected.match(result)) {
           addToast((result.payload as string) || 'Не удалось переместить занятие', 'error');

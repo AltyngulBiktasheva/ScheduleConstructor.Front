@@ -4,7 +4,7 @@ export interface Subgroup {
 }
 
 export interface Group {
-  id: string;
+  id?: string | null;
   name: string;
   streamIds?: string[];
   subgroups: Subgroup[];
