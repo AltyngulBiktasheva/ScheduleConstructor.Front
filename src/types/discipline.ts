@@ -72,6 +72,11 @@ export interface Discipline {
   slotId?: string;
   highlightSlots?: boolean;
 
+  // ── Batch/серия ────────────────────────────────────────────────────────
+  lessonBatchInfoId?: string;
+  dayOfWeekTimeIntervalAssignmentId?: string;
+  isBatchCard?: boolean;
+
   // ── Уровень ошибок валидации ───────────────────────────────────────────
   errorLevel?: 'Warning' | 'Error' | null;
   errorMessage?: string;

@@ -3,7 +3,7 @@ import type {
   LessonRegistryItemDto,
   LessonViewDto,
   LessonWeekConflictDto,
-  LessonShortDto,
+  WeekLessonsShortDto,
   RegistryDto,
   LessonSaveDto,
   SearchParametersDto,
@@ -14,9 +14,9 @@ export const lessonApi = {
   searchLessons: (body: { searchParameters: SearchParametersDto }) =>
     apiClient.post<RegistryDto<LessonRegistryItemDto>>('/lesson/search', body),
 
-  /** Получить занятия за неделю для сетки */
+  /** Получить занятия и серии за неделю для сетки */
   searchWeekLessons: (params: { scheduleId: string; dateFrom: string; dateTo: string }) =>
-    apiClient.get<LessonShortDto[]>('/lesson/search-week', { params }),
+    apiClient.get<WeekLessonsShortDto>('/lesson/search-week', { params }),
 
   /** Получить данные занятия */
   getLesson: (params: { lessonId: string }) =>

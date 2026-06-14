@@ -4,6 +4,7 @@ import type {
   LessonViewDto,
   LessonWeekConflictDto,
   LessonShortDto,
+  LessonBatchInfoShortDto,
   LessonSaveDto,
 } from '../../api';
 import { useAppDispatch, useAppSelector } from '../hooks';
@@ -14,6 +15,7 @@ import { extractError } from '../../utils/extractError';
 interface LessonState {
   current: LessonViewDto | null;
   weekLessons: LessonShortDto[];
+  weekBatches: LessonBatchInfoShortDto[];
   weekConflicts: LessonWeekConflictDto[];
   loading: boolean;
   weekLessonsLoading: boolean;
@@ -26,6 +28,7 @@ interface LessonState {
 const initialState: LessonState = {
   current: null,
   weekLessons: [],
+  weekBatches: [],
   weekConflicts: [],
   loading: false,
   weekLessonsLoading: false,
@@ -57,7 +60,7 @@ export const fetchWeekLessons = createAsyncThunk(
   ) => {
     try {
       const { data } = await lessonApi.searchWeekLessons(params);
-      return data;
+      return { lessons: data.lessons, batches: data.lessonBatches };
     } catch (err: unknown) {
       return rejectWithValue(extractError(err));
     }
@@ -117,6 +120,7 @@ const lessonSlice = createSlice({
     },
     clearWeekLessons(state) {
       state.weekLessons = [];
+      state.weekBatches = [];
     },
   },
   extraReducers: (builder) => {
@@ -139,7 +143,8 @@ const lessonSlice = createSlice({
       })
       .addCase(fetchWeekLessons.fulfilled, (state, action) => {
         state.weekLessonsLoading = false;
-        state.weekLessons = action.payload;
+        state.weekLessons = action.payload.lessons;
+        state.weekBatches = action.payload.batches;
       })
       .addCase(fetchWeekLessons.rejected, (state, action) => {
         state.weekLessonsLoading = false;

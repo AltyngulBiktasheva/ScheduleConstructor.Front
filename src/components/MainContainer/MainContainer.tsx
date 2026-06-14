@@ -14,7 +14,7 @@ import { fetchGroupsAll } from '../../store/slices/groupsListSlice';
 import { fetchTeachersAll } from '../../store/slices/teachersListSlice';
 import { fetchClassroomsAll } from '../../store/slices/classroomsListSlice';
 import { fetchCampuses } from '../../store/slices/campusSlice';
-import type { LessonShortDto } from '../../api';
+import type { LessonShortDto, LessonBatchInfoShortDto } from '../../api';
 import { useToast } from '../Toast/ToastContext';
 import { formatLocalDate } from '../../utils/dateUtils';
 import { LESSON_TYPE_LABELS } from '../../pages/disciplines/tabs/RootDisciplineForm';
@@ -41,6 +41,10 @@ interface Props {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const DAY_IDS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
+
+const BACKEND_DOW_TO_DAY_ID: Record<number, string> = {
+  1: 'mon', 2: 'tue', 3: 'wed', 4: 'thu', 5: 'fri', 6: 'sat',
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -87,6 +91,8 @@ function lessonToDiscipline(lesson: LessonShortDto, weekDates: string[]): Discip
     teacher: lesson.teachers.map((t) => t.fullname).filter(Boolean).join(', ') || undefined,
     audience: lesson.rooms.map((r) => r.name).filter(Boolean).join(', ') || undefined,
     comment: lesson.comment,
+    dayOfWeekTimeIntervalAssignmentId: lesson.dayOfWeekTimeIntervalAssignmentId ?? undefined,
+    isBatchCard: false,
   };
 }
 
@@ -141,15 +147,98 @@ function formatDisciplineName(lesson: LessonShortDto): string {
 }
 
 function padTime(t: string): string {
-  // Оставляем только HH:MM, отрезая секунды если они есть
   return t.slice(0, 5);
+}
+
+function formatBatchName(batch: LessonBatchInfoShortDto): string {
+  const base = batch.academicDisciplineName || 'Серия';
+  const typeLabel = batch.type ? LESSON_TYPE_LABELS[batch.type] : undefined;
+  return typeLabel ? `${base} (${typeLabel})` : base;
+}
+
+function batchToDisciplines(batch: LessonBatchInfoShortDto): Discipline[] {
+  return batch.dayOfWeekTimeIntervals.map((assignment) => {
+    const dayId = BACKEND_DOW_TO_DAY_ID[assignment.dayOfWeekTimeInterval.dayOfWeek];
+    const ti = assignment.dayOfWeekTimeInterval.timeInterval;
+    return {
+      id: `batch-${batch.id}-${assignment.id}`,
+      name: formatBatchName(batch),
+      lessonBatchInfoId: batch.id,
+      dayOfWeekTimeIntervalAssignmentId: assignment.id,
+      isBatchCard: true,
+      academicDisciplineId: batch.academicDisciplineId ?? undefined,
+      lessonType: batch.type ?? undefined,
+      roomIds: batch.rooms.map((r) => r.id),
+      forType: 'group' as const,
+      forIds: batch.studentGroups.map((g) => g.id),
+      forNames: batch.studentGroups.map((g) => g.name ?? ''),
+      teachers: batch.teachers.map((t) => ({ id: t.id, name: t.fullname || '' })),
+      audiences: batch.rooms.map((r) => ({ roomId: r.id, roomName: r.name ?? undefined })),
+      isStatic: batch.flexibilityType === 'Fixed',
+      canOverlap: batch.allowCombining,
+      repeat: 'every-week' as const,
+      weeklyCount: batch.lessonsPerWeekCount,
+      isInGrid: !!dayId,
+      dayId,
+      timeStart: ti.timeFrom.slice(0, 5),
+      timeEnd: ti.timeTo.slice(0, 5),
+      errorLevel: batch.currentErrorsMaxLevel ?? null,
+      errorMessage: batch.lessonPolicyViolationDescription ?? undefined,
+      teacher: batch.teachers.map((t) => t.fullname).filter(Boolean).join(', ') || undefined,
+      audience: batch.rooms.map((r) => r.name).filter(Boolean).join(', ') || undefined,
+      comment: batch.comment,
+    };
+  });
+}
+
+function batchToListDiscipline(batch: LessonBatchInfoShortDto): Discipline {
+  return {
+    id: `batch-${batch.id}`,
+    name: formatBatchName(batch),
+    lessonBatchInfoId: batch.id,
+    isBatchCard: true,
+    academicDisciplineId: batch.academicDisciplineId ?? undefined,
+    lessonType: batch.type ?? undefined,
+    roomIds: batch.rooms.map((r) => r.id),
+    forType: 'group' as const,
+    forIds: batch.studentGroups.map((g) => g.id),
+    forNames: batch.studentGroups.map((g) => g.name ?? ''),
+    teachers: batch.teachers.map((t) => ({ id: t.id, name: t.fullname || '' })),
+    audiences: batch.rooms.map((r) => ({ roomId: r.id, roomName: r.name ?? undefined })),
+    isStatic: batch.flexibilityType === 'Fixed',
+    canOverlap: batch.allowCombining,
+    repeat: 'every-week' as const,
+    weeklyCount: batch.lessonsPerWeekCount,
+    isInGrid: false,
+    errorLevel: batch.currentErrorsMaxLevel ?? null,
+    errorMessage: batch.lessonPolicyViolationDescription ?? undefined,
+    teacher: batch.teachers.map((t) => t.fullname).filter(Boolean).join(', ') || undefined,
+    audience: batch.rooms.map((r) => r.name).filter(Boolean).join(', ') || undefined,
+    comment: batch.comment,
+  };
+}
+
+function filterBatchesByEntity(
+  batches: LessonBatchInfoShortDto[],
+  selection: SliceSelection,
+): LessonBatchInfoShortDto[] {
+  const ids = Array.isArray(selection.entityId)
+    ? selection.entityId
+    : [selection.entityId];
+
+  return batches.filter((batch) => {
+    if (selection.type === 'classrooms') return batch.rooms.some((r) => ids.includes(r.id));
+    if (selection.type === 'teachers') return batch.teachers.some((t) => ids.includes(t.id));
+    if (selection.type === 'groups') return batch.studentGroups.some((g) => ids.includes(g.id));
+    return false;
+  });
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export const MainContainer: React.FC<Props> = ({ selection }) => {
   const dispatch = useAppDispatch();
-  const { weekLessons, weekLessonsLoading } = useAppSelector((s) => s.lesson);
+  const { weekLessons, weekBatches, weekLessonsLoading } = useAppSelector((s) => s.lesson);
   const selectedScheduleId = useAppSelector((s) => s.schedule.selectedScheduleId);
   const scheduleDateInterval = useAppSelector((s) =>
     s.schedule.list.find((sc) => sc.id === s.schedule.selectedScheduleId)?.dateInterval ?? null
@@ -227,15 +316,37 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
     if (groups.length === 0) dispatch(fetchGroupsAll());
   }, [dispatch]);
 
-  // ── Фильтрация занятий по сущности ───────────────────────────────────────
+  // ── Фильтрация занятий и серий по сущности ────────────────────────────────
   const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
   const entityLessons = filterLessonsByEntity(weekLessons, selection);
+  const entityBatches = filterBatchesByEntity(weekBatches, selection);
   const lessonsWithTime = entityLessons.filter((l) => l.dateWithTimeInterval != null);
   const lessonsWithoutTime = entityLessons.filter((l) => l.dateWithTimeInterval == null);
-  const gridDisciplines = lessonsWithTime.map((l) => lessonToDiscipline(l, weekDates));
 
-  // Дисциплины для списка — занятия без назначенного времени из search-week
-  const listItems = lessonsWithoutTime.map(lessonToListDiscipline);
+  const lessonAssignmentIds = useMemo(() => new Set(
+    weekLessons
+      .filter((l) => l.dayOfWeekTimeIntervalAssignmentId)
+      .map((l) => l.dayOfWeekTimeIntervalAssignmentId!),
+  ), [weekLessons]);
+
+  const batchCards = useMemo(
+    () => entityBatches.flatMap(batchToDisciplines),
+    [entityBatches],
+  );
+  const unreplacedBatchCards = useMemo(
+    () => batchCards.filter((bc) => !lessonAssignmentIds.has(bc.dayOfWeekTimeIntervalAssignmentId!)),
+    [batchCards, lessonAssignmentIds],
+  );
+  const lessonCards = lessonsWithTime.map((l) => lessonToDiscipline(l, weekDates));
+  const gridDisciplines = useMemo(
+    () => [...unreplacedBatchCards, ...lessonCards],
+    [unreplacedBatchCards, lessonCards],
+  );
+
+  // Серии без назначенного времени → боковой список
+  const unscheduledBatches = entityBatches.filter((b) => b.dayOfWeekTimeIntervals.length === 0);
+  const batchListItems = unscheduledBatches.map(batchToListDiscipline);
+  const listItems = [...lessonsWithoutTime.map(lessonToListDiscipline), ...batchListItems];
 
   // ── Обогащение карточек именами преподавателей, аудиторий, групп ─────────
   const enrichedListItems = useMemo(() => {
@@ -417,6 +528,36 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
       const dayIdx = DAY_IDS.indexOf(dayId as typeof DAY_IDS[number]);
       const date = dates[dayIdx] ?? dates[0];
 
+      // Batch-карточка: создаём новое занятие из серии
+      const batchCard = gridDisciplines.find((d) => d.id === disciplineId && d.isBatchCard);
+      if (batchCard) {
+        const batch = weekBatches.find((b) => b.id === batchCard.lessonBatchInfoId);
+        if (!batch || batch.flexibilityType === 'Fixed') return;
+
+        const result = await dispatch(saveLesson({
+          id: null,
+          studentGroupIds: batch.studentGroups.map((g) => g.id),
+          teacherIds: batch.teachers.map((t) => t.id),
+          roomIds: batch.rooms.map((r) => r.id),
+          dateWithTimeInterval: {
+            date,
+            timeInterval: { timeFrom: padTime(timeStart), timeTo: padTime(timeEnd) },
+          },
+          flexibilityType: batch.flexibilityType,
+          allowCombining: batch.allowCombining,
+          lessonBatchInfoId: batch.id,
+          dayOfWeekTimeIntervalAssignmentId: batchCard.dayOfWeekTimeIntervalAssignmentId ?? null,
+          hoursCost: batch.hoursCost ?? 2,
+          updateBatch: false,
+        }));
+        if (saveLesson.rejected.match(result)) {
+          addToast((result.payload as string) || 'Не удалось создать занятие из серии', 'error');
+          return;
+        }
+        refetchWeek();
+        return;
+      }
+
       const existingLesson = weekLessons.find((l) => l.id === disciplineId);
 
       if (existingLesson) {
@@ -433,7 +574,6 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
           }
         }
 
-        // Перемещаем существующее занятие
         if (existingLesson.flexibilityType === 'Fixed') return;
         const result = await dispatch(saveLesson({
           id: existingLesson.id,
@@ -446,54 +586,90 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
           },
           flexibilityType: existingLesson.flexibilityType,
           allowCombining: existingLesson.allowCombining,
+          lessonBatchInfoId: null,
+          dayOfWeekTimeIntervalAssignmentId: existingLesson.dayOfWeekTimeIntervalAssignmentId ?? null,
           hoursCost: 2,
           updateBatch: false,
         }));
         if (saveLesson.rejected.match(result)) {
           addToast((result.payload as string) || 'Не удалось переместить занятие', 'error');
-          refetchWeek(); // откат: восстанавливаем исходную позицию
+          refetchWeek();
           return;
         }
       } else {
-        // Создаём новое занятие из дисциплины в списке
+        // Создаём новое занятие из дисциплины в списке (или из batch в списке)
         const unscheduledLesson = weekLessons.find((l) => l.id === disciplineId);
-        if (!unscheduledLesson) return;
 
-        const groupIds = selection.type === 'groups'
-          ? (Array.isArray(selection.entityId) ? selection.entityId : [selection.entityId])
-          : unscheduledLesson.studentGroups.map((g) => g.id);
+        if (unscheduledLesson) {
+          const groupIds = selection.type === 'groups'
+            ? (Array.isArray(selection.entityId) ? selection.entityId : [selection.entityId])
+            : unscheduledLesson.studentGroups.map((g) => g.id);
 
-        const result = await dispatch(saveLesson({
-          id: unscheduledLesson.id,
-          studentGroupIds: groupIds,
-          teacherIds: unscheduledLesson.teachers.map((t) => t.id),
-          roomIds: selection.type === 'classrooms'
-            ? [selection.entityId as string]
-            : unscheduledLesson.rooms.map((r) => r.id),
-          dateWithTimeInterval: {
-            date,
-            timeInterval: { timeFrom: padTime(timeStart), timeTo: padTime(timeEnd) },
-          },
-          flexibilityType: unscheduledLesson.flexibilityType,
-          allowCombining: unscheduledLesson.allowCombining,
-          hoursCost: 2,
-          updateBatch: true,
-        }));
-        if (saveLesson.rejected.match(result)) {
-          addToast((result.payload as string) || 'Не удалось добавить занятие', 'error');
-          return;
+          const result = await dispatch(saveLesson({
+            id: unscheduledLesson.id,
+            studentGroupIds: groupIds,
+            teacherIds: unscheduledLesson.teachers.map((t) => t.id),
+            roomIds: selection.type === 'classrooms'
+              ? [selection.entityId as string]
+              : unscheduledLesson.rooms.map((r) => r.id),
+            dateWithTimeInterval: {
+              date,
+              timeInterval: { timeFrom: padTime(timeStart), timeTo: padTime(timeEnd) },
+            },
+            flexibilityType: unscheduledLesson.flexibilityType,
+            allowCombining: unscheduledLesson.allowCombining,
+            hoursCost: 2,
+            updateBatch: true,
+          }));
+          if (saveLesson.rejected.match(result)) {
+            addToast((result.payload as string) || 'Не удалось добавить занятие', 'error');
+            return;
+          }
+        } else {
+          // Unscheduled batch card from sidebar
+          const listBatchCard = enrichedListItems.find((d) => d.id === disciplineId && d.isBatchCard);
+          if (!listBatchCard) return;
+          const batch = weekBatches.find((b) => b.id === listBatchCard.lessonBatchInfoId);
+          if (!batch) return;
+
+          const result = await dispatch(saveLesson({
+            id: null,
+            studentGroupIds: batch.studentGroups.map((g) => g.id),
+            teacherIds: batch.teachers.map((t) => t.id),
+            roomIds: batch.rooms.map((r) => r.id),
+            dateWithTimeInterval: {
+              date,
+              timeInterval: { timeFrom: padTime(timeStart), timeTo: padTime(timeEnd) },
+            },
+            flexibilityType: batch.flexibilityType,
+            allowCombining: batch.allowCombining,
+            lessonBatchInfoId: batch.id,
+            dayOfWeekTimeIntervalAssignmentId: null,
+            hoursCost: batch.hoursCost ?? 2,
+            updateBatch: false,
+          }));
+          if (saveLesson.rejected.match(result)) {
+            addToast((result.payload as string) || 'Не удалось создать занятие из серии', 'error');
+            return;
+          }
         }
       }
 
       refetchWeek();
     },
-    [dispatch, selectedScheduleId, weekOffset, weekLessons, selection, refetchWeek, addToast, isTransposed, gridColumns],
+    [dispatch, selectedScheduleId, weekOffset, weekLessons, weekBatches, gridDisciplines, enrichedListItems, selection, refetchWeek, addToast, isTransposed, gridColumns],
   );
 
   // ── DnD: возврат занятия в список (снятие времени) ────────────────────────
   const handleDisciplineReturn = useCallback(
     async (disciplineId: string) => {
       if (!selectedScheduleId) return;
+
+      if (disciplineId.startsWith('batch-')) {
+        addToast('Серию нельзя вернуть в список — используйте раздел «Дисциплины»', 'info');
+        return;
+      }
+
       const lesson = weekLessons.find((l) => l.id === disciplineId);
       if (!lesson || lesson.flexibilityType === 'Fixed') return;
 
@@ -528,6 +704,44 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
     async (updated: Discipline, editMode: EditMode) => {
       if (!selectedScheduleId) return;
 
+      // Batch-карточка: создаём новое занятие или обновляем всю серию
+      if (updated.isBatchCard) {
+        const batch = weekBatches.find((b) => b.id === updated.lessonBatchInfoId);
+        if (!batch) { setEditingDiscipline(null); return; }
+
+        const date = updated.dayId
+          ? weekDates[DAY_IDS.indexOf(updated.dayId as typeof DAY_IDS[number])] ?? weekDates[0]
+          : weekDates[0];
+
+        const result = await dispatch(saveLesson({
+          id: editMode === 'batch' ? null : null,
+          studentGroupIds: updated.forIds ?? batch.studentGroups.map((g) => g.id),
+          teacherIds: updated.teachers?.map((t) => t.id) ?? batch.teachers.map((t) => t.id),
+          roomIds: updated.roomIds || batch.rooms.map((r) => r.id),
+          dateWithTimeInterval: {
+            date,
+            timeInterval: {
+              timeFrom: padTime(updated.timeStart ?? '09:00'),
+              timeTo: padTime(updated.timeEnd ?? '10:30'),
+            },
+          },
+          flexibilityType: batch.flexibilityType,
+          allowCombining: batch.allowCombining,
+          lessonBatchInfoId: batch.id,
+          dayOfWeekTimeIntervalAssignmentId: updated.dayOfWeekTimeIntervalAssignmentId ?? null,
+          hoursCost: batch.hoursCost ?? 2,
+          updateBatch: editMode === 'batch',
+        }));
+
+        if (saveLesson.rejected.match(result)) {
+          addToast((result.payload as string) || 'Не удалось сохранить', 'error');
+          return;
+        }
+        setEditingDiscipline(null);
+        refetchWeek();
+        return;
+      }
+
       const lesson = weekLessons.find((l) => l.id === updated.id);
       if (!lesson) {
         setEditingDiscipline(null);
@@ -552,13 +766,14 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
         },
         flexibilityType: lesson.flexibilityType,
         allowCombining: lesson.allowCombining,
+        lessonBatchInfoId: null,
+        dayOfWeekTimeIntervalAssignmentId: lesson.dayOfWeekTimeIntervalAssignmentId ?? null,
         hoursCost: 2,
         updateBatch: editMode === 'batch',
       }));
 
       if (saveLesson.rejected.match(result)) {
         const errorMsg = (result.payload as string) || '';
-        // Если занятие откреплено от шаблона — уведомляем и ретраим без batch
         if (editMode === 'batch' && errorMsg.toLowerCase().includes('откреплено')) {
           setDetachedWarning({
             message: errorMsg,
@@ -583,13 +798,13 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
           return;
         }
         addToast(errorMsg || 'Не удалось сохранить занятие', 'error');
-        return; // модальное окно остаётся открытым
+        return;
       }
 
       setEditingDiscipline(null);
       refetchWeek();
     },
-    [dispatch, selectedScheduleId, weekLessons, weekDates, refetchWeek, addToast],
+    [dispatch, selectedScheduleId, weekLessons, weekBatches, weekDates, refetchWeek, addToast],
   );
 
   // ── Eye icon → week-conflicts → highlights ────────────────────────────────
@@ -604,6 +819,11 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
       ?? enrichedListItems.find((d) => d.id === disciplineId);
 
     if (!discipline) return;
+
+    if (discipline.isBatchCard) {
+      addToast('Подсветка конфликтов недоступна для карточек серий', 'info');
+      return;
+    }
 
     setLoadingHighlightId(disciplineId);
     setHighlightedId(null);

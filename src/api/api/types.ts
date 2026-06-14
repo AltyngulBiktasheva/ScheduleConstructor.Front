@@ -225,6 +225,8 @@ export interface LessonSaveDto {
   dateWithTimeInterval?: DateWithTimeInterval | null;
   flexibilityType: LessonFlexibilityType;
   allowCombining: boolean;
+  lessonBatchInfoId?: string | null;
+  dayOfWeekTimeIntervalAssignmentId?: string | null;
   hoursCost: number;
   updateBatch: boolean;
 }
@@ -247,12 +249,37 @@ export interface LessonShortDto {
   studentGroups: StudentGroupShortDto[];
   teachers: LessonWeekTeacherDto[];
   rooms: LessonWeekRoomDto[];
+  dayOfWeekTimeIntervalAssignmentId?: string | null;
   dateWithTimeInterval?: DateWithTimeInterval | null;
   flexibilityType: LessonFlexibilityType;
   allowCombining: boolean;
   lessonPolicyViolationDescription?: string | null;
   currentErrorsMaxLevel?: LessonValidationErrorType | null;
   comment?: string | null;
+}
+
+export interface LessonBatchInfoShortDto {
+  id: string;
+  academicDisciplineId?: string | null;
+  academicDisciplineName?: string | null;
+  type?: AcademicDisciplineType | null;
+  studentGroups: StudentGroupShortDto[];
+  teachers: LessonWeekTeacherDto[];
+  rooms: LessonWeekRoomDto[];
+  lessonsPerWeekCount: number;
+  dayOfWeekTimeIntervals: DayOfWeekTimeIntervalAssignmentShortDto[];
+  allowCombining: boolean;
+  flexibilityType: LessonFlexibilityType;
+  hoursCost?: number | null;
+  totalHoursCount?: number | null;
+  lessonPolicyViolationDescription?: string | null;
+  currentErrorsMaxLevel?: LessonValidationErrorType | null;
+  comment?: string | null;
+}
+
+export interface WeekLessonsShortDto {
+  lessonBatches: LessonBatchInfoShortDto[];
+  lessons: LessonShortDto[];
 }
 
 export interface LessonSeriesConflictMessageDto {
