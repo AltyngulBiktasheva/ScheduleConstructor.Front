@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import type { Group, Stream } from '../../../types/group';
 import { GroupViewModal } from '../modals/GroupViewModal';
 import { StreamViewModal } from '../modals/StreamViewModal';
+import { Pagination } from '../../../components/Pagination/Pagination';
 import styles from './GroupsList.module.scss';
 
 interface Props {
@@ -26,6 +27,10 @@ export const GroupsList: React.FC<Props> = ({
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [selectedStream, setSelectedStream] = useState<Stream | null>(null);
   const highlightRef = useRef<HTMLTableRowElement | null>(null);
+
+  const [groupsPage, setGroupsPage] = useState(1);
+  const [streamsPage, setStreamsPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
 
   useEffect(() => {
     if (newlyCreatedId && highlightRef.current) {
@@ -55,6 +60,18 @@ export const GroupsList: React.FC<Props> = ({
     ? streams.filter((s) => s.name.toLowerCase().includes(query.toLowerCase()))
     : streams;
 
+  const groupsStart = (groupsPage - 1) * itemsPerPage;
+  const paginatedGroups = filteredGroups.slice(groupsStart, groupsStart + itemsPerPage);
+
+  const streamsStart = (streamsPage - 1) * itemsPerPage;
+  const paginatedStreams = filteredStreams.slice(streamsStart, streamsStart + itemsPerPage);
+
+  const handleItemsPerPageChange = (size: number) => {
+    setItemsPerPage(size);
+    setGroupsPage(1);
+    setStreamsPage(1);
+  };
+
   return (
     <>
       <div className={styles.toolbar}>
@@ -62,7 +79,7 @@ export const GroupsList: React.FC<Props> = ({
           className={styles.search}
           type="text"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => { setQuery(e.target.value); setGroupsPage(1); setStreamsPage(1); }}
           placeholder="Поиск по названию..."
         />
         <div className={styles.viewToggle}>
@@ -85,72 +102,90 @@ export const GroupsList: React.FC<Props> = ({
       </div>
 
       {viewMode === 'groups' ? (
-        <div className={styles.tableWrapper}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Группа</th>
-                <th>Поток</th>
-                <th>Команды</th>
-                <th>Кол-во студентов</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredGroups.map((g) => (
-                <tr
-                  key={g.id}
-                  ref={g.id === newlyCreatedId ? highlightRef : null}
-                  className={`${styles.row} ${g.id === newlyCreatedId ? styles.highlighted : ''}`}
-                  onClick={() => setSelectedGroup(g)}
-                >
-                  <td className={styles.name}>{g.name}</td>
-                  <td className={styles.secondary}>{getStreamNames(g.streamIds)}</td>
-                  <td className={styles.secondary}>
-                    {g.subgroups.length > 0
-                      ? g.subgroups.map((s) => s.name).join(', ')
-                      : <span className={styles.none}>Нет</span>
-                    }
-                  </td>
-                  <td className={styles.secondary}>{g.studentCount} чел.</td>
+        <>
+          <div className={styles.tableWrapper}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Группа</th>
+                  <th>Поток</th>
+                  <th>Команды</th>
+                  <th>Кол-во студентов</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className={styles.tableWrapper}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Поток</th>
-                <th>Группы</th>
-                <th>Кол-во студентов</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredStreams.map((s) => {
-                const streamGroups = getStreamGroups(s);
-                return (
+              </thead>
+              <tbody>
+                {paginatedGroups.map((g) => (
                   <tr
-                    key={s.id}
-                    ref={s.id === newlyCreatedId ? highlightRef : null}
-                    className={`${styles.row} ${s.id === newlyCreatedId ? styles.highlighted : ''}`}
-                    onClick={() => setSelectedStream(s)}
+                    key={g.id}
+                    ref={g.id === newlyCreatedId ? highlightRef : null}
+                    className={`${styles.row} ${g.id === newlyCreatedId ? styles.highlighted : ''}`}
+                    onClick={() => setSelectedGroup(g)}
                   >
-                    <td className={styles.name}>{s.name}</td>
+                    <td className={styles.name}>{g.name}</td>
+                    <td className={styles.secondary}>{getStreamNames(g.streamIds)}</td>
                     <td className={styles.secondary}>
-                      {streamGroups.length > 0
-                        ? streamGroups.map((g) => g.name).join(', ')
-                        : <span className={styles.none}>Нет групп</span>
+                      {g.subgroups.length > 0
+                        ? g.subgroups.map((s) => s.name).join(', ')
+                        : <span className={styles.none}>Нет</span>
                       }
                     </td>
-                    <td className={styles.secondary}>{getStreamStudentCount(s)} чел.</td>
+                    <td className={styles.secondary}>{g.studentCount} чел.</td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <Pagination
+            page={groupsPage}
+            itemsPerPage={itemsPerPage}
+            totalItems={filteredGroups.length}
+            onPageChange={setGroupsPage}
+            onItemsPerPageChange={handleItemsPerPageChange}
+          />
+        </>
+      ) : (
+        <>
+          <div className={styles.tableWrapper}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Поток</th>
+                  <th>Группы</th>
+                  <th>Кол-во студентов</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedStreams.map((s) => {
+                  const streamGroups = getStreamGroups(s);
+                  return (
+                    <tr
+                      key={s.id}
+                      ref={s.id === newlyCreatedId ? highlightRef : null}
+                      className={`${styles.row} ${s.id === newlyCreatedId ? styles.highlighted : ''}`}
+                      onClick={() => setSelectedStream(s)}
+                    >
+                      <td className={styles.name}>{s.name}</td>
+                      <td className={styles.secondary}>
+                        {streamGroups.length > 0
+                          ? streamGroups.map((g) => g.name).join(', ')
+                          : <span className={styles.none}>Нет групп</span>
+                        }
+                      </td>
+                      <td className={styles.secondary}>{getStreamStudentCount(s)} чел.</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <Pagination
+            page={streamsPage}
+            itemsPerPage={itemsPerPage}
+            totalItems={filteredStreams.length}
+            onPageChange={setStreamsPage}
+            onItemsPerPageChange={handleItemsPerPageChange}
+          />
+        </>
       )}
 
       {selectedGroup && (

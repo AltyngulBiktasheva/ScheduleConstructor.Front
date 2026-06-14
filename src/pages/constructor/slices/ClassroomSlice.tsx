@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { fetchClassroomsAll } from '../../../store/slices/classroomsListSlice';
+import { fetchRoomTree } from '../../../store/slices/roomSlice';
+import { fetchCampuses } from '../../../store/slices/campusSlice';
 import { SearchableSelect } from '../../../components/SearchableSelect/SearchableSelect';
 import styles from './SliceCard.module.scss';
 
@@ -10,33 +11,33 @@ interface Props {
 
 export const ClassroomSlice: React.FC<Props> = ({ onSelect }) => {
   const dispatch = useAppDispatch();
-  const { classrooms, loading } = useAppSelector((s) => s.classroomsList);
-  const [buildingName, setBuildingName] = useState('');
+  const { tree, treeLoading } = useAppSelector((s) => s.room);
+  const campusList = useAppSelector((s) => s.campus.list);
+  const campusLoading = useAppSelector((s) => s.campus.loading);
+  const [campusId, setCampusId] = useState('');
   const [roomId, setRoomId] = useState('');
 
   useEffect(() => {
-    if (classrooms.length === 0) dispatch(fetchClassroomsAll());
-  }, [dispatch, classrooms.length]);
+    if (!tree) dispatch(fetchRoomTree());
+    if (campusList.length === 0) dispatch(fetchCampuses());
+  }, [dispatch, tree, campusList.length]);
 
-  // Получаем уникальные корпуса из загруженных аудиторий
-  const buildings = Array.from(new Set(classrooms.map((c) => c.building))).sort();
+  const loading = treeLoading || campusLoading;
 
-  // Аудитории выбранного корпуса
-  const rooms = buildingName
-    ? classrooms.filter((c) => c.building === buildingName)
-    : [];
+  const buildingOptions = campusList.map((c) => ({ value: c.id, label: c.name }));
 
-  const buildingOptions = buildings.map((b) => ({ value: b, label: b }));
-  const roomOptions = rooms.map((r) => ({ value: r.id, label: r.name }));
+  const campusNode = tree?.find((t) => t.campusId === campusId);
+  const roomOptions = (campusNode?.childRooms ?? []).map((r) => ({ value: r.id, label: r.name }));
 
-  const handleBuildingChange = (name: string) => {
-    setBuildingName(name);
+  const handleBuildingChange = (id: string) => {
+    setCampusId(id);
     setRoomId('');
   };
 
   const handleOpen = () => {
-    const room = classrooms.find((c) => c.id === roomId);
-    if (room) onSelect(room.id, `${room.building}, ауд. ${room.name}`);
+    const campus = campusList.find((c) => c.id === campusId);
+    const room = campusNode?.childRooms.find((r) => r.id === roomId);
+    if (room && campus) onSelect(room.id, `${campus.name}, ауд. ${room.name}`);
   };
 
   return (
@@ -50,7 +51,7 @@ export const ClassroomSlice: React.FC<Props> = ({ onSelect }) => {
         ) : (
           <SearchableSelect
             options={buildingOptions}
-            value={buildingName}
+            value={campusId}
             onChange={handleBuildingChange}
             placeholder="— выберите корпус —"
           />
@@ -64,7 +65,7 @@ export const ClassroomSlice: React.FC<Props> = ({ onSelect }) => {
           value={roomId}
           onChange={setRoomId}
           placeholder="— выберите аудиторию —"
-          disabled={!buildingName || loading}
+          disabled={!campusId || loading}
         />
       </div>
 

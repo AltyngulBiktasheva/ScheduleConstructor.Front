@@ -13,12 +13,12 @@ interface Props {
   onDelete: (id: string) => void;
 }
 
-const LESSON_TYPE_BADGE_VARIANT: Record<string, string> = {
-  Lecture: 'blue',
-  Practice: 'teal',
-  Lab: 'green',
-  Test: 'pink',
-  Exam: 'purple',
+export const LESSON_TYPE_BADGE_VARIANT: Record<string, string> = {
+  Lecture: 'lightgreen',
+  Practice: 'blue',
+  Lab: 'pink',
+  Test: 'purple',
+  Exam: 'green',
 };
 
 export const DisciplinesList: React.FC<Props> = ({

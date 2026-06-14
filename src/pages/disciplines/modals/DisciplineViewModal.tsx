@@ -6,6 +6,7 @@ import { DisciplineForm } from '../tabs/DisciplineForm';
 import { RootDisciplineForm } from '../tabs/RootDisciplineForm';
 import type { RootDisciplineFormData } from '../tabs/RootDisciplineForm';
 import { LESSON_TYPE_LABELS } from '../tabs/RootDisciplineForm';
+import { LESSON_TYPE_BADGE_VARIANT } from '../tabs/DisciplinesList';
 import type { Discipline } from '../../../types';
 import { DAYS } from '../../../constants/days';
 import { teacherApi, roomApi } from '../../../api';
@@ -168,7 +169,7 @@ const RootView: React.FC<{ discipline: Discipline }> = ({ discipline }) => (
             <span>—</span>
           ) : (
             (discipline.allowedLessonTypes ?? []).map((t) => (
-              <Badge key={t} variant="blue">{LESSON_TYPE_LABELS[t] ?? t}</Badge>
+              <Badge key={t} variant={LESSON_TYPE_BADGE_VARIANT[t] as any ?? 'gray'}>{LESSON_TYPE_LABELS[t] ?? t}</Badge>
             ))
           )}
         </div>
@@ -252,7 +253,7 @@ const ChildView: React.FC<{ discipline: Discipline }> = ({ discipline }) => {
       <Section title="Основное">
         {discipline.lessonType && (
           <Row label="Вид занятия">
-            <Badge variant="purple">{LESSON_TYPE_LABELS[discipline.lessonType] ?? discipline.lessonType}</Badge>
+            <Badge variant={LESSON_TYPE_BADGE_VARIANT[discipline.lessonType] as any ?? 'gray'}>{LESSON_TYPE_LABELS[discipline.lessonType] ?? discipline.lessonType}</Badge>
           </Row>
         )}
         {batches ? (

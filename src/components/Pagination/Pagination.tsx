@@ -18,8 +18,7 @@ export const Pagination: React.FC<PaginationProps> = ({
   onPageChange,
   onItemsPerPageChange,
 }) => {
-  // Скрываем, если все элементы помещаются на одной странице при дефолте 100
-  if (totalItems <= 100 && itemsPerPage >= totalItems) return null;
+  if (totalItems <= itemsPerPage) return null;
 
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
   const safePage = Math.min(page, totalPages);

@@ -36,17 +36,17 @@ $slot-red-border: #fca5a5;
 $slot-neutral: #f9fafb;
 $slot-neutral-border: #e5e7eb;
 
-// Lesson type colors
-$lesson-lecture-bg: #eff6ff;       // голубой
-$lesson-lecture-border: #93c5fd;
-$lesson-practice-bg: #f0fdfa;     // бирюзовый
-$lesson-practice-border: #5eead4;
-$lesson-lab-bg: #f0fdf4;          // зелёный
-$lesson-lab-border: #86efac;
-$lesson-test-bg: #fdf2f8;         // розовый (зачёт)
-$lesson-test-border: #f9a8d4;
-$lesson-exam-bg: #f5f3ff;         // лиловый (экзамен)
-$lesson-exam-border: #c4b5fd;
+// Lesson type colors (Modeus)
+$lesson-lecture-bg: #f0fdf4;       // светло-зелёный
+$lesson-lecture-border: #86efac;
+$lesson-practice-bg: #eff6ff;     // синий
+$lesson-practice-border: #93c5fd;
+$lesson-lab-bg: #fdf2f8;          // розовый
+$lesson-lab-border: #f9a8d4;
+$lesson-test-bg: #f5f3ff;         // лиловый (зачёт)
+$lesson-test-border: #c4b5fd;
+$lesson-exam-bg: #dcfce7;         // зелёный (экзамен)
+$lesson-exam-border: #4ade80;
 
 // Typography
 $font-family: 'Golos Text', 'Segoe UI', system-ui, sans-serif;

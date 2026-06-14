@@ -277,6 +277,12 @@ export interface LessonWeekConflictDto {
 export interface RoomShortDto {
   id: string;
   name: string;
+  campusId?: string;
+  campusName?: string;
+  roomType?: RoomType | null;
+  capacity?: number | null;
+  roomBoardType?: RoomBoardType | null;
+  hasProjector?: boolean | null;
 }
 
 export interface RoomTreeDto {
