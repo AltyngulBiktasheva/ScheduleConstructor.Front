@@ -61,6 +61,9 @@ function lessonToDiscipline(lesson: LessonShortDto, weekDates: string[]): Discip
   const dt = lesson.dateWithTimeInterval!; // гарантировано фильтром lessonsWithTime
   const dateIdx = weekDates.indexOf(dt.date);
   const dayId = dateIdx >= 0 ? DAY_IDS[dateIdx] : 'mon';
+  const rooms = lesson.rooms ?? [];
+  const teachers = lesson.teachers ?? [];
+  const groups = lesson.studentGroups ?? [];
 
   return {
     id: lesson.id,
@@ -68,12 +71,12 @@ function lessonToDiscipline(lesson: LessonShortDto, weekDates: string[]): Discip
     lessonId: lesson.id,
     academicDisciplineId: lesson.academicDisciplineId ?? undefined,
     lessonType: lesson.academicDisciplineType ?? undefined,
-    roomIds: lesson.rooms.map((r) => r.id),
+    roomIds: rooms.map((r) => r.id),
     forType: 'group',
-    forIds: lesson.studentGroups.map((g) => g.id),
-    forNames: lesson.studentGroups.map((g) => g.name ?? ''),
-    teachers: lesson.teachers.map((t) => ({ id: t.id, name: t.fullname || '' })),
-    audiences: lesson.rooms.map((r) => ({ roomId: r.id, roomName: r.name ?? undefined })),
+    forIds: groups.map((g) => g.id),
+    forNames: groups.map((g) => g.name ?? ''),
+    teachers: teachers.map((t) => ({ id: t.id, name: t.fullname || '' })),
+    audiences: rooms.map((r) => ({ roomId: r.id, roomName: r.name ?? undefined })),
     isStatic: lesson.flexibilityType === 'Fixed',
     canOverlap: lesson.allowCombining,
     repeat: 'every-week',
@@ -84,25 +87,29 @@ function lessonToDiscipline(lesson: LessonShortDto, weekDates: string[]): Discip
     timeEnd: dt.timeInterval.timeTo.slice(0, 5),
     errorLevel: lesson.currentErrorsMaxLevel ?? null,
     errorMessage: lesson.lessonPolicyViolationDescription ?? undefined,
-    teacher: lesson.teachers.map((t) => t.fullname).filter(Boolean).join(', ') || undefined,
-    audience: lesson.rooms.map((r) => r.name).filter(Boolean).join(', ') || undefined,
+    teacher: teachers.map((t) => t.fullname).filter(Boolean).join(', ') || undefined,
+    audience: rooms.map((r) => r.name).filter(Boolean).join(', ') || undefined,
     comment: lesson.comment,
   };
 }
 
 function lessonToListDiscipline(lesson: LessonShortDto): Discipline {
+  const rooms = lesson.rooms ?? [];
+  const teachers = lesson.teachers ?? [];
+  const groups = lesson.studentGroups ?? [];
+
   return {
     id: lesson.id,
     name: formatDisciplineName(lesson),
     lessonId: lesson.id,
     academicDisciplineId: lesson.academicDisciplineId ?? undefined,
     lessonType: lesson.academicDisciplineType ?? undefined,
-    roomIds: lesson.rooms.map((r) => r.id),
+    roomIds: rooms.map((r) => r.id),
     forType: 'group',
-    forIds: lesson.studentGroups.map((g) => g.id),
-    forNames: lesson.studentGroups.map((g) => g.name ?? ''),
-    teachers: lesson.teachers.map((t) => ({ id: t.id, name: t.fullname || '' })),
-    audiences: lesson.rooms.map((r) => ({ roomId: r.id, roomName: r.name ?? undefined })),
+    forIds: groups.map((g) => g.id),
+    forNames: groups.map((g) => g.name ?? ''),
+    teachers: teachers.map((t) => ({ id: t.id, name: t.fullname || '' })),
+    audiences: rooms.map((r) => ({ roomId: r.id, roomName: r.name ?? undefined })),
     isStatic: lesson.flexibilityType === 'Fixed',
     canOverlap: lesson.allowCombining,
     repeat: 'every-week',
@@ -110,8 +117,8 @@ function lessonToListDiscipline(lesson: LessonShortDto): Discipline {
     isInGrid: false,
     errorLevel: lesson.currentErrorsMaxLevel ?? null,
     errorMessage: lesson.lessonPolicyViolationDescription ?? undefined,
-    teacher: lesson.teachers.map((t) => t.fullname).filter(Boolean).join(', ') || undefined,
-    audience: lesson.rooms.map((r) => r.name).filter(Boolean).join(', ') || undefined,
+    teacher: teachers.map((t) => t.fullname).filter(Boolean).join(', ') || undefined,
+    audience: rooms.map((r) => r.name).filter(Boolean).join(', ') || undefined,
   };
 }
 
@@ -124,9 +131,9 @@ function filterLessonsByEntity(
     : [selection.entityId];
 
   return lessons.filter((lesson) => {
-    if (selection.type === 'classrooms') return lesson.rooms.some((r) => ids.includes(r.id));
-    if (selection.type === 'teachers') return lesson.teachers.some((t) => ids.includes(t.id));
-    if (selection.type === 'groups') return lesson.studentGroups.some((g) => ids.includes(g.id));
+    if (selection.type === 'classrooms') return (lesson.rooms ?? []).some((r) => ids.includes(r.id));
+    if (selection.type === 'teachers') return (lesson.teachers ?? []).some((t) => ids.includes(t.id));
+    if (selection.type === 'groups') return (lesson.studentGroups ?? []).some((g) => ids.includes(g.id));
     return false;
   });
 }
@@ -149,7 +156,8 @@ function padTime(t: string): string {
 
 export const MainContainer: React.FC<Props> = ({ selection }) => {
   const dispatch = useAppDispatch();
-  const { weekLessons, weekLessonsLoading } = useAppSelector((s) => s.lesson);
+  const { weekLessons: rawWeekLessons, weekLessonsLoading } = useAppSelector((s) => s.lesson);
+  const weekLessons = rawWeekLessons ?? [];
   const selectedScheduleId = useAppSelector((s) => s.schedule.selectedScheduleId);
   const scheduleDateInterval = useAppSelector((s) =>
     s.schedule.list.find((sc) => sc.id === s.schedule.selectedScheduleId)?.dateInterval ?? null
@@ -424,7 +432,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
         if (isTransposed && targetColumnId) {
           const targetCol = gridColumns.find((c) => c.id === targetColumnId);
           if (targetCol) {
-            const lessonGroupIds = existingLesson.studentGroups.map((g) => g.id);
+            const lessonGroupIds = (existingLesson.studentGroups ?? []).map((g) => g.id);
             const belongsToTarget = lessonGroupIds.some((gid) => targetCol.filterIds.includes(gid));
             if (!belongsToTarget) {
               addToast('Нельзя переместить занятие в колонку другой группы. Измените группы в разделе «Дисциплины»', 'info');
@@ -437,9 +445,9 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
         if (existingLesson.flexibilityType === 'Fixed') return;
         const dto = {
           id: existingLesson.id,
-          studentGroupIds: existingLesson.studentGroups.map((g) => g.id),
-          teacherIds: existingLesson.teachers.map((t) => t.id),
-          roomIds: existingLesson.rooms.map((r) => r.id),
+          studentGroupIds: (existingLesson.studentGroups ?? []).map((g) => g.id),
+          teacherIds: (existingLesson.teachers ?? []).map((t) => t.id),
+          roomIds: (existingLesson.rooms ?? []).map((r) => r.id),
           dateWithTimeInterval: {
             date,
             timeInterval: { timeFrom: padTime(timeStart), timeTo: padTime(timeEnd) },
@@ -465,15 +473,15 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
 
         const groupIds = selection.type === 'groups'
           ? (Array.isArray(selection.entityId) ? selection.entityId : [selection.entityId])
-          : unscheduledLesson.studentGroups.map((g) => g.id);
+          : (unscheduledLesson.studentGroups ?? []).map((g) => g.id);
 
         const listDto = {
           id: unscheduledLesson.id,
           studentGroupIds: groupIds,
-          teacherIds: unscheduledLesson.teachers.map((t) => t.id),
+          teacherIds: (unscheduledLesson.teachers ?? []).map((t) => t.id),
           roomIds: selection.type === 'classrooms'
             ? [selection.entityId as string]
-            : unscheduledLesson.rooms.map((r) => r.id),
+            : (unscheduledLesson.rooms ?? []).map((r) => r.id),
           dateWithTimeInterval: {
             date,
             timeInterval: { timeFrom: padTime(timeStart), timeTo: padTime(timeEnd) },
@@ -507,9 +515,9 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
 
       const returnDto = {
         id: lesson.id,
-        studentGroupIds: lesson.studentGroups.map((g) => g.id),
-        teacherIds: lesson.teachers.map((t) => t.id),
-        roomIds: lesson.rooms.map((r) => r.id),
+        studentGroupIds: (lesson.studentGroups ?? []).map((g) => g.id),
+        teacherIds: (lesson.teachers ?? []).map((t) => t.id),
+        roomIds: (lesson.rooms ?? []).map((r) => r.id),
         dateWithTimeInterval: null,
         flexibilityType: lesson.flexibilityType,
         allowCombining: lesson.allowCombining,
@@ -550,11 +558,15 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
         ? weekDates[DAY_IDS.indexOf(updated.dayId as typeof DAY_IDS[number])] ?? weekDates[0]
         : lesson.dateWithTimeInterval?.date ?? weekDates[0];
 
+      const lessonGroups = (lesson.studentGroups ?? []).map((g) => g.id);
+      const lessonTeachers = (lesson.teachers ?? []).map((t) => t.id);
+      const lessonRooms = (lesson.rooms ?? []).map((r) => r.id);
+
       const result = await dispatch(saveLesson({
         id: lesson.id,
-        studentGroupIds: lesson.studentGroups.map((g) => g.id),
-        teacherIds: updated.teachers?.map((t) => t.id) ?? lesson.teachers.map((t) => t.id),
-        roomIds: updated.roomIds || lesson.rooms.map((r) => r.id),
+        studentGroupIds: lessonGroups,
+        teacherIds: updated.teachers?.map((t) => t.id) ?? lessonTeachers,
+        roomIds: updated.roomIds || lessonRooms,
         dateWithTimeInterval: {
           date,
           timeInterval: {
@@ -576,9 +588,9 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
             message: errorMsg,
             dto: {
               id: lesson.id,
-              studentGroupIds: lesson.studentGroups.map((g) => g.id),
-              teacherIds: updated.teachers?.map((t) => t.id) ?? lesson.teachers.map((t) => t.id),
-              roomIds: updated.roomIds || lesson.rooms.map((r) => r.id),
+              studentGroupIds: lessonGroups,
+              teacherIds: updated.teachers?.map((t) => t.id) ?? lessonTeachers,
+              roomIds: updated.roomIds || lessonRooms,
               dateWithTimeInterval: {
                 date,
                 timeInterval: {
