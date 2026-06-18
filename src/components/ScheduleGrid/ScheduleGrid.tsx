@@ -30,6 +30,7 @@ interface Props {
   onWeekOffsetChange?: (offset: number) => void;
   scheduleDateInterval?: { dateFrom: string; dateTo: string } | null;
   loading?: boolean;
+  readOnly?: boolean;
 }
 
 export const ScheduleGrid: React.FC<Props> = ({
@@ -45,6 +46,7 @@ export const ScheduleGrid: React.FC<Props> = ({
   onWeekOffsetChange,
   scheduleDateInterval,
   loading,
+  readOnly = false,
 }) => {
   const [zoomIndex, setZoomIndex] = useState(DEFAULT_ZOOM_INDEX);
   const [bellScheduleId, setBellScheduleId] = useState('');
@@ -360,9 +362,9 @@ export const ScheduleGrid: React.FC<Props> = ({
                 slotMetrics={slotMetrics}
                 timeToPixels={timeToPixels}
                 durationToPixels={durationToPixels}
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                onDragStart={handleDragStart}
+                onDrop={readOnly ? undefined : handleDrop}
+                onDragOver={readOnly ? undefined : handleDragOver}
+                onDragStart={readOnly ? undefined : handleDragStart}
                 onDisciplineClick={onDisciplineClick}
                 onToggleHighlight={onToggleHighlight}
                 onHighlightClick={onHighlightClick}
@@ -414,9 +416,9 @@ interface DayColumnProps {
   slotMetrics?: BellSlotMetric[] | null;
   timeToPixels: (t: string) => number;
   durationToPixels: (s: string, e: string) => number;
-  onDrop: (e: React.DragEvent, dayId: string) => void;
-  onDragOver: (e: React.DragEvent) => void;
-  onDragStart: (e: React.DragEvent, d: Discipline, occ?: { timeStart: string; timeEnd: string }) => void;
+  onDrop?: (e: React.DragEvent, dayId: string) => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDragStart?: (e: React.DragEvent, d: Discipline, occ?: { timeStart: string; timeEnd: string }) => void;
   onDisciplineClick?: (d: Discipline) => void;
   onToggleHighlight?: (id: string) => void;
   onHighlightClick?: (highlight: SlotHighlight) => void;
@@ -450,7 +452,7 @@ const DayColumn: React.FC<DayColumnProps> = ({
     <div
       className={styles.dayColumn}
       style={{ height: totalHeight, width: colWidth, minWidth: colWidth }}
-      onDrop={(e) => onDrop(e, dayId)}
+      onDrop={onDrop ? (e) => onDrop(e, dayId) : undefined}
       onDragOver={onDragOver}
     >
       {slotMetrics ? (
@@ -517,7 +519,7 @@ const DayColumn: React.FC<DayColumnProps> = ({
               isOnYellowSlot={isOnYellowSlot}
               isHighlightActive={highlightedDisciplineId === discipline.id}
               isLoadingHighlight={loadingHighlightId === discipline.id}
-              onDragStart={(e) => onDragStart(e, discipline, { timeStart, timeEnd })}
+              onDragStart={onDragStart ? (e) => onDragStart(e, discipline, { timeStart, timeEnd }) : undefined}
               onClick={() => onDisciplineClick?.(discipline)}
               onToggleHighlight={discipline.isStatic ? undefined : onToggleHighlight}
             />

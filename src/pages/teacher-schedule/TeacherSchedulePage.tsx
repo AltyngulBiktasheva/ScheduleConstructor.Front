@@ -1,7 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { PageHeader } from '../../components/PageHeader/PageHeader';
 import { TeacherPicker } from '../../components/TeacherPicker/TeacherPicker';
 import { ScheduleGrid } from '../../components/ScheduleGrid/ScheduleGrid';
+import { LessonViewModal } from '../../components/LessonViewModal/LessonViewModal';
+import type { Discipline } from '../../types';
 import type { Teacher } from '../../types/teacher';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { fetchTeachersAll } from '../../store/slices/teachersListSlice';
@@ -24,6 +26,9 @@ export const TeacherSchedulePage: React.FC = () => {
   const [teacher, setTeacher] = useState<Teacher | null>(null);
   const [weekOffset, setWeekOffset] = useState(0);
   const [retryKey, setRetryKey] = useState(0);
+  const [viewingDiscipline, setViewingDiscipline] = useState<Discipline | null>(null);
+
+  const handleDisciplineClick = useCallback((d: Discipline) => setViewingDiscipline(d), []);
 
   useEffect(() => {
     if (teachers.length === 0) dispatch(fetchTeachersAll());
@@ -96,8 +101,17 @@ export const TeacherSchedulePage: React.FC = () => {
           onWeekOffsetChange={setWeekOffset}
           scheduleDateInterval={scheduleDateInterval}
           loading={weekLessonsLoading}
+          readOnly
+          onDisciplineClick={handleDisciplineClick}
         />
       </div>
+
+      {viewingDiscipline && (
+        <LessonViewModal
+          discipline={viewingDiscipline}
+          onClose={() => setViewingDiscipline(null)}
+        />
+      )}
     </div>
   );
 };

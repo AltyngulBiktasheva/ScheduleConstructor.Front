@@ -33,7 +33,7 @@ export const DisciplineCard: React.FC<Props> = ({
     other: discipline.buildingName || 'Другой',
   } as Record<string, string>)[discipline.building || 'other'];
 
-  const isDraggable = !discipline.isStatic;
+  const isDraggable = !discipline.isStatic && !!onDragStart;
 
   const handleEyeClick = (e: React.MouseEvent) => {
     e.stopPropagation();
