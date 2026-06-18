@@ -435,7 +435,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
 
         // Перемещаем существующее занятие
         if (existingLesson.flexibilityType === 'Fixed') return;
-        const result = await dispatch(saveLesson({
+        const dto = {
           id: existingLesson.id,
           studentGroupIds: existingLesson.studentGroups.map((g) => g.id),
           teacherIds: existingLesson.teachers.map((t) => t.id),
@@ -447,11 +447,15 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
           flexibilityType: existingLesson.flexibilityType,
           allowCombining: existingLesson.allowCombining,
           hoursCost: 2,
-          updateBatch: false,
-        }));
+          updateBatch: true,
+        };
+        let result = await dispatch(saveLesson(dto));
+        if (saveLesson.rejected.match(result)) {
+          result = await dispatch(saveLesson({ ...dto, updateBatch: false }));
+        }
         if (saveLesson.rejected.match(result)) {
           addToast((result.payload as string) || 'Не удалось переместить занятие', 'error');
-          refetchWeek(); // откат: восстанавливаем исходную позицию
+          refetchWeek();
           return;
         }
       } else {
@@ -463,7 +467,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
           ? (Array.isArray(selection.entityId) ? selection.entityId : [selection.entityId])
           : unscheduledLesson.studentGroups.map((g) => g.id);
 
-        const result = await dispatch(saveLesson({
+        const listDto = {
           id: unscheduledLesson.id,
           studentGroupIds: groupIds,
           teacherIds: unscheduledLesson.teachers.map((t) => t.id),
@@ -478,9 +482,13 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
           allowCombining: unscheduledLesson.allowCombining,
           hoursCost: 2,
           updateBatch: true,
-        }));
-        if (saveLesson.rejected.match(result)) {
-          addToast((result.payload as string) || 'Не удалось добавить занятие', 'error');
+        };
+        let listResult = await dispatch(saveLesson(listDto));
+        if (saveLesson.rejected.match(listResult)) {
+          listResult = await dispatch(saveLesson({ ...listDto, updateBatch: false }));
+        }
+        if (saveLesson.rejected.match(listResult)) {
+          addToast((listResult.payload as string) || 'Не удалось добавить занятие', 'error');
           return;
         }
       }
@@ -497,7 +505,7 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
       const lesson = weekLessons.find((l) => l.id === disciplineId);
       if (!lesson || lesson.flexibilityType === 'Fixed') return;
 
-      const result = await dispatch(saveLesson({
+      const returnDto = {
         id: lesson.id,
         studentGroupIds: lesson.studentGroups.map((g) => g.id),
         teacherIds: lesson.teachers.map((t) => t.id),
@@ -506,11 +514,15 @@ export const MainContainer: React.FC<Props> = ({ selection }) => {
         flexibilityType: lesson.flexibilityType,
         allowCombining: lesson.allowCombining,
         hoursCost: 2,
-        updateBatch: false,
-      }));
-      if (saveLesson.rejected.match(result)) {
-        addToast((result.payload as string) || 'Не удалось снять время с занятия', 'error');
-        refetchWeek(); // откат: восстанавливаем занятие в сетке
+        updateBatch: true,
+      };
+      let returnResult = await dispatch(saveLesson(returnDto));
+      if (saveLesson.rejected.match(returnResult)) {
+        returnResult = await dispatch(saveLesson({ ...returnDto, updateBatch: false }));
+      }
+      if (saveLesson.rejected.match(returnResult)) {
+        addToast((returnResult.payload as string) || 'Не удалось снять время с занятия', 'error');
+        refetchWeek();
         return;
       }
       refetchWeek();
