@@ -1,0 +1,44 @@
+@use '../../styles/variables' as *;
+
+.button {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  width: 100%;
+  padding: $space-3 $space-4;
+  margin: $space-2 0;
+  border: none;
+  border-radius: $border-radius-md;
+  background: $color-primary-light;
+  color: $color-primary;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  transition: background $transition-fast, color $transition-fast;
+
+  &:hover {
+    background: darken($color-primary-light, 4%);
+    color: $color-primary-hover;
+  }
+
+  &.collapsed {
+    justify-content: center;
+    padding: $space-3;
+  }
+}
+
+.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+}
+
+.label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

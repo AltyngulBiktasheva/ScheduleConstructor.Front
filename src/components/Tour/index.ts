@@ -1,3 +1,4 @@
 export { TourProvider, useTour } from './TourProvider';
-export { getTourSteps } from './tourSteps';
-export type { StepDef } from './tourSteps';
+export { TourSidebarButton } from './TourSidebarButton';
+export { TOUR_TAB_SWITCH } from './tourEvents';
+export type { TourId, TourStatus, TourStep } from './types';

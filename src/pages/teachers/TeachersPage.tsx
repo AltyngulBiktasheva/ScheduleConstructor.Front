@@ -8,6 +8,7 @@ import { useTeachers } from '../../hooks/useTeachers';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { setTeachersPage, setTeachersItemsPerPage, fetchTeachersAll } from '../../store/slices/teachersListSlice';
 import { Pagination } from '../../components/Pagination/Pagination';
+import { TOUR_TAB_SWITCH } from '../../components/Tour';
 import type { Teacher } from '../../types/teacher';
 import styles from './Styles.module.scss';
 
@@ -18,6 +19,13 @@ const TABS = [
 
 export const TeachersPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('list');
+
+  useEffect(() => {
+    const handler = (e: Event) => setActiveTab((e as CustomEvent).detail.tabId);
+    window.addEventListener(TOUR_TAB_SWITCH, handler);
+    return () => window.removeEventListener(TOUR_TAB_SWITCH, handler);
+  }, []);
+
   const dispatch = useAppDispatch();
   const { page, itemsPerPage, totalItems } = useAppSelector((s) => s.teachersList);
   const [saving, setSaving] = useState(false);
@@ -38,8 +46,10 @@ export const TeachersPage: React.FC = () => {
     <div className={styles.page}>
       <PageHeader title="Преподаватели" subtitle="Управление преподавателями и их пожеланиями" />
       <ScheduleSelector />
-      <Tabs tabs={TABS} activeId={activeTab} onChange={setActiveTab} />
-      <div className={styles.content}>
+      <div data-tour="page-tabs">
+        <Tabs tabs={TABS} activeId={activeTab} onChange={setActiveTab} />
+      </div>
+      <div className={styles.content} data-tour="page-content">
         {activeTab === 'list' && (
           <>
             {error && teachers.length === 0 && (
@@ -68,7 +78,9 @@ export const TeachersPage: React.FC = () => {
           </>
         )}
         {activeTab === 'create' && (
-          <TeacherForm onSave={handleCreate} loading={saving} />
+          <div data-tour="form-area">
+            <TeacherForm onSave={handleCreate} loading={saving} />
+          </div>
         )}
       </div>
     </div>

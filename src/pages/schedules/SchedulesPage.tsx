@@ -7,6 +7,7 @@ import { ScheduleForm } from './tabs/ScheduleForm';
 import { useSchedule, setSchedulesPage, setSchedulesItemsPerPage, fetchSchedules } from '../../store/slices/scheduleSlice';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { Pagination } from '../../components/Pagination/Pagination';
+import { TOUR_TAB_SWITCH } from '../../components/Tour';
 import type { ScheduleSaveDto, ScheduleRegistryItemDto } from '../../api';
 import styles from './Styles.module.scss';
 
@@ -19,6 +20,12 @@ export const SchedulesPage: React.FC = () => {
   const location = useLocation();
   const initialTab = (location.state as { tab?: string } | null)?.tab ?? 'list';
   const [activeTab, setActiveTab] = useState(initialTab);
+
+  useEffect(() => {
+    const handler = (e: Event) => setActiveTab((e as CustomEvent).detail.tabId);
+    window.addEventListener(TOUR_TAB_SWITCH, handler);
+    return () => window.removeEventListener(TOUR_TAB_SWITCH, handler);
+  }, []);
   const dispatch = useAppDispatch();
   const { page, itemsPerPage, totalItems } = useAppSelector((s) => s.schedule);
   const [saving, setSaving] = useState(false);
@@ -68,8 +75,10 @@ export const SchedulesPage: React.FC = () => {
   return (
     <div className={styles.page}>
       <PageHeader title="Проекты расписания" subtitle="Управление проектами расписания" />
-      <Tabs tabs={TABS} activeId={activeTab} onChange={setActiveTab} />
-      <div className={styles.content}>
+      <div data-tour="page-tabs">
+        <Tabs tabs={TABS} activeId={activeTab} onChange={setActiveTab} />
+      </div>
+      <div className={styles.content} data-tour="page-content">
         {activeTab === 'list' && (
           <>
             {error && list.length === 0 && (
@@ -98,7 +107,9 @@ export const SchedulesPage: React.FC = () => {
           </>
         )}
         {activeTab === 'create' && (
-          <ScheduleForm onSave={handleCreate} loading={saving} />
+          <div data-tour="form-area">
+            <ScheduleForm onSave={handleCreate} loading={saving} />
+          </div>
         )}
       </div>
     </div>

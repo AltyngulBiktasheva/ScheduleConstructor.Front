@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { PageHeader } from '../../components/PageHeader/PageHeader';
 import { Tabs } from '../../components/Tabs/Tabs';
 import { ScheduleSelector } from '../../components/ScheduleSelector/ScheduleSelector';
@@ -6,6 +6,7 @@ import { GroupsList } from './tabs/GroupsList';
 import { GroupForm } from './tabs/GroupForm';
 import { StreamForm } from './tabs/StreamForm';
 import { useGroups } from '../../hooks/useGroups';
+import { TOUR_TAB_SWITCH } from '../../components/Tour';
 import type { Group, Stream } from '../../types/group';
 import styles from './Styles.module.scss';
 
@@ -17,6 +18,13 @@ const TABS = [
 
 export const GroupsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('list');
+
+  useEffect(() => {
+    const handler = (e: Event) => setActiveTab((e as CustomEvent).detail.tabId);
+    window.addEventListener(TOUR_TAB_SWITCH, handler);
+    return () => window.removeEventListener(TOUR_TAB_SWITCH, handler);
+  }, []);
+
   const [savingGroup, setSavingGroup] = useState(false);
   const [savingStream, setSavingStream] = useState(false);
   const {
@@ -44,8 +52,10 @@ export const GroupsPage: React.FC = () => {
     <div className={styles.page}>
       <PageHeader title="Академические группы" subtitle="Управление потоками, группами и командами" />
       <ScheduleSelector />
-      <Tabs tabs={TABS} activeId={activeTab} onChange={setActiveTab} />
-      <div className={styles.content}>
+      <div data-tour="page-tabs">
+        <Tabs tabs={TABS} activeId={activeTab} onChange={setActiveTab} />
+      </div>
+      <div className={styles.content} data-tour="page-content">
         {activeTab === 'list' && (
           <>
             {error && groups.length === 0 && streams.length === 0 && (
@@ -68,15 +78,19 @@ export const GroupsPage: React.FC = () => {
           </>
         )}
         {activeTab === 'create-group' && (
-          <GroupForm streams={streams} onSave={handleCreateGroup} loading={savingGroup} />
+          <div data-tour="form-area">
+            <GroupForm streams={streams} onSave={handleCreateGroup} loading={savingGroup} />
+          </div>
         )}
         {activeTab === 'create-stream' && (
+          <div data-tour="form-area">
           <StreamForm
             groups={groups}
             streams={streams}
             onSave={handleCreateStream}
             loading={savingStream}
           />
+          </div>
         )}
       </div>
     </div>

@@ -29,35 +29,35 @@ function App() {
   }, [dispatch]);
 
   return (
-    <TourProvider>
-      <ToastProvider>
-        <BrowserRouter>
-        <Routes>
-          <Route element={<Layout />}>
-            <Route index element={<Navigate to={ROUTES.CONSTRUCTOR} replace />} />
+    <ToastProvider>
+      <BrowserRouter>
+        <TourProvider>
+          <Routes>
+            <Route element={<Layout />}>
+              <Route index element={<Navigate to={ROUTES.CONSTRUCTOR} replace />} />
 
-            {/* Для составителей */}
-            <Route path={ROUTES.CONSTRUCTOR} element={<ConstructorPage />} />
-            <Route path={ROUTES.SCHEDULES} element={<SchedulesPage />} />
-            <Route path={ROUTES.DISCIPLINES} element={<DisciplinesPage />} />
-            <Route path={ROUTES.CLASSROOMS} element={<ClassroomsPage />} />
-            <Route path={ROUTES.TEACHERS} element={<TeachersPage />} />
-            <Route path={ROUTES.GROUPS} element={<GroupsPage />} />
+              {/* Для составителей */}
+              <Route path={ROUTES.CONSTRUCTOR} element={<ConstructorPage />} />
+              <Route path={ROUTES.SCHEDULES} element={<SchedulesPage />} />
+              <Route path={ROUTES.DISCIPLINES} element={<DisciplinesPage />} />
+              <Route path={ROUTES.CLASSROOMS} element={<ClassroomsPage />} />
+              <Route path={ROUTES.TEACHERS} element={<TeachersPage />} />
+              <Route path={ROUTES.GROUPS} element={<GroupsPage />} />
 
-            {/* Для преподавателей */}
-            <Route path={ROUTES.TEACHER_SCHEDULE} element={<TeacherSchedulePage />} />
-            <Route path={ROUTES.TEACHER_WISHES} element={<TeacherWishesPage />} />
+              {/* Для преподавателей */}
+              <Route path={ROUTES.TEACHER_SCHEDULE} element={<TeacherSchedulePage />} />
+              <Route path={ROUTES.TEACHER_WISHES} element={<TeacherWishesPage />} />
 
-            {/* Для студентов */}
-            <Route path={ROUTES.STUDENT_SCHEDULE} element={<StudentSchedulePage />} />
+              {/* Для студентов */}
+              <Route path={ROUTES.STUDENT_SCHEDULE} element={<StudentSchedulePage />} />
 
-            <Route path="*" element={<NotFoundPage />} />
-          </Route>
-        </Routes>
-        </BrowserRouter>
-        <ToastContainer />
-      </ToastProvider>
-    </TourProvider>
+              <Route path="*" element={<NotFoundPage />} />
+            </Route>
+          </Routes>
+        </TourProvider>
+      </BrowserRouter>
+      <ToastContainer />
+    </ToastProvider>
   );
 }
 

@@ -1,27 +1,29 @@
-/**
- * Провайдер онбординг-тура.
- *
- * Текущая реализация — заглушка с правильным публичным API.
- * Когда react-joyride появится в реестре npm:
- *   1. npm install react-joyride
- *   2. Раскомментировать импорты Joyride ниже
- *   3. Убрать комментарий с блока рендеринга <Joyride>
- */
-import React, { createContext, useCallback, useContext, useState } from 'react';
-import { getTourSteps } from './tourSteps';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import type { TourContextValue, TourId, TourState, TourStep, TourStatus } from './types';
+import { COMPILER_TOUR, TEACHER_TOUR, getTourDefinition } from './tourSteps';
+import { getTourStatus, setTourStatus, getTourStep, setTourStep, isFirstVisit } from './tourPersistence';
+import { dispatchTabSwitch } from './tourEvents';
+import { TourTooltip } from './TourTooltip';
+import { TourModal } from './TourModal';
 
-// import Joyride, { type CallBackProps, STATUS } from 'react-joyride';
-
-interface TourContextValue {
-  isRunning: boolean;
-  startTour: (tourId: string) => void;
-  stopTour: () => void;
-}
+const INITIAL_STATE: TourState = {
+  activeTourId: null,
+  currentStepIndex: 0,
+  phase: 'idle',
+};
 
 const TourContext = createContext<TourContextValue>({
-  isRunning: false,
+  state: INITIAL_STATE,
   startTour: () => {},
+  resumeTour: () => {},
   stopTour: () => {},
+  skipTour: () => {},
+  nextStep: () => {},
+  prevStep: () => {},
+  currentStep: null,
+  totalSteps: 0,
+  tourStatus: () => 'not-started',
 });
 
 export function useTour(): TourContextValue {
@@ -33,59 +35,231 @@ interface TourProviderProps {
 }
 
 export const TourProvider: React.FC<TourProviderProps> = ({ children }) => {
-  const [isRunning, setIsRunning] = useState(false);
-  const [tourId, setTourId] = useState<string>('main-overview');
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [state, setState] = useState<TourState>(() => {
+    if (isFirstVisit()) {
+      return { activeTourId: 'compiler', currentStepIndex: 0, phase: 'welcome' };
+    }
+    const compilerStatus = getTourStatus('compiler');
+    if (compilerStatus === 'in-progress') {
+      return { activeTourId: 'compiler', currentStepIndex: getTourStep('compiler'), phase: 'paused' };
+    }
+    const teacherStatus = getTourStatus('teacher');
+    if (teacherStatus === 'in-progress') {
+      return { activeTourId: 'teacher', currentStepIndex: getTourStep('teacher'), phase: 'paused' };
+    }
+    return INITIAL_STATE;
+  });
 
-  const startTour = useCallback((id: string) => {
-    setTourId(id);
-    setIsRunning(true);
+  const deviationShownRef = useRef(false);
+
+  const tourDef = state.activeTourId ? getTourDefinition(state.activeTourId) : undefined;
+  const steps = tourDef?.steps ?? [];
+  const currentStep: TourStep | null = state.phase === 'running' ? (steps[state.currentStepIndex] ?? null) : null;
+
+  const navigateToStep = useCallback((step: TourStep) => {
+    if (location.pathname !== step.route) {
+      navigate(step.route);
+    }
+    if (step.tabId) {
+      setTimeout(() => dispatchTabSwitch(step.tabId!), 150);
+    }
+  }, [location.pathname, navigate]);
+
+  const startTour = useCallback((tourId: TourId) => {
+    const def = getTourDefinition(tourId);
+    if (!def) return;
+    setState({ activeTourId: tourId, currentStepIndex: 0, phase: 'welcome' });
   }, []);
+
+  const resumeTour = useCallback(() => {
+    if (!state.activeTourId) return;
+    const step = steps[state.currentStepIndex];
+    if (step) {
+      deviationShownRef.current = false;
+      setState((prev) => ({ ...prev, phase: 'running' }));
+      setTourStatus(state.activeTourId, 'in-progress');
+      navigateToStep(step);
+    }
+  }, [state.activeTourId, state.currentStepIndex, steps, navigateToStep]);
 
   const stopTour = useCallback(() => {
-    setIsRunning(false);
+    if (state.activeTourId) {
+      setTourStatus(state.activeTourId, 'skipped');
+      setTourStep(state.activeTourId, 0);
+    }
+    setState(INITIAL_STATE);
+    deviationShownRef.current = false;
+  }, [state.activeTourId]);
+
+  const skipTour = useCallback(() => {
+    if (!state.activeTourId) return;
+    setTourStatus(state.activeTourId, 'skipped');
+    setTourStep(state.activeTourId, 0);
+
+    if (state.activeTourId === 'compiler') {
+      setState({ activeTourId: 'compiler', currentStepIndex: 0, phase: 'offer-next' });
+    } else {
+      setState(INITIAL_STATE);
+    }
+    deviationShownRef.current = false;
+  }, [state.activeTourId]);
+
+  const nextStep = useCallback(() => {
+    if (!state.activeTourId) return;
+    const nextIdx = state.currentStepIndex + 1;
+
+    if (nextIdx >= steps.length) {
+      setTourStatus(state.activeTourId, 'completed');
+      setTourStep(state.activeTourId, 0);
+
+      if (state.activeTourId === 'compiler') {
+        setState({ activeTourId: 'compiler', currentStepIndex: 0, phase: 'offer-next' });
+      } else {
+        setState({ ...state, phase: 'completed' });
+      }
+      return;
+    }
+
+    const step = steps[nextIdx];
+    setTourStep(state.activeTourId, nextIdx);
+    setState((prev) => ({ ...prev, currentStepIndex: nextIdx }));
+    deviationShownRef.current = false;
+    navigateToStep(step);
+  }, [state, steps, navigateToStep]);
+
+  const prevStep = useCallback(() => {
+    if (!state.activeTourId || state.currentStepIndex <= 0) return;
+    const prevIdx = state.currentStepIndex - 1;
+    const step = steps[prevIdx];
+    setTourStep(state.activeTourId, prevIdx);
+    setState((prev) => ({ ...prev, currentStepIndex: prevIdx }));
+    deviationShownRef.current = false;
+    navigateToStep(step);
+  }, [state, steps, navigateToStep]);
+
+  // Route deviation detection
+  useEffect(() => {
+    if (state.phase !== 'running' || !currentStep) return;
+    if (location.pathname !== currentStep.route && !deviationShownRef.current) {
+      deviationShownRef.current = true;
+      if (state.activeTourId) {
+        setTourStatus(state.activeTourId, 'in-progress');
+        setTourStep(state.activeTourId, state.currentStepIndex);
+      }
+      setState((prev) => ({ ...prev, phase: 'deviation' }));
+    }
+  }, [location.pathname, state.phase, currentStep, state.activeTourId, state.currentStepIndex]);
+
+  const tourStatusFn = useCallback((tourId: TourId): TourStatus => {
+    return getTourStatus(tourId);
   }, []);
 
-  const steps = getTourSteps(tourId);
+  const contextValue = useMemo<TourContextValue>(() => ({
+    state,
+    startTour,
+    resumeTour,
+    stopTour,
+    skipTour,
+    nextStep,
+    prevStep,
+    currentStep,
+    totalSteps: steps.length,
+    tourStatus: tourStatusFn,
+  }), [state, startTour, resumeTour, stopTour, skipTour, nextStep, prevStep, currentStep, steps.length, tourStatusFn]);
 
-  // Заглушка: просто логируем, что тур запущен, пока Joyride не доступен
-  if (isRunning && steps.length > 0) {
-    console.info('[Tour] Запущен тур:', tourId, '— шаги:', steps.map((s) => s.title ?? s.target).join(', '));
-  }
+  // Handle welcome → running transition
+  const handleWelcomeStart = useCallback(() => {
+    if (!state.activeTourId) return;
+    setTourStatus(state.activeTourId, 'in-progress');
+    setTourStep(state.activeTourId, 0);
+    setState((prev) => ({ ...prev, currentStepIndex: 0, phase: 'running' }));
+    const step = steps[0];
+    if (step) navigateToStep(step);
+  }, [state.activeTourId, steps, navigateToStep]);
 
-  /*
-  // Раскомментировать после установки react-joyride:
-  const handleCallback = (data: CallBackProps) => {
-    const { status } = data;
-    if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
-      setIsRunning(false);
+  const handleOfferAccept = useCallback(() => {
+    setState({ activeTourId: 'teacher', currentStepIndex: 0, phase: 'welcome' });
+  }, []);
+
+  const handleOfferDecline = useCallback(() => {
+    setState(INITIAL_STATE);
+  }, []);
+
+  const handleCompletionDone = useCallback(() => {
+    setState(INITIAL_STATE);
+  }, []);
+
+  const handleDeviationOk = useCallback(() => {
+    if (state.activeTourId) {
+      setTourStatus(state.activeTourId, 'in-progress');
+      setTourStep(state.activeTourId, state.currentStepIndex);
     }
-  };
-  */
+    setState((prev) => ({ ...prev, phase: 'paused' }));
+  }, [state.activeTourId, state.currentStepIndex]);
 
   return (
-    <TourContext.Provider value={{ isRunning, startTour, stopTour }}>
+    <TourContext.Provider value={contextValue}>
       {children}
-      {/*
-      <Joyride
-        steps={steps}
-        run={isRunning}
-        continuous
-        showSkipButton
-        callback={handleCallback}
-        locale={{
-          back: 'Назад',
-          close: 'Закрыть',
-          last: 'Готово',
-          next: 'Далее',
-          skip: 'Пропустить',
-        }}
-        styles={{
-          options: {
-            primaryColor: '#2563eb',
-          },
-        }}
-      />
-      */}
+
+      {state.phase === 'welcome' && tourDef && (
+        <TourModal
+          type="welcome"
+          tourTitle={tourDef.title}
+          tourDescription={tourDef.description}
+          stepCount={tourDef.steps.length}
+          onPrimary={handleWelcomeStart}
+          onSecondary={skipTour}
+        />
+      )}
+
+      {state.phase === 'running' && currentStep && (
+        <TourTooltip
+          step={currentStep}
+          stepIndex={state.currentStepIndex}
+          totalSteps={steps.length}
+          onNext={nextStep}
+          onPrev={prevStep}
+          onStop={stopTour}
+        />
+      )}
+
+      {state.phase === 'deviation' && tourDef && (
+        <TourModal
+          type="deviation"
+          tourTitle={tourDef.title}
+          onPrimary={handleDeviationOk}
+        />
+      )}
+
+      {state.phase === 'completed' && tourDef && (
+        <TourModal
+          type="completion"
+          tourTitle={tourDef.title}
+          onPrimary={handleCompletionDone}
+        />
+      )}
+
+      {state.phase === 'offer-next' && (
+        <TourModal
+          type="offer-next"
+          tourTitle={TEACHER_TOUR.title}
+          onPrimary={handleOfferAccept}
+          onSecondary={handleOfferDecline}
+        />
+      )}
+
+      {state.phase === 'paused' && tourDef && (
+        <TourModal
+          type="resume"
+          tourTitle={tourDef.title}
+          stepCount={steps.length}
+          currentStep={state.currentStepIndex}
+          onPrimary={resumeTour}
+          onSecondary={stopTour}
+        />
+      )}
     </TourContext.Provider>
   );
 };

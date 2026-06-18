@@ -1,0 +1,126 @@
+@use '../../styles/variables' as *;
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: $z-tooltip;
+  pointer-events: auto;
+}
+
+.loading {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: $color-white;
+  font-size: $font-size-lg;
+  z-index: $z-tooltip + 2;
+}
+
+.cutout {
+  position: fixed;
+  z-index: $z-tooltip;
+  border-radius: $border-radius-md;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5),
+              0 0 0 4px rgba($color-primary, 0.4);
+  pointer-events: none;
+  transition: all $transition-slow;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: $z-tooltip + 1;
+  background: $color-white;
+  border-radius: $border-radius-lg;
+  box-shadow: $shadow-xl;
+  padding: $space-5;
+  pointer-events: auto;
+  animation: tooltipIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes tooltipIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.arrow {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: $color-white;
+  transform: rotate(45deg);
+  box-shadow: -2px -2px 3px rgba(0, 0, 0, 0.04);
+}
+
+.placement-top .arrow {
+  box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.04);
+}
+
+.placement-left .arrow {
+  box-shadow: 2px -2px 3px rgba(0, 0, 0, 0.04);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $space-2;
+}
+
+.counter {
+  font-size: $font-size-xs;
+  color: $color-gray-400;
+  font-weight: $font-weight-medium;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: $space-1;
+  color: $color-gray-400;
+  border-radius: $border-radius-sm;
+  transition: color $transition-fast, background $transition-fast;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    color: $color-gray-700;
+    background: $color-gray-100;
+  }
+}
+
+.title {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-gray-900;
+  margin-bottom: $space-2;
+}
+
+.content {
+  font-size: $font-size-base;
+  color: $color-gray-600;
+  line-height: 1.6;
+  margin-bottom: $space-5;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: $space-2;
+}
+
+.footerRight {
+  display: flex;
+  gap: $space-2;
+}

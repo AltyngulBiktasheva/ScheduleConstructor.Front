@@ -59,7 +59,7 @@ export const TeacherSchedulePage: React.FC = () => {
 
   if (!teacher) {
     return (
-      <div className={styles.page}>
+      <div className={styles.page} data-tour="page-content">
         <PageHeader
           title="Моё расписание"
           subtitle="Просмотр расписания занятий"
@@ -72,12 +72,14 @@ export const TeacherSchedulePage: React.FC = () => {
         ) : teachersLoading ? (
           <div>Загрузка…</div>
         ) : (
+          <div data-tour="teacher-picker">
           <TeacherPicker
             teachers={teachers}
             onSelect={setTeacher}
             title="Найдите себя в списке"
             subtitle="Выберите своё имя, чтобы открыть расписание"
           />
+          </div>
         )}
       </div>
     );

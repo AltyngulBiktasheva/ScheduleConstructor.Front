@@ -353,6 +353,7 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
     <div className={styles.form}>
 
       {/* ── Shared fields ── */}
+      <div data-tour="dsc-root-field">
       <FormField label="Корневая дисциплина" required error={errors.parentId}>
         <SearchableSelect
           options={rootDisciplines.map((d) => ({ value: d.id, label: d.name }))}
@@ -381,6 +382,7 @@ export const DisciplineForm: React.FC<Props> = ({ initial, onSave, onCancel, loa
           ))}
         </select>
       </FormField>
+      </div>
 
       {/* ── Batches ── */}
       {batches.map((batch, idx) => {
@@ -564,6 +566,7 @@ const BatchSection: React.FC<BatchSectionProps> = ({
       {!batch.collapsed && (
         <div className={styles.batchBody}>
           {/* Группы (иерархический мультиселект) */}
+          <div data-tour="dsc-assignments">
           <FormField label="Группы" required error={errors.group}>
             <GroupTreeSelect
               groups={allGroupsFull}
@@ -580,7 +583,10 @@ const BatchSection: React.FC<BatchSectionProps> = ({
             />
           </FormField>
 
+          </div>
+
           {/* Количество часов */}
+          <div data-tour="dsc-hours">
           <FormField label="Количество часов">
             <div className={styles.weeklyCountRow}>
               <input
@@ -626,7 +632,10 @@ const BatchSection: React.FC<BatchSectionProps> = ({
             </FormField>
           </div>
 
+          </div>
+
           {/* Повторение + кол-во в неделю */}
+          <div data-tour="dsc-repeat">
           <div className={styles.row2}>
             <FormField label="Повторение" required>
               <select
@@ -751,6 +760,8 @@ const BatchSection: React.FC<BatchSectionProps> = ({
               )}
             </div>
           </FormField>
+
+          </div>
 
           <FormField label="Преподаватели" hint="Выберите одного или нескольких">
             <div className={styles.teacherSelectList}>

@@ -179,7 +179,7 @@ export const TeacherWishesPage: React.FC = () => {
 
   if (!teacher || !wishes) {
     return (
-      <div className={styles.page}>
+      <div className={styles.page} data-tour="page-content">
         <PageHeader
           title="Мои пожелания"
           subtitle="Укажите предпочтения по времени и аудиториям"
@@ -197,12 +197,14 @@ export const TeacherWishesPage: React.FC = () => {
           </div>
         ) : (
           <>
-            <TeacherPicker
-              teachers={teachers}
-              onSelect={handleSelectTeacher}
-              title="Найдите себя в списке"
-              subtitle="Выберите своё имя для просмотра и редактирования пожеланий"
-            />
+            <div data-tour="teacher-picker">
+              <TeacherPicker
+                teachers={teachers}
+                onSelect={handleSelectTeacher}
+                title="Найдите себя в списке"
+                subtitle="Выберите своё имя для просмотра и редактирования пожеланий"
+              />
+            </div>
             <button className={styles.selfAddBtn} onClick={() => setShowCreateForm(true)}>
               Нет в списке? Добавить себя
             </button>

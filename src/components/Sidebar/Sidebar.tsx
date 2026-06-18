@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { NAV_ITEMS, type NavItem } from '../../router/navigation';
+import { TourSidebarButton } from '../Tour/TourSidebarButton';
 import styles from './Styles.module.scss';
 
 interface Props {
@@ -60,6 +61,8 @@ export const Sidebar: React.FC<Props> = ({ isOpen, onToggle }) => {
             />
           ))}
         </nav>
+
+        <TourSidebarButton isOpen={isOpen} />
 
         {isOpen && (
           <div className={styles.footer}>

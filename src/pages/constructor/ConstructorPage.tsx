@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { PageHeader } from '../../components/PageHeader/PageHeader';
 import { Tabs } from '../../components/Tabs/Tabs';
 import { MainContainer } from '../../components/MainContainer/MainContainer';
@@ -6,6 +6,7 @@ import { ScheduleSelector } from '../../components/ScheduleSelector/ScheduleSele
 import { ClassroomSlice } from './slices/ClassroomSlice';
 import { TeacherSlice } from './slices/TeacherSlice';
 import { GroupSlice } from './slices/GroupSlice';
+import { TOUR_TAB_SWITCH } from '../../components/Tour';
 import styles from './Styles.module.scss';
 
 const TABS = [
@@ -26,6 +27,14 @@ export const ConstructorPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<SliceType>('groups');
   const [selection, setSelection] = useState<SliceSelection | null>(null);
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      setActiveTab((e as CustomEvent).detail.tabId as SliceType);
+    };
+    window.addEventListener(TOUR_TAB_SWITCH, handler);
+    return () => window.removeEventListener(TOUR_TAB_SWITCH, handler);
+  }, []);
+
   const handleSelect = (entityId: string | string[], label: string) => {
     setSelection({ type: activeTab, entityId, label });
   };
@@ -45,7 +54,9 @@ export const ConstructorPage: React.FC = () => {
 
       {!selection ? (
         <>
-          <Tabs tabs={TABS} activeId={activeTab} onChange={handleTabChange} />
+          <div data-tour="constructor-tabs">
+            <Tabs tabs={TABS} activeId={activeTab} onChange={handleTabChange} />
+          </div>
           <div className={styles.sliceContainer}>
             {activeTab === 'classrooms' && <ClassroomSlice onSelect={handleSelect} />}
             {activeTab === 'teachers' && <TeacherSlice onSelect={handleSelect} />}

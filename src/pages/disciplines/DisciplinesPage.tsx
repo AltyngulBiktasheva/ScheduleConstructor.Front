@@ -9,6 +9,7 @@ import { useDisciplines } from '../../hooks/useDisciplines';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { setDisciplinesPage, setDisciplinesItemsPerPage, fetchDisciplinesAll } from '../../store/slices/disciplinesListSlice';
 import { Pagination } from '../../components/Pagination/Pagination';
+import { TOUR_TAB_SWITCH } from '../../components/Tour';
 import type { Discipline } from '../../types/discipline';
 import type { RootDisciplineFormData } from './tabs/RootDisciplineForm';
 import styles from './Styles.module.scss';
@@ -21,6 +22,13 @@ const TABS = [
 
 export const DisciplinesPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('list');
+
+  useEffect(() => {
+    const handler = (e: Event) => setActiveTab((e as CustomEvent).detail.tabId);
+    window.addEventListener(TOUR_TAB_SWITCH, handler);
+    return () => window.removeEventListener(TOUR_TAB_SWITCH, handler);
+  }, []);
+
   const [savingRoot, setSavingRoot] = useState(false);
   const [saving, setSaving] = useState(false);
   const {
@@ -61,8 +69,10 @@ export const DisciplinesPage: React.FC = () => {
         </div>
       ) : (
         <>
-          <Tabs tabs={TABS} activeId={activeTab} onChange={setActiveTab} />
-          <div className={styles.content}>
+          <div data-tour="page-tabs">
+            <Tabs tabs={TABS} activeId={activeTab} onChange={setActiveTab} />
+          </div>
+          <div className={styles.content} data-tour="page-content">
             {activeTab === 'list' && (
               <>
                 {loading && rootDisciplines.length === 0 && disciplines.length === 0 && (
@@ -95,10 +105,14 @@ export const DisciplinesPage: React.FC = () => {
               </>
             )}
             {activeTab === 'create-root' && (
-              <RootDisciplineForm onSave={handleCreateRoot} loading={savingRoot} />
+              <div data-tour="form-area">
+                <RootDisciplineForm onSave={handleCreateRoot} loading={savingRoot} />
+              </div>
             )}
             {activeTab === 'create' && (
-              <DisciplineForm onSave={handleCreate} loading={saving} />
+              <div data-tour="form-area">
+                <DisciplineForm onSave={handleCreate} loading={saving} />
+              </div>
             )}
           </div>
         </>
