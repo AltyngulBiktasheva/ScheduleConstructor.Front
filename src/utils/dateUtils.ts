@@ -6,6 +6,20 @@ export function formatLocalDate(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+/** Возвращает 6 дат (пн–сб) для недели со сдвигом weekOffset от текущей */
+export function getWeekDates(weekOffset: number): string[] {
+  const now = new Date();
+  const dow = now.getDay();
+  const diffToMonday = dow === 0 ? -6 : 1 - dow;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + diffToMonday + weekOffset * 7);
+  return Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return formatLocalDate(d);
+  });
+}
+
 /** Возвращает DayOfWeek (C# enum: 0=Sun, 1=Mon, ..., 6=Sat) для строки даты YYYY-MM-DD */
 export function dateToDayOfWeek(dateStr: string): number {
   const d = new Date(dateStr + 'T12:00:00'); // полдень чтобы избежать timezone shift

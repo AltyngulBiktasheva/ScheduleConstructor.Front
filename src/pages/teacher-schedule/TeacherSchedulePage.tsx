@@ -1,24 +1,25 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '../../components/PageHeader/PageHeader';
 import { TeacherPicker } from '../../components/TeacherPicker/TeacherPicker';
 import { ScheduleGrid } from '../../components/ScheduleGrid/ScheduleGrid';
 import type { Teacher } from '../../types/teacher';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { fetchTeachersAll } from '../../store/slices/teachersListSlice';
-import { fetchDisciplinesAll } from '../../store/slices/disciplinesListSlice';
+import { fetchWeekLessons } from '../../store/slices/lessonSlice';
+import { fetchSchedules } from '../../store/slices/scheduleSlice';
+import { getWeekDates } from '../../utils/dateUtils';
+import { lessonToDiscipline } from '../../utils/lessonMappers';
 import styles from './Styles.module.scss';
 
 export const TeacherSchedulePage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { teachers, loading: teachersLoading, error: teachersError } = useAppSelector((s) => s.teachersList);
-  const {
-    disciplines: rawDisciplines,
-    rootDisciplines,
-    loading: disciplinesLoading,
-    error: disciplinesError,
-  } = useAppSelector((s) => s.disciplinesList);
-  const disciplines = [...rootDisciplines, ...rawDisciplines];
+  const { weekLessons: rawWeekLessons, weekLessonsLoading } = useAppSelector((s) => s.lesson);
+  const weekLessons = rawWeekLessons ?? [];
   const selectedScheduleId = useAppSelector((s) => s.schedule.selectedScheduleId);
+  const scheduleDateInterval = useAppSelector((s) =>
+    s.schedule.list.find((sc) => sc.id === s.schedule.selectedScheduleId)?.dateInterval ?? null
+  );
 
   const [teacher, setTeacher] = useState<Teacher | null>(null);
   const [weekOffset, setWeekOffset] = useState(0);
@@ -26,12 +27,30 @@ export const TeacherSchedulePage: React.FC = () => {
 
   useEffect(() => {
     if (teachers.length === 0) dispatch(fetchTeachersAll());
-    if (disciplines.length === 0) dispatch(fetchDisciplinesAll(selectedScheduleId ?? undefined));
-  }, [dispatch, teachers.length, disciplines.length, retryKey, selectedScheduleId]);
+    if (!selectedScheduleId) dispatch(fetchSchedules());
+  }, [dispatch, teachers.length, selectedScheduleId, retryKey]);
 
-  const loadError =
-    (teachersError && teachers.length === 0) ||
-    (disciplinesError && disciplines.length === 0);
+  useEffect(() => {
+    if (!selectedScheduleId || !teacher) return;
+    const dates = getWeekDates(weekOffset);
+    dispatch(fetchWeekLessons({
+      scheduleId: selectedScheduleId,
+      dateFrom: dates[0],
+      dateTo: dates[5],
+    }));
+  }, [dispatch, selectedScheduleId, teacher, weekOffset]);
+
+  const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
+
+  const gridDisciplines = useMemo(() => {
+    if (!teacher) return [];
+    const teacherLessons = weekLessons.filter((l) =>
+      (l.teachers ?? []).some((t) => t.id === teacher.id) && l.dateWithTimeInterval != null
+    );
+    return teacherLessons.map((l) => lessonToDiscipline(l, weekDates));
+  }, [teacher, weekLessons, weekDates]);
+
+  const loadError = teachersError && teachers.length === 0;
 
   if (!teacher) {
     return (
@@ -45,7 +64,7 @@ export const TeacherSchedulePage: React.FC = () => {
             <p>Не удалось загрузить данные</p>
             <button onClick={() => setRetryKey((k) => k + 1)}>Повторить</button>
           </div>
-        ) : teachersLoading || disciplinesLoading ? (
+        ) : teachersLoading ? (
           <div>Загрузка…</div>
         ) : (
           <TeacherPicker
@@ -58,10 +77,6 @@ export const TeacherSchedulePage: React.FC = () => {
       </div>
     );
   }
-
-  const teacherDisciplines = disciplines.filter(
-    (d) => d.teacher === teacher.name || d.teachers?.some((t) => t.name === teacher.name)
-  );
 
   return (
     <div className={styles.page}>
@@ -76,9 +91,11 @@ export const TeacherSchedulePage: React.FC = () => {
 
       <div className={styles.gridWrapper}>
         <ScheduleGrid
-          disciplines={teacherDisciplines}
+          disciplines={gridDisciplines}
           weekOffset={weekOffset}
           onWeekOffsetChange={setWeekOffset}
+          scheduleDateInterval={scheduleDateInterval}
+          loading={weekLessonsLoading}
         />
       </div>
     </div>
